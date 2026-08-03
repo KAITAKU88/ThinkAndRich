@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum SubscriptionTier {
+  FREE
+  PREMIUM
+  SUPER
+}
+
+model User {
+  id               String           @id @default(uuid())
+  email            String           @unique
+  name             String?
+  role             Role             @default(USER)
+  subscriptionTier SubscriptionTier @default(FREE)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  favorites        Favorite[]
+  transactions     Transaction[]
+  subscriptions    Subscription?
+}
+
+model Idea {
+  id               String      @id @default(uuid())
+  title            String
+  shortDescription String
+  fullContent      String
+  thumbnailUrl     String?
+  category         String
+  status           String      @default("PUBLISHED")
+  isPremiumOnly    Boolean     @default(true)
+
+  seoTitle         String?
+  seoDescription   String?
+  seoImage         String?
+
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  favorites        Favorite[]
+}
+
+model Favorite {
+  id        String   @id @default(uuid())
+  userId    String
+  ideaId    String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  idea      Idea     @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, ideaId])
+}
+
+model Subscription {
+  id        String           @id @default(uuid())
+  userId    String           @unique
+  tier      SubscriptionTier
+  startDate DateTime         @default(now())
+  endDate   DateTime?
+  isActive  Boolean          @default(true)
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Transaction {
+  id            String   @id @default(uuid())
+  userId        String
+  amount        Float
+  currency      String
+  gateway       String
+  transactionId String   @unique
+  status        String
+  createdAt     DateTime @default(now())
+
+  user          User     @relation(fields: [userId], references: [id])
+}
+
+model AppSetting {
+  id           String   @id @default(uuid())
+  settingKey   String   @unique
+  settingValue String
+  updatedAt    DateTime @updatedAt
+}
