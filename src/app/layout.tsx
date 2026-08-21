@@ -16,9 +16,9 @@ const newsreader = Newsreader({
 });
 
 export const metadata: Metadata = {
-  title: "IdeaVault — Thư viện ý tưởng khởi nghiệp",
+  title: "Think & Rich — Thư viện Mô hình Tư duy & Chiến lược Kinh doanh",
   description:
-    "Khám phá ý tưởng khởi nghiệp kèm mô hình doanh thu, kế hoạch triển khai và số liệu tài chính.",
+    "Kho tàng tổng hợp và đúc kết toàn bộ các Mô hình Tư duy, Mô hình Tâm trí và Chiến lược Kinh doanh đỉnh cao, khai phóng nhận thức và nâng tầm quyết định.",
 };
 
 export default function RootLayout({
@@ -34,3 +34,4 @@ export default function RootLayout({
     </html>
   );
 }
+

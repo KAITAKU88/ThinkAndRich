@@ -1,32 +1,20 @@
-import type { Idea, SessionUser, SubscriptionTier } from "./types";
+import type { Post, SessionUser } from "./types";
 
-export function canAccessIdea(
-  idea: Idea,
+/**
+ * Access policy for Think & Rich:
+ * Reading full content requires authentication via Email OTP.
+ */
+export function canAccessPost(
+  _post: Post,
   user: SessionUser | null
 ): boolean {
-  if (idea.isPremiumOnly) {
-    return user?.subscriptionTier === "SUPER";
-  }
-  if (idea.requiresPremium) {
-    return (
-      user?.subscriptionTier === "PREMIUM" ||
-      user?.subscriptionTier === "SUPER"
-    );
-  }
-  return true;
+  return Boolean(user);
 }
 
-export function requiredTier(idea: Idea): SubscriptionTier {
-  if (idea.isPremiumOnly) return "SUPER";
-  if (idea.requiresPremium) return "PREMIUM";
-  return "FREE";
-}
+// Backward compatibility alias
+export const canAccessIdea = canAccessPost;
 
-export function favoriteLimit(tier: SubscriptionTier | undefined): number {
-  if (!tier || tier === "FREE") return 5;
-  return Infinity;
-}
-
-export function delay(ms = 280): Promise<void> {
+export function delay(ms = 200): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+

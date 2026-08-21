@@ -1,20 +1,20 @@
-import { SEED_IDEAS } from "@/lib/data";
+import { SEED_POSTS } from "@/lib/data";
 import { delay } from "@/lib/access";
-import type { Idea, IdeaStatus } from "@/lib/types";
+import type { Post, PostCategory, PostStatus } from "@/lib/types";
 
-let ideasDb: Idea[] = structuredClone(SEED_IDEAS);
+let postsDb: Post[] = structuredClone(SEED_POSTS);
 
-export type IdeaListParams = {
+export type PostListParams = {
   category?: string;
-  sort?: "newest" | "trending" | "views";
+  sort?: "newest" | "views" | "likes";
   page?: number;
   pageSize?: number;
   q?: string;
-  status?: IdeaStatus | "ALL";
+  status?: PostStatus | "ALL";
 };
 
-export async function listIdeas(params: IdeaListParams = {}) {
-  await delay();
+export async function listPosts(params: PostListParams = {}) {
+  await delay(100);
   const {
     category = "Tất cả",
     sort = "newest",
@@ -24,7 +24,7 @@ export async function listIdeas(params: IdeaListParams = {}) {
     status = "PUBLISHED",
   } = params;
 
-  let list = ideasDb.filter((i) =>
+  let list = postsDb.filter((i) =>
     status === "ALL" ? true : i.status === status
   );
 
@@ -36,16 +36,15 @@ export async function listIdeas(params: IdeaListParams = {}) {
     list = list.filter(
       (i) =>
         i.title.toLowerCase().includes(needle) ||
-        i.shortDescription.toLowerCase().includes(needle)
+        i.shortDescription.toLowerCase().includes(needle) ||
+        i.tags.some((t) => t.toLowerCase().includes(needle))
     );
   }
 
-  if (sort === "trending") {
-    list = [...list].sort(
-      (a, b) => Number(b.isTrending) - Number(a.isTrending) || b.views - a.views
-    );
-  } else if (sort === "views") {
+  if (sort === "views") {
     list = [...list].sort((a, b) => b.views - a.views);
+  } else if (sort === "likes") {
+    list = [...list].sort((a, b) => b.likes - a.likes);
   } else {
     list = [...list].sort(
       (a, b) => +new Date(b.createdAt) - +new Date(a.createdAt)
@@ -60,72 +59,57 @@ export async function listIdeas(params: IdeaListParams = {}) {
   return { items, total, page: safePage, totalPages, pageSize };
 }
 
-export async function getIdea(id: string) {
-  await delay(120);
-  return ideasDb.find((i) => i.id === id) ?? null;
+export async function getPost(id: string) {
+  await delay(80);
+  return postsDb.find((i) => i.id === id || i.slug === id) ?? null;
 }
 
-export async function upsertIdea(
-  input: Partial<Idea> & { title: string; shortDescription: string }
+export async function upsertPost(
+  input: Partial<Post> & { title: string; shortDescription: string }
 ) {
-  await delay();
+  await delay(100);
   if (input.id) {
-    ideasDb = ideasDb.map((i) =>
-      i.id === input.id ? { ...i, ...input, updatedAt: new Date().toISOString() } as Idea : i
+    postsDb = postsDb.map((i) =>
+      i.id === input.id
+        ? ({ ...i, ...input, updatedAt: new Date().toISOString() } as Post)
+        : i
     );
-    return ideasDb.find((i) => i.id === input.id)!;
+    return postsDb.find((i) => i.id === input.id)!;
   }
-  const idea: Idea = {
-    id: String(Date.now()),
+  const id = input.slug || `post-${Date.now()}`;
+  const now = new Date().toISOString();
+  const post: Post = {
+    id,
+    slug: id,
     title: input.title,
     shortDescription: input.shortDescription,
     fullContent: input.fullContent ?? "<p></p>",
     thumbnailUrl:
       input.thumbnailUrl ??
-      "https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=800&auto=format&fit=crop",
-    category: input.category ?? "SaaS",
-    status: input.status ?? "DRAFT",
-    isPremiumOnly: input.isPremiumOnly ?? false,
-    requiresPremium: input.requiresPremium ?? true,
-    views: 0,
-    location: input.location ?? "Việt Nam",
-    createdAt: new Date().toISOString().slice(0, 10),
-    seoTitle: input.seoTitle,
-    seoDescription: input.seoDescription,
-    seoImage: input.seoImage,
+      "https://images.unsplash.com/photo-1507668077129-56e32842fceb?q=80&w=1200&auto=format&fit=crop",
+    videoUrl: input.videoUrl,
+    category: (input.category as PostCategory) ?? "Mô hình Tư duy",
+    status: input.status ?? "PUBLISHED",
+    author: input.author ?? "Think & Rich",
+    readTime: input.readTime ?? "5 phút đọc",
+    views: input.views ?? 0,
+    likes: input.likes ?? 0,
+    dislikes: input.dislikes ?? 0,
+    featured: input.featured ?? false,
+    tags: input.tags ?? ["Tư duy", "Chiến lược"],
+    createdAt: now,
+    updatedAt: now,
   };
-  ideasDb = [idea, ...ideasDb];
-  return idea;
+  postsDb = [post, ...postsDb];
+  return post;
 }
 
-export async function importIdeasCsv(
-  rows: Array<Record<string, string>>
-): Promise<{ imported: number; errors: string[] }> {
-  await delay(400);
-  const errors: string[] = [];
-  let imported = 0;
-  for (const [idx, row] of rows.entries()) {
-    const title = row.title || row.Title || row["Tên ý tưởng"];
-    const shortDescription =
-      row.shortDescription || row.description || row["Mô tả"];
-    if (!title || !shortDescription) {
-      errors.push(`Dòng ${idx + 1}: thiếu title hoặc description`);
-      continue;
-    }
-    await upsertIdea({
-      title,
-      shortDescription,
-      category: row.category || row["Phân loại"] || "SaaS",
-      fullContent: row.fullContent || `<p>${shortDescription}</p>`,
-      status: "DRAFT",
-      requiresPremium: row.requiresPremium !== "false",
-      isPremiumOnly: row.isPremiumOnly === "true",
-    });
-    imported++;
-  }
-  return { imported, errors };
+// Backward compatibility aliases
+export const listIdeas = listPosts;
+export const getIdea = getPost;
+export const upsertIdea = upsertPost;
+
+export function resetPostsDb() {
+  postsDb = structuredClone(SEED_POSTS);
 }
 
-export function resetIdeasDb() {
-  ideasDb = structuredClone(SEED_IDEAS);
-}

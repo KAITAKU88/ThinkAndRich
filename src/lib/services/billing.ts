@@ -1,31 +1,28 @@
-import { PLANS } from "@/lib/data";
 import { delay } from "@/lib/access";
-import type { SubscriptionTier } from "@/lib/types";
 
 export type PaymentGateway = "STRIPE" | "SEPAY";
 
 export async function createCheckoutSession(input: {
-  plan: "PREMIUM" | "SUPER";
+  plan: string;
   gateway: PaymentGateway;
   userId: string;
 }) {
-  await delay(400);
-  const plan = PLANS.find((p) => p.id === input.plan)!;
+  await delay(300);
   return {
     id: `txn_${Date.now()}`,
-    amount: plan.priceVnd,
+    amount: 0,
     currency: "VND",
     gateway: input.gateway,
-    status: "PENDING" as const,
-    plan: input.plan as SubscriptionTier,
+    status: "SUCCESS" as const,
     userId: input.userId,
   };
 }
 
 export async function confirmCheckout(sessionId: string) {
-  await delay(300);
+  await delay(200);
   return {
     id: sessionId,
     status: "SUCCESS" as const,
   };
 }
+
