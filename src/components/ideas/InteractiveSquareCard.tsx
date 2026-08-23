@@ -277,8 +277,8 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
               <Eye className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
               <span className="font-mono tabular-nums">{formatViews(post.views || 0)}</span>
             </div>
-            {slotSize >= 4 && post.readingTimeMinutes && (
-              <div className="hidden sm:flex items-center gap-1" title={`${post.readingTimeMinutes} phút đọc`}>
+            {post.readingTimeMinutes && (
+              <div className="flex items-center gap-1" title={`${post.readingTimeMinutes} phút đọc`}>
                 <Clock className="w-3.5 h-3.5 text-muted-foreground" />
                 <span className="font-mono tabular-nums">{post.readingTimeMinutes}p</span>
               </div>

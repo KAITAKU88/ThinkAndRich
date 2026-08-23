@@ -65,6 +65,15 @@
   --pillar-crimson: #991b1b;
   --pillar-amber: #b45309;
   --pillar-jade: #065f46;
+
+  /* Membership tier accent — the same blue/amber the FREE/PLUS/PRO badges
+     already wear on cards and in the header, promoted to tokens so any
+     other UI (dropdown triggers, filter chips, etc.) can borrow the exact
+     same "which tier" language instead of re-typing a raw Tailwind shade.
+     FREE has no token on purpose: it's the baseline tier, not an upsell,
+     so it stays neutral (--muted-foreground / --secondary) everywhere. */
+  --tier-plus: #1d4ed8;
+  --tier-pro: #b45309;
 }
 
 .dark {
@@ -91,6 +100,9 @@
   --pillar-crimson: #f87171;
   --pillar-amber: #fbbf24;
   --pillar-jade: #34d399;
+
+  --tier-plus: #93c5fd;
+  --tier-pro: #fcd34d;
 }
 
 * {

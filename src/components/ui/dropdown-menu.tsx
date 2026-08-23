@@ -5,7 +5,21 @@ import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { Check, ChevronRight, Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const DropdownMenu = DropdownMenuPrimitive.Root;
+// modal defaults to false: Radix's modal mode is what locks (and briefly
+// hides) the page scrollbar while a menu is open — correct for a Dialog,
+// but heavier than these lightweight filter/action menus need. Every
+// DropdownMenu in the app goes through this one wrapper, so the scrollbar
+// simply never disappears anywhere, with no per-usage changes required.
+// Outside clicks still close the menu and keyboard nav is unaffected —
+// modal mode only adds focus-trapping and the scroll lock, neither of
+// which these menus rely on. Pass modal={true} explicitly on the rare
+// menu that should behave like a true modal.
+function DropdownMenu({
+  modal = false,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
+  return <DropdownMenuPrimitive.Root modal={modal} {...props} />;
+}
 const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
 const DropdownMenuGroup = DropdownMenuPrimitive.Group;
 const DropdownMenuPortal = DropdownMenuPrimitive.Portal;

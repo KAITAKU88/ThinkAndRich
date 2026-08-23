@@ -776,12 +776,31 @@ const dummyTitles = [
   "Chiến lược Đại dương Xanh: Cách tạo ra không gian thị trường không cạnh tranh, biến đối thủ trở nên không liên quan bằng cách tái định nghĩa giá trị cốt lõi."
 ];
 
+// Seeded PRNG (not Math.random()) — this module runs during SSR *and*
+// during client hydration, each a separate module evaluation. Math.random()
+// and Date.now() would draw different values each time, so the numbers
+// the server sent down wouldn't match what the client computes on mount,
+// which React reports as a hydration mismatch (and reacts to by discarding
+// and re-rendering the affected subtree — visible as a jump/flash). A
+// seeded generator produces the same sequence every time, server or client.
+function seededRandom(seed: number): () => number {
+  let s = seed;
+  return () => {
+    s = (s * 1664525 + 1013904223) & 0xffffffff;
+    return (s >>> 0) / 0xffffffff;
+  };
+}
+
+// Fixed anchor instead of Date.now(), for the same reason.
+const DUMMY_SEED_ANCHOR = new Date("2026-01-01T00:00:00.000Z").getTime();
+
 const dummyPosts: Post[] = Array.from({ length: 50 }).map((_, i): Post => {
   const titleCategory = i % 3; // 0: ngắn, 1: vừa, 2: dài
   const titleBase = dummyTitles[titleCategory * 4 + (i % 4)] || dummyTitles[i % dummyTitles.length];
   const pillar: PillarType = i % 2 === 0 ? "MENTAL_MODEL" : "BUSINESS_STRATEGY";
   const accessLevel: ContentAccessLevel =
     i % 4 === 0 ? "MEMBER_PRO" : i % 3 === 0 ? "MEMBER_PLUS" : "FREE";
+  const rand = seededRandom(1000 + i);
 
   return {
     id: `dummy-post-${i}`,
@@ -795,15 +814,15 @@ const dummyPosts: Post[] = Array.from({ length: 50 }).map((_, i): Post => {
     schematicSvg: "",
     fullContent: "<p>Nội dung thử nghiệm hiển thị chi tiết.</p>",
     accessLevel,
-    readingTimeMinutes: Math.floor(Math.random() * 10) + 1,
+    readingTimeMinutes: Math.floor(rand() * 10) + 1,
     status: "PUBLISHED",
-    views: Math.floor(Math.random() * 5000),
-    likes: Math.floor(Math.random() * 500),
-    dislikes: Math.floor(Math.random() * 10),
+    views: Math.floor(rand() * 5000),
+    likes: Math.floor(rand() * 500),
+    dislikes: Math.floor(rand() * 10),
     author: "Thuật toán Seed",
     tags: ["Test", "UI/UX", "Bento Grid"],
-    createdAt: new Date(Date.now() - i * 86400000).toISOString(),
-    updatedAt: new Date(Date.now() - i * 86400000).toISOString(),
+    createdAt: new Date(DUMMY_SEED_ANCHOR - i * 86400000).toISOString(),
+    updatedAt: new Date(DUMMY_SEED_ANCHOR - i * 86400000).toISOString(),
     shortDescription: "Dữ liệu test grid.",
     readTime: "3 phút",
   };

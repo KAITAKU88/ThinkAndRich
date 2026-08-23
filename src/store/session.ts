@@ -602,6 +602,12 @@ export const useSession = create<SessionState>()(
     {
       name: "think-and-rich-storage-v2",
       version: 2,
+      // Server-render and the client's first render both need to see the
+      // same (default, non-persisted) state — persist would otherwise
+      // read localStorage synchronously while the client store is being
+      // created, before hydration even starts. SiteShell triggers the
+      // real rehydration from localStorage right after mount instead.
+      skipHydration: true,
       partialize: (state) => ({
         user: state.user,
         users: state.users,
