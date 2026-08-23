@@ -52,7 +52,8 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
-import type { Post, PostCategory, PostStatus, UserRecord } from "@/lib/types";
+import type { Post, PillarType, CardDisplaySize, ContentAccessLevel, PostStatus, UserRecord } from "@/lib/types";
+import { PILLARS_CONFIG } from "@/lib/data";
 
 import { CATEGORIES } from "@/lib/data";
 import { Button } from "@/components/ui/button";
@@ -103,15 +104,20 @@ export function AdminPage() {
   // Post Editing State
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState<PostCategory>("Mô hình Tư duy");
-  const [shortDescription, setShortDescription] = useState("");
+  const [pillar, setPillar] = useState<PillarType>("MENTAL_MODEL");
+  const [category, setCategory] = useState<string>("Mô hình Tư duy");
+  const [displaySize, setDisplaySize] = useState<CardDisplaySize>("SQUARE_SM");
+  const [academicFormula, setAcademicFormula] = useState("");
+  const [schematicSvg, setSchematicSvg] = useState("");
+  const [keyTakeawaysInput, setKeyTakeawaysInput] = useState("");
+  const [summarySnippet, setSummarySnippet] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [author, setAuthor] = useState("Think & Rich");
-  const [readTime, setReadTime] = useState("5 phút đọc");
+  const [readingTimeMinutes, setReadingTimeMinutes] = useState(5);
   const [tagsInput, setTagsInput] = useState("");
   const [status, setStatus] = useState<PostStatus>("PUBLISHED");
-  const [isPro, setIsPro] = useState(false);
+  const [accessLevel, setAccessLevel] = useState<ContentAccessLevel>("FREE");
 
   // User History Modal State
   const [selectedUserForHistory, setSelectedUserForHistory] = useState<UserRecord | null>(null);
@@ -141,15 +147,20 @@ export function AdminPage() {
   function handleSelectEditPost(p: Post) {
     setEditingPost(p);
     setTitle(p.title);
+    setPillar(p.pillar || "MENTAL_MODEL");
     setCategory(p.category);
-    setShortDescription(p.shortDescription);
-    setThumbnailUrl(p.thumbnailUrl);
+    setDisplaySize(p.displaySize || "SQUARE_SM");
+    setAcademicFormula(p.academicFormula || "");
+    setSchematicSvg(p.schematicSvg || "");
+    setKeyTakeawaysInput(p.keyTakeaways ? p.keyTakeaways.join("\n") : "");
+    setSummarySnippet(p.summarySnippet || p.shortDescription || "");
+    setThumbnailUrl(p.thumbnailUrl || "");
     setVideoUrl(p.videoUrl || "");
-    setAuthor(p.author);
-    setReadTime(p.readTime);
-    setTagsInput(p.tags.join(", "));
-    setStatus(p.status);
-    setIsPro(Boolean(p.isPro));
+    setAuthor(p.author || "Think & Rich");
+    setReadingTimeMinutes(p.readingTimeMinutes || 5);
+    setTagsInput(p.tags ? p.tags.join(", ") : "");
+    setStatus(p.status || "PUBLISHED");
+    setAccessLevel(p.accessLevel || (p.isPro ? "MEMBER_PLUS" : "FREE"));
     if (editor) {
       editor.commands.setContent(p.fullContent || "<p></p>");
     }
@@ -159,17 +170,20 @@ export function AdminPage() {
   function handleResetForm() {
     setEditingPost(null);
     setTitle("");
+    setPillar("MENTAL_MODEL");
     setCategory("Mô hình Tư duy");
-    setShortDescription("");
-    setThumbnailUrl(
-      "https://images.unsplash.com/photo-1507668077129-56e32842fceb?q=80&w=1200&auto=format&fit=crop"
-    );
+    setDisplaySize("SQUARE_SM");
+    setAcademicFormula("");
+    setSchematicSvg("");
+    setKeyTakeawaysInput("");
+    setSummarySnippet("");
+    setThumbnailUrl("");
     setVideoUrl("");
     setAuthor("Think & Rich");
-    setReadTime("5 phút đọc");
+    setReadingTimeMinutes(5);
     setTagsInput("Tư duy, Chiến lược");
     setStatus("PUBLISHED");
-    setIsPro(false);
+    setAccessLevel("FREE");
     if (editor) {
       editor.commands.setContent("<p>Nhập nội dung chi tiết bài viết...</p>");
     }
@@ -177,7 +191,7 @@ export function AdminPage() {
 
   function handleSavePost(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim() || !shortDescription.trim()) {
+    if (!title.trim() || !summarySnippet.trim()) {
       toast.error("Vui lòng nhập đầy đủ tiêu đề và tóm tắt ngắn.");
       return;
     }
@@ -187,41 +201,58 @@ export function AdminPage() {
       .split(",")
       .map((t) => t.trim())
       .filter(Boolean);
+    const keyTakeaways = keyTakeawaysInput
+      .split("\n")
+      .map((t) => t.trim())
+      .filter(Boolean);
 
     if (editingPost) {
       updatePost(editingPost.id, {
         title,
+        pillar,
         category,
-        shortDescription,
-        thumbnailUrl,
+        displaySize,
+        academicFormula: academicFormula.trim() || undefined,
+        schematicSvg: schematicSvg.trim() || undefined,
+        keyTakeaways,
+        summarySnippet,
+        shortDescription: summarySnippet,
+        thumbnailUrl: thumbnailUrl.trim() || undefined,
         videoUrl: videoUrl.trim() || undefined,
         author,
-        readTime,
+        readingTimeMinutes,
         tags,
         status,
-        isPro,
+        accessLevel,
+        isPro: accessLevel !== "FREE",
         fullContent: html,
       });
       toast.success("Đã cập nhật bài viết thành công!");
     } else {
       createPost({
         title,
+        pillar,
         category,
-        shortDescription,
+        displaySize,
+        academicFormula: academicFormula.trim() || undefined,
+        schematicSvg: schematicSvg.trim() || undefined,
+        keyTakeaways,
+        summarySnippet,
+        shortDescription: summarySnippet,
         thumbnailUrl:
           thumbnailUrl.trim() ||
           "https://images.unsplash.com/photo-1507668077129-56e32842fceb?q=80&w=1200&auto=format&fit=crop",
         videoUrl: videoUrl.trim() || undefined,
         author,
-        readTime,
+        readingTimeMinutes,
         tags,
         status,
-        isPro,
+        accessLevel,
+        isPro: accessLevel !== "FREE",
         fullContent: html,
       });
       toast.success("Đã tạo và xuất bản bài viết mới thành công!");
     }
-
 
     handleResetForm();
     setTab("posts");
@@ -314,7 +345,7 @@ export function AdminPage() {
   const filteredPosts = posts.filter((p) => {
     const matchesSearch =
       p.title.toLowerCase().includes(postSearch.toLowerCase()) ||
-      p.shortDescription.toLowerCase().includes(postSearch.toLowerCase());
+      (p.summarySnippet || p.shortDescription || '').toLowerCase().includes(postSearch.toLowerCase());
     const matchesCat =
       postCatFilter === "Tất cả" || p.category === postCatFilter;
     return matchesSearch && matchesCat;
@@ -792,16 +823,56 @@ export function AdminPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="post-short-desc" className="font-semibold text-sm">
-                          Tóm tắt ngắn (Lead Summary) <span className="text-destructive">*</span>
+                        <Label htmlFor="post-summary" className="font-semibold text-sm">
+                          Tóm tắt ngắn gọn (Summary Snippet) <span className="text-destructive">*</span>
                         </Label>
                         <Textarea
-                          id="post-short-desc"
+                          id="post-summary"
                           required
-                          rows={3}
+                          rows={2}
                           placeholder="Tóm lược 2-3 câu giá trị cốt lõi của mô hình để hiển thị trên thẻ card và phần mở đầu..."
-                          value={shortDescription}
-                          onChange={(e) => setShortDescription(e.target.value)}
+                          value={summarySnippet}
+                          onChange={(e) => setSummarySnippet(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                        <div className="space-y-2">
+                          <Label className="font-semibold text-sm">
+                            Tiên đề học thuật / Công thức logic
+                          </Label>
+                          <Input
+                            placeholder="Ví dụ: F(x) = ∑ BaseTruth_i ⟹ Reconstruct(S)"
+                            value={academicFormula}
+                            onChange={(e) => setAcademicFormula(e.target.value)}
+                            className="font-mono text-xs"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="font-semibold text-sm">
+                            3 Luận điểm chiến lược (mỗi dòng 1 điểm)
+                          </Label>
+                          <Textarea
+                            rows={2}
+                            placeholder="Điểm 1&#10;Điểm 2&#10;Điểm 3"
+                            value={keyTakeawaysInput}
+                            onChange={(e) => setKeyTakeawaysInput(e.target.value)}
+                            className="text-xs"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 pt-2">
+                        <Label className="font-semibold text-sm">
+                          Mã sơ đồ Vector SVG tối giản (Schematic SVG Code)
+                        </Label>
+                        <Textarea
+                          rows={3}
+                          placeholder="<svg viewBox='0 0 160 100'>...</svg>"
+                          value={schematicSvg}
+                          onChange={(e) => setSchematicSvg(e.target.value)}
+                          className="font-mono text-xs"
                         />
                       </div>
                     </Card>
@@ -952,28 +1023,61 @@ export function AdminPage() {
                       </h3>
 
                       <div className="space-y-2">
-                        <Label>Chuyên mục</Label>
+                        <Label>Trụ cột Tri thức</Label>
                         <select
                           className="w-full h-10 px-3 rounded-lg bg-background border border-border text-sm"
-                          value={category}
-                          onChange={(e) =>
-                            setCategory(e.target.value as PostCategory)
-                          }
+                          value={pillar}
+                          onChange={(e) => setPillar(e.target.value as PillarType)}
                         >
-                          {CATEGORIES.filter((c) => c !== "Tất cả").map((cat) => (
-                            <option key={cat} value={cat}>
-                              {cat}
-                            </option>
-                          ))}
+                          <option value="MENTAL_MODEL">🔴 Mô hình Tư duy</option>
+                          <option value="BUSINESS_STRATEGY">🟡 Chiến lược Kinh doanh</option>
+                          <option value="STARTUP_IDEA">🟢 Ý tưởng Khởi nghiệp</option>
                         </select>
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Thời gian đọc ước tính</Label>
+                        <Label>Khổ thẻ hiển thị</Label>
+                        <select
+                          className="w-full h-10 px-3 rounded-lg bg-background border border-border text-sm"
+                          value={displaySize}
+                          onChange={(e) => setDisplaySize(e.target.value as CardDisplaySize)}
+                        >
+                          <option value="SQUARE_SM">Thẻ vuông nhỏ 1x1 (Compact)</option>
+                          <option value="SQUARE_MD">Thẻ vuông vừa 2x2 (Medium)</option>
+                          <option value="SQUARE_LG">Thẻ hồ sơ lớn 3x3 (Feature Dossier)</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Quyền truy cập</Label>
+                        <select
+                          className="w-full h-10 px-3 rounded-lg bg-background border border-border text-sm"
+                          value={accessLevel}
+                          onChange={(e) => setAccessLevel(e.target.value as ContentAccessLevel)}
+                        >
+                          <option value="FREE">Miễn phí (FREE - 10 bài/ngày)</option>
+                          <option value="MEMBER_PLUS">Hội viên PLUS (25 bài/ngày)</option>
+                          <option value="MEMBER_PRO">Hội viên PRO (Không giới hạn)</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Chuyên mục phụ</Label>
                         <Input
-                          placeholder="Ví dụ: 6 phút đọc"
-                          value={readTime}
-                          onChange={(e) => setReadTime(e.target.value)}
+                          placeholder="Ví dụ: Deep-dive Teardown, Hào kinh tế..."
+                          value={category}
+                          onChange={(e) => setCategory(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Thời gian đọc (phút)</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={60}
+                          value={readingTimeMinutes}
+                          onChange={(e) => setReadingTimeMinutes(parseInt(e.target.value) || 5)}
                         />
                       </div>
 
@@ -1039,21 +1143,7 @@ export function AdminPage() {
                         </select>
                       </div>
 
-                      <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Crown className="w-4 h-4 text-amber-500 shrink-0" />
-                          <div>
-                            <p className="text-xs font-semibold text-foreground">Bài viết Member</p>
-                            <p className="text-[10px] text-muted-foreground">Yêu cầu Gói Plus hoặc Gói Pro</p>
-                          </div>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={isPro}
-                          onChange={(e) => setIsPro(e.target.checked)}
-                          className="w-4 h-4 rounded text-amber-500 accent-amber-500 cursor-pointer"
-                        />
-                      </div>
+
 
 
 

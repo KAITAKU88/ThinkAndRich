@@ -1,18 +1,25 @@
 import type { Metadata } from "next";
-import { Newsreader, Sora } from "next/font/google";
+import { Newsreader, IBM_Plex_Sans, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { SiteShell } from "@/components/layout/SiteShell";
 import "./globals.css";
 
-const sora = Sora({
-  variable: "--font-sora",
+const plexSans = IBM_Plex_Sans({
+  variable: "--font-plex-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const newsreader = Newsreader({
   variable: "--font-newsreader",
   subsets: ["latin"],
   style: ["normal", "italic"],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -26,7 +33,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="vi" suppressHydrationWarning>
-      <body className={`${sora.variable} ${newsreader.variable} antialiased`}>
+      <body className={`${plexSans.variable} ${newsreader.variable} ${jetbrainsMono.variable} antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <SiteShell>{children}</SiteShell>
         </ThemeProvider>

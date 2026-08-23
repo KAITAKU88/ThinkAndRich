@@ -10,31 +10,59 @@ import {
   ExternalLink,
   ShieldCheck,
   Sparkles,
+  Flame,
+  Brain,
+  Compass,
+  Lightbulb,
+  CheckCircle2,
+  BookOpen,
+  Heart,
+  MonitorSmartphone,
+  Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PostCard } from "@/components/ideas/IdeaCard";
+import { DynamicSquareCard } from "@/components/ideas/DynamicSquareCard";
 import { useSession } from "@/store/session";
-import { timeAgo } from "@/lib/utils";
+import { timeAgo, cn } from "@/lib/utils";
+import type { PillarType } from "@/lib/types";
+import { PILLARS_CONFIG } from "@/lib/data";
 
-
-type ProfileTab = "saved" | "history" | "account";
+type ProfileTab = "saved" | "history" | "favorites" | "account";
 
 export function ProfilePage() {
   const [tab, setTab] = useState<ProfileTab>("saved");
+  const [savedPillar, setSavedPillar] = useState<"ALL" | PillarType>("ALL");
+  const [favPillar, setFavPillar] = useState<"ALL" | PillarType>("ALL");
+
   const user = useSession((s) => s.user);
   const posts = useSession((s) => s.posts);
   const bookmarks = useSession((s) => s.bookmarks);
   const readLogs = useSession((s) => s.readLogs);
+  const userReactions = useSession((s) => s.userReactions);
   const setAuthOpen = useSession((s) => s.setAuthOpen);
   const logout = useSession((s) => s.logout);
+  const todayReads = useSession((s) => s.getTodayReadCount)();
+  const dailyLimit = useSession((s) => s.getDailyLimit)();
 
   // Filter bookmarked posts
-  const savedPosts = useMemo(
-    () => posts.filter((p) => bookmarks.includes(p.id)),
-    [posts, bookmarks]
-  );
+  const savedPosts = useMemo(() => {
+    let list = posts.filter((p) => bookmarks.includes(p.id));
+    if (savedPillar !== "ALL") {
+      list = list.filter((p) => p.pillar === savedPillar);
+    }
+    return list;
+  }, [posts, bookmarks, savedPillar]);
+
+  // Filter favorite posts
+  const favoritePosts = useMemo(() => {
+    let list = posts.filter((p) => userReactions[p.id] === "like");
+    if (favPillar !== "ALL") {
+      list = list.filter((p) => p.pillar === favPillar);
+    }
+    return list;
+  }, [posts, userReactions, favPillar]);
 
   // Filter user's reading history
   const userHistory = useMemo(() => {
@@ -44,15 +72,21 @@ export function ProfilePage() {
     );
   }, [readLogs, user]);
 
+  // MOCK DEVICES
+  const devices = [
+    { id: 1, name: "Chrome trên Windows", isCurrent: true, lastActive: "Đang hoạt động" },
+    { id: 2, name: "Safari trên iPhone 15", isCurrent: false, lastActive: "2 giờ trước" }
+  ];
+
   if (!user) {
     return (
       <div className="container mx-auto max-w-lg px-4 py-20 text-center space-y-5">
         <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary mx-auto flex items-center justify-center">
-          <Bookmark className="w-7 h-7" />
+          <User className="w-7 h-7" />
         </div>
-        <h1 className="font-display text-2xl font-bold">Tủ sách Cá nhân</h1>
+        <h1 className="font-display text-2xl font-bold">Khu vực Cá nhân</h1>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          Đăng nhập bằng Email OTP để truy cập tủ sách lưu trữ, lịch sử đọc bài và đồng bộ các mô hình tư duy yêu thích của bạn.
+          Đăng nhập bằng Email OTP để truy cập khu vực cá nhân, xem lịch sử đọc bài, bài viết yêu thích và quản lý gói thành viên.
         </p>
         <Button
           className="rounded-full px-8 font-semibold"
@@ -64,134 +98,77 @@ export function ProfilePage() {
     );
   }
 
+  const quotaPercent = dailyLimit === Infinity ? 100 : Math.min(100, (todayReads / dailyLimit) * 100);
+
   return (
-    <div className="container mx-auto max-w-7xl px-4 py-8">
-      {/* Profile Header */}
-      <div className="p-6 md:p-8 rounded-3xl bg-card border border-border/80 shadow-sm mb-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-display text-2xl font-bold border border-primary/20">
-              {user.name.charAt(0).toUpperCase()}
+    <div className="container mx-auto max-w-7xl px-3 sm:px-4 py-6 md:py-8">
+      {/* Profile Header Card */}
+      <div className="p-6 md:p-8 rounded-3xl bg-card border border-border shadow-sm mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-display text-2xl font-bold border border-primary/20 shrink-0">
+            {user.name.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">
+                {user.name}
+              </h1>
+              <Badge
+                className={cn(
+                  "rounded-full text-xs font-bold",
+                  user.tier === "PRO"
+                    ? "bg-amber-500 text-white border-none"
+                    : user.tier === "PLUS"
+                    ? "bg-blue-600 text-white border-none"
+                    : "bg-secondary text-foreground"
+                )}
+              >
+                {user.tier === "PRO" ? "PRO MEMBER" : user.tier === "PLUS" ? "PLUS MEMBER" : "FREE TIER"}
+              </Badge>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">
-                  {user.name}
-                </h1>
-                <Badge
-                  variant={user.role === "ADMIN" ? "default" : "secondary"}
-                  className="rounded-full text-xs"
-                >
-                  {user.role === "ADMIN" ? "Quản trị viên" : "Độc giả"}
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground mt-0.5">{user.email}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {user.role === "ADMIN" && (
-              <Button variant="outline" className="rounded-full text-xs" asChild>
-                <Link href="/admin">Khu vực Quản trị &rarr;</Link>
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="rounded-full text-destructive hover:bg-destructive/10 text-xs"
-              onClick={logout}
-            >
-              <LogOut className="w-3.5 h-3.5 mr-1" /> Đăng xuất
-            </Button>
-          </div>
-        </div>
-
-        {/* 3 Overview Stat Counters */}
-        <div className="grid grid-cols-3 gap-3 md:gap-4 mt-6 pt-6 border-t border-border/60">
-          <div className="p-3.5 rounded-2xl bg-muted/40 text-center">
-            <p className="text-xs text-muted-foreground uppercase font-medium">
-              Đã lưu
-            </p>
-            <p className="text-xl md:text-2xl font-bold text-foreground mt-0.5">
-              {bookmarks.length}
-            </p>
-          </div>
-          <div className="p-3.5 rounded-2xl bg-muted/40 text-center">
-            <p className="text-xs text-muted-foreground uppercase font-medium">
-              Đã đọc
-            </p>
-            <p className="text-xl md:text-2xl font-bold text-primary mt-0.5">
-              {userHistory.length}
-            </p>
-          </div>
-          <div className="p-3.5 rounded-2xl bg-muted/40 text-center">
-            <p className="text-xs text-muted-foreground uppercase font-medium">
-              Yêu thích
-            </p>
-            <p className="text-xl md:text-2xl font-bold text-emerald-600 mt-0.5">
-              {userHistory.filter((h) => h.reaction === "like").length}
-            </p>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">{user.email}</p>
           </div>
         </div>
       </div>
 
       {/* Tabs Switcher */}
-      <div className="flex items-center gap-2 border-b border-border pb-4 mb-8">
-        <Button
-          variant={tab === "saved" ? "default" : "ghost"}
-          className="rounded-full text-xs sm:text-sm font-medium gap-1.5"
-          onClick={() => setTab("saved")}
-        >
-          <Bookmark className="w-4 h-4" /> Tủ sách đã lưu ({savedPosts.length})
-        </Button>
+      <div className="flex items-center gap-2 border-b border-border pb-3 mb-6 overflow-x-auto scrollbar-hide">
         <Button
           variant={tab === "history" ? "default" : "ghost"}
-          className="rounded-full text-xs sm:text-sm font-medium gap-1.5"
+          className="rounded-full text-xs sm:text-sm font-semibold gap-1.5 shrink-0"
           onClick={() => setTab("history")}
         >
-          <Clock className="w-4 h-4" /> Lịch sử đọc ({userHistory.length})
+          <Clock className="w-4 h-4" /> Đã đọc ({userHistory.length})
+        </Button>
+        <Button
+          variant={tab === "saved" ? "default" : "ghost"}
+          className="rounded-full text-xs sm:text-sm font-semibold gap-1.5 shrink-0"
+          onClick={() => setTab("saved")}
+        >
+          <Bookmark className="w-4 h-4" /> Đọc sau ({bookmarks.length})
+        </Button>
+        <Button
+          variant={tab === "favorites" ? "default" : "ghost"}
+          className="rounded-full text-xs sm:text-sm font-semibold gap-1.5 shrink-0"
+          onClick={() => setTab("favorites")}
+        >
+          <Heart className="w-4 h-4" /> Yêu thích ({Object.values(userReactions).filter(r => r === "like").length})
         </Button>
         <Button
           variant={tab === "account" ? "default" : "ghost"}
-          className="rounded-full text-xs sm:text-sm font-medium gap-1.5"
+          className="rounded-full text-xs sm:text-sm font-semibold gap-1.5 shrink-0"
           onClick={() => setTab("account")}
         >
-          <User className="w-4 h-4" /> Tài khoản
+          <User className="w-4 h-4" /> Cài đặt tài khoản
         </Button>
       </div>
 
-      {/* Tab Content 1: Saved Posts */}
-      {tab === "saved" && (
-        <div>
-          {savedPosts.length === 0 ? (
-            <div className="text-center py-16 bg-card rounded-2xl border border-dashed border-border p-8">
-              <Bookmark className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-              <h3 className="font-display font-semibold text-lg mb-1">
-                Tủ sách đang trống
-              </h3>
-              <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-4">
-                Bấm icon bookmark trên thẻ bất kỳ để lưu lại mô hình tư duy bạn muốn đọc lại sau.
-              </p>
-              <Button asChild className="rounded-full">
-                <Link href="/">Khám phá mô hình ngay</Link>
-              </Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-              {savedPosts.map((post) => (
-                <PostCard key={post.id} post={post} />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Tab Content 2: Reading History */}
+      {/* TAB: LỊCH SỬ ĐỌC */}
       {tab === "history" && (
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden rounded-3xl">
           <CardHeader>
-            <CardTitle className="text-lg font-semibold">
-              Nhật ký đọc bài của bạn
+            <CardTitle className="text-base sm:text-lg font-semibold">
+              Nhật ký tra cứu tri thức
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0 overflow-x-auto">
@@ -200,48 +177,51 @@ export function ProfilePage() {
                 Bạn chưa đọc bài viết nào. Hãy mở một bài viết trên trang chủ để bắt đầu!
               </div>
             ) : (
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs uppercase bg-muted/60 text-muted-foreground border-y border-border">
+              <table className="w-full text-xs sm:text-sm text-left">
+                <thead className="text-[11px] uppercase bg-secondary/60 text-muted-foreground border-y border-border">
                   <tr>
-                    <th className="px-4 py-3">Tên mô hình / Bài viết</th>
-                    <th className="px-4 py-3">Chuyên mục</th>
-                    <th className="px-4 py-3">Thời gian đọc</th>
-                    <th className="px-4 py-3 text-center">Tương tác</th>
+                    <th className="px-4 py-3">Hồ sơ tri thức</th>
+                    <th className="px-4 py-3">Trụ cột</th>
+                    <th className="px-4 py-3">Thời gian</th>
+                    <th className="px-4 py-3 text-center">Đánh giá</th>
                     <th className="px-4 py-3 text-right">Hành động</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
-                  {userHistory.map((h) => (
-                    <tr key={h.id} className="hover:bg-muted/30">
-                      <td className="px-4 py-3.5 font-medium max-w-[280px] truncate">
-                        {h.postTitle}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <Badge variant="outline" className="text-xs">
-                          {h.postCategory}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3.5 text-xs text-muted-foreground">
-                        {timeAgo(h.readAt)}
-                      </td>
-                      <td className="px-4 py-3.5 text-center">
-                        {h.reaction === "like" ? (
-                          <span className="text-emerald-600 font-semibold text-xs">👍 Yêu thích</span>
-                        ) : h.reaction === "dislike" ? (
-                          <span className="text-rose-600 font-semibold text-xs">👎 Không thích</span>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">Đã đọc</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3.5 text-right">
-                        <Button size="sm" variant="ghost" className="rounded-full text-xs" asChild>
-                          <Link href={`/post/${h.postId}`}>
-                            Đọc lại <ExternalLink className="w-3 h-3 ml-1" />
-                          </Link>
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
+                  {userHistory.map((h) => {
+                    const pillarMeta = (h.pillar && PILLARS_CONFIG[h.pillar]) || PILLARS_CONFIG.MENTAL_MODEL;
+                    return (
+                      <tr key={h.id} className="hover:bg-secondary/30">
+                        <td className="px-4 py-3.5 font-medium max-w-[240px] truncate">
+                          {h.postTitle}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <Badge className={cn("text-[10px] border", pillarMeta?.badgeBg)}>
+                            {pillarMeta?.titleVi || "Tri thức"}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3.5 text-xs text-muted-foreground">
+                          {timeAgo(h.readAt)}
+                        </td>
+                        <td className="px-4 py-3.5 text-center">
+                          {h.reaction === "like" ? (
+                            <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-xs">👍 Tâm đắc</span>
+                          ) : h.reaction === "dislike" ? (
+                            <span className="text-rose-600 dark:text-rose-400 font-semibold text-xs">👎 Không thích</span>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">Đã đọc</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          <Button size="sm" variant="ghost" className="rounded-full text-xs" asChild>
+                            <Link href={`/post/${h.postId}`}>
+                              Đọc lại <ExternalLink className="w-3 h-3 ml-1" />
+                            </Link>
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
@@ -249,46 +229,157 @@ export function ProfilePage() {
         </Card>
       )}
 
-      {/* Tab Content 3: Account */}
-      {tab === "account" && (
-        <div className="max-w-2xl space-y-6">
-          {/* Membership Tier Card */}
-          <Card className="border-primary/30 bg-gradient-to-br from-primary/10 via-card to-card rounded-3xl p-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <span className="text-xs uppercase tracking-wider font-semibold text-primary">Gói Thành Viên</span>
-                <h3 className="font-display text-2xl font-bold text-foreground mt-0.5">
-                  {user.tier === "PRO"
-                    ? "Gói Pro (499k/năm)"
-                    : user.tier === "PLUS"
-                    ? "Gói Plus (299k/năm)"
-                    : "Gói Free (Miễn phí)"}
-                </h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {user.tier === "PRO"
-                    ? "Đọc KHÔNG GIỚI HẠN toàn bộ bài viết, kể cả bài viết Member và sơ đồ tư duy."
-                    : user.tier === "PLUS"
-                    ? "Đọc 15 bài viết/ngày, mở khóa toàn bộ bài viết Member."
-                    : "Đọc tối đa 10 bài viết tiêu chuẩn mỗi ngày."}
-                </p>
-              </div>
-
-              {user.tier !== "PRO" && (
-                <Button className="rounded-full shadow-md shrink-0" asChild>
-                  <Link href="/pricing">
-                    Nâng cấp Gói Pro &rarr;
-                  </Link>
-                </Button>
-              )}
+      {/* TAB: ĐỌC SAU (SAVED) */}
+      {tab === "saved" && (
+        <div className="space-y-6">
+          {bookmarks.length > 0 && (
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-1">
+              <button
+                type="button"
+                onClick={() => setSavedPillar("ALL")}
+                className={cn(
+                  "px-3 py-1 rounded-full text-xs font-semibold transition-all shrink-0",
+                  savedPillar === "ALL" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+                )}
+              >
+                Tất cả ({bookmarks.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setSavedPillar("MENTAL_MODEL")}
+                className={cn(
+                  "px-3 py-1 rounded-full text-xs font-semibold transition-all shrink-0 flex items-center gap-1",
+                  savedPillar === "MENTAL_MODEL" ? "bg-rose-600 text-white" : "bg-rose-500/10 text-rose-700 dark:text-rose-400"
+                )}
+              >
+                <Brain className="w-3 h-3" /> Mô hình Tư duy
+              </button>
+              <button
+                type="button"
+                onClick={() => setSavedPillar("BUSINESS_STRATEGY")}
+                className={cn(
+                  "px-3 py-1 rounded-full text-xs font-semibold transition-all shrink-0 flex items-center gap-1",
+                  savedPillar === "BUSINESS_STRATEGY" ? "bg-amber-600 text-white" : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                )}
+              >
+                <Compass className="w-3 h-3" /> Chiến lược
+              </button>
+              <button
+                type="button"
+                onClick={() => setSavedPillar("STARTUP_IDEA")}
+                className={cn(
+                  "px-3 py-1 rounded-full text-xs font-semibold transition-all shrink-0 flex items-center gap-1",
+                  savedPillar === "STARTUP_IDEA" ? "bg-emerald-600 text-white" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                )}
+              >
+                <Lightbulb className="w-3 h-3" /> Khởi nghiệp
+              </button>
             </div>
-          </Card>
+          )}
 
+          {savedPosts.length === 0 ? (
+            <div className="text-center py-16 bg-card rounded-3xl border border-dashed border-border p-8">
+              <Bookmark className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+              <h3 className="font-display font-semibold text-lg mb-1">
+                Tủ sách đang trống
+              </h3>
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-4">
+                Bấm icon bookmark trên thẻ bất kỳ để lưu lại mô hình tư duy bạn muốn đọc lại sau.
+              </p>
+              <Button asChild className="rounded-full">
+                <Link href="/">Khám phá kho tri thức ngay</Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {savedPosts.map((post) => (
+                <DynamicSquareCard key={post.id} post={post} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
-          <Card className="rounded-3xl">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold">Thông tin tài khoản</CardTitle>
+      {/* TAB: YÊU THÍCH (FAVORITES) */}
+      {tab === "favorites" && (
+        <div className="space-y-6">
+          {favoritePosts.length > 0 && (
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-1">
+              <button
+                type="button"
+                onClick={() => setFavPillar("ALL")}
+                className={cn(
+                  "px-3 py-1 rounded-full text-xs font-semibold transition-all shrink-0",
+                  favPillar === "ALL" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+                )}
+              >
+                Tất cả ({favoritePosts.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFavPillar("MENTAL_MODEL")}
+                className={cn(
+                  "px-3 py-1 rounded-full text-xs font-semibold transition-all shrink-0 flex items-center gap-1",
+                  favPillar === "MENTAL_MODEL" ? "bg-rose-600 text-white" : "bg-rose-500/10 text-rose-700 dark:text-rose-400"
+                )}
+              >
+                <Brain className="w-3 h-3" /> Mô hình Tư duy
+              </button>
+              <button
+                type="button"
+                onClick={() => setFavPillar("BUSINESS_STRATEGY")}
+                className={cn(
+                  "px-3 py-1 rounded-full text-xs font-semibold transition-all shrink-0 flex items-center gap-1",
+                  favPillar === "BUSINESS_STRATEGY" ? "bg-amber-600 text-white" : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                )}
+              >
+                <Compass className="w-3 h-3" /> Chiến lược
+              </button>
+              <button
+                type="button"
+                onClick={() => setFavPillar("STARTUP_IDEA")}
+                className={cn(
+                  "px-3 py-1 rounded-full text-xs font-semibold transition-all shrink-0 flex items-center gap-1",
+                  favPillar === "STARTUP_IDEA" ? "bg-emerald-600 text-white" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                )}
+              >
+                <Lightbulb className="w-3 h-3" /> Khởi nghiệp
+              </button>
+            </div>
+          )}
+
+          {favoritePosts.length === 0 ? (
+            <div className="text-center py-16 bg-card rounded-3xl border border-dashed border-border p-8">
+              <Heart className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+              <h3 className="font-display font-semibold text-lg mb-1">
+                Chưa có thẻ yêu thích
+              </h3>
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-4">
+                Bấm icon trái tim trên thẻ bất kỳ để thêm vào danh sách yêu thích của bạn.
+              </p>
+              <Button asChild className="rounded-full">
+                <Link href="/">Khám phá kho tri thức ngay</Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {favoritePosts.map((post) => (
+                <DynamicSquareCard key={post.id} post={post} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB: TÀI KHOẢN (ACCOUNT) */}
+      {tab === "account" && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Thông tin tài khoản */}
+          <Card className="rounded-3xl p-6 border-border">
+            <CardHeader className="p-0 mb-4">
+              <CardTitle className="text-lg font-semibold">Thông tin chung</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="p-0 space-y-4">
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground uppercase font-medium">Họ và tên</p>
                 <p className="font-semibold text-foreground">{user.name}</p>
@@ -298,20 +389,119 @@ export function ProfilePage() {
                 <p className="font-semibold text-foreground">{user.email}</p>
               </div>
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground uppercase font-medium">Phương thức bảo mật</p>
-                <p className="text-sm text-foreground flex items-center gap-1">
-                  <ShieldCheck className="w-4 h-4 text-primary" />
-                  Xác thực Email OTP không cần mật khẩu
+                <p className="text-xs text-muted-foreground uppercase font-medium">Bảo mật</p>
+                <p className="text-xs text-foreground flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  Xác thực Passwordless OTP qua Resend Engine
                 </p>
               </div>
-              <div className="pt-4 border-t border-border flex items-center justify-between">
-                <Button variant="destructive" className="rounded-full" onClick={logout}>
-                  Đăng xuất khỏi thiết bị này
-                </Button>
-                <Button variant="outline" className="rounded-full" asChild>
-                  <Link href="/pricing">Bảng giá gói Hội viên</Link>
+              <div className="pt-4 border-t border-border flex items-center gap-3">
+                <Button variant="destructive" className="rounded-full text-xs" onClick={logout}>
+                  Đăng xuất thiết bị này
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Billing & Usage */}
+          <Card className="rounded-3xl p-6 border-border">
+            <CardHeader className="p-0 mb-4 flex flex-row items-center justify-between">
+              <CardTitle className="text-lg font-semibold">Gói cước & Hạn mức</CardTitle>
+              <Badge
+                className={cn(
+                  "rounded-full text-xs font-bold",
+                  user.tier === "PRO"
+                    ? "bg-amber-500 text-white border-none"
+                    : user.tier === "PLUS"
+                    ? "bg-blue-600 text-white border-none"
+                    : "bg-secondary text-foreground"
+                )}
+              >
+                {user.tier === "PRO" ? "PRO MEMBER" : user.tier === "PLUS" ? "PLUS MEMBER" : "FREE TIER"}
+              </Badge>
+            </CardHeader>
+            <CardContent className="p-0 space-y-6">
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="font-medium">Số bài viết đã đọc hôm nay</span>
+                  <span className="font-bold">
+                    {dailyLimit === Infinity ? "Không giới hạn" : `${todayReads} / ${dailyLimit}`}
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary transition-all duration-300"
+                    style={{ width: `${quotaPercent}%` }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {user.tier === "PRO" 
+                    ? "Bạn có thể đọc không giới hạn mọi bài viết."
+                    : user.tier === "PLUS"
+                    ? "Tài khoản Plus được phép đọc tới 30 bài viết (Free & Plus) mỗi ngày."
+                    : "Tài khoản Free được đọc tối đa 5 bài viết miễn phí mỗi ngày."}
+                </p>
+              </div>
+              
+              {user.tier !== "PRO" && (
+                <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-amber-600 dark:text-amber-500 text-sm">Nâng cấp tài khoản</h4>
+                    <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-1">
+                      Mở khóa đọc không giới hạn toàn bộ hệ thống tri thức.
+                    </p>
+                  </div>
+                  <Button size="sm" className="rounded-full shrink-0 shadow-sm" asChild>
+                    <Link href="/pricing">Nâng cấp ngay</Link>
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Thiết bị truy cập */}
+          <Card className="rounded-3xl p-6 border-border lg:col-span-2">
+            <CardHeader className="p-0 mb-4 flex flex-row items-center justify-between">
+              <CardTitle className="text-lg font-semibold">Thiết bị truy cập</CardTitle>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-secondary px-2.5 py-1 rounded-full">
+                <MonitorSmartphone className="w-3.5 h-3.5" />
+                <span>{devices.length} / 3 thiết bị tối đa</span>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="border border-border rounded-2xl divide-y divide-border overflow-hidden">
+                {devices.map((device) => (
+                  <div key={device.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-4 bg-card hover:bg-secondary/20 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                        <MonitorSmartphone className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm text-foreground flex items-center gap-2">
+                          {device.name}
+                          {device.isCurrent && (
+                            <Badge variant="outline" className="text-[9px] h-4 bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                              HIỆN TẠI
+                            </Badge>
+                          )}
+                        </p>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                          <Clock className="w-3 h-3" /> Hoạt động: {device.lastActive}
+                        </p>
+                      </div>
+                    </div>
+                    {!device.isCurrent && (
+                      <Button variant="outline" size="sm" className="rounded-full text-xs">
+                        Đăng xuất
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-4 flex items-start gap-1.5">
+                <Info className="w-4 h-4 shrink-0 text-amber-500" />
+                Nếu bạn đã đạt giới hạn 3 thiết bị, bạn cần đăng xuất khỏi một thiết bị cũ trước khi có thể đăng nhập trên thiết bị mới.
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -319,5 +509,3 @@ export function ProfilePage() {
     </div>
   );
 }
-
-

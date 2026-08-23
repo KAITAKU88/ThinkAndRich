@@ -5,7 +5,6 @@ const variants = {
   secondary: "bg-secondary text-secondary-foreground",
   outline: "border border-border bg-card text-foreground",
   premium: "bg-primary text-primary-foreground",
-  super: "bg-super text-super-foreground",
 };
 
 export function Badge({

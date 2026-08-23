@@ -3,9 +3,9 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: var(--font-sora), system-ui, -apple-system, sans-serif;
-  --font-display: var(--font-newsreader), Georgia, serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: var(--font-plex-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-newsreader), Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -33,49 +33,64 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/*
+  Palette concept: "The Reading Room" — a hushed, ink-and-paper study rather
+  than a generic SaaS neutral grey. The background leans cool-neutral (not
+  warm cream), primary is a deep ink-navy rather than flat black, and the
+  three pillar hues (crimson / amber / jade) stay the only saturated colors
+  in the system so they keep meaning "which pillar" instead of decoration.
+*/
 :root {
   --radius: 0.75rem;
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #f4f4f1;
+  --foreground: #1a1c22;
   --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: #1a1c22;
   --popover: #ffffff;
-  --popover-foreground: #0f172a;
-  --primary: #2563eb;
-  --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --accent: #eff6ff;
-  --accent-foreground: #1d4ed8;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #2563eb;
+  --popover-foreground: #1a1c22;
+  --primary: #21294a;
+  --primary-foreground: #f6f6f3;
+  --secondary: #eae8e1;
+  --secondary-foreground: #1a1c22;
+  --muted: #ececE6;
+  --muted-foreground: #6b6a64;
+  --accent: #eae8e1;
+  --accent-foreground: #1a1c22;
+  --destructive: #b3261e;
+  --destructive-foreground: #fbf7f2;
+  --border: #e2e0d7;
+  --input: #e2e0d7;
+  --ring: #21294a;
+
+  --pillar-crimson: #991b1b;
+  --pillar-amber: #b45309;
+  --pillar-jade: #065f46;
 }
 
 .dark {
-  --background: #090d16;
-  --foreground: #f8fafc;
-  --card: #0f172a;
-  --card-foreground: #f8fafc;
-  --popover: #0f172a;
-  --popover-foreground: #f8fafc;
-  --primary: #3b82f6;
-  --primary-foreground: #ffffff;
-  --secondary: #1e293b;
-  --secondary-foreground: #f8fafc;
-  --muted: #1e293b;
-  --muted-foreground: #94a3b8;
-  --accent: #172554;
-  --accent-foreground: #93c5fd;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --border: #1e293b;
-  --input: #1e293b;
-  --ring: #3b82f6;
+  --background: #0e1015;
+  --foreground: #edeee9;
+  --card: #171a21;
+  --card-foreground: #edeee9;
+  --popover: #171a21;
+  --popover-foreground: #edeee9;
+  --primary: #e4e8f5;
+  --primary-foreground: #171a21;
+  --secondary: #1f232c;
+  --secondary-foreground: #edeee9;
+  --muted: #1f232c;
+  --muted-foreground: #9a9da8;
+  --accent: #1f232c;
+  --accent-foreground: #edeee9;
+  --destructive: #f0564b;
+  --destructive-foreground: #17181d;
+  --border: #262b35;
+  --input: #262b35;
+  --ring: #e4e8f5;
+
+  --pillar-crimson: #f87171;
+  --pillar-amber: #fbbf24;
+  --pillar-jade: #34d399;
 }
 
 * {
@@ -87,10 +102,16 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .font-display {
   font-family: var(--font-display);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
 }
 
 .scrollbar-hide {
@@ -101,74 +122,103 @@ body {
   display: none;
 }
 
+/* Academic Formula Block */
+.academic-formula {
+  font-family: var(--font-mono);
+  font-style: normal;
+  letter-spacing: 0.01em;
+}
+
 /* Rich text reader typography */
-.prose-idea h2 {
+.prose-academic h2 {
   font-family: var(--font-display);
   font-size: 1.5rem;
   font-weight: 700;
-  margin-top: 2rem;
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
   margin-bottom: 0.85rem;
   color: var(--foreground);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+  border-top: 1px solid var(--border);
 }
 
-.prose-idea h3 {
+.prose-academic > :first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.prose-academic h3 {
   font-size: 1.2rem;
   font-weight: 600;
-  margin-top: 1.5rem;
+  margin-top: 1.75rem;
   margin-bottom: 0.65rem;
   color: var(--foreground);
 }
 
-.prose-idea p {
+.prose-academic p {
   color: var(--foreground);
-  line-height: 1.8;
-  margin-bottom: 1rem;
+  line-height: 1.85;
+  margin-bottom: 1.25rem;
   font-size: 1.05rem;
   opacity: 0.92;
 }
 
-.prose-idea ul,
-.prose-idea ol {
+.prose-academic ul,
+.prose-academic ol {
   padding-left: 1.5rem;
   margin-bottom: 1.25rem;
-  line-height: 1.75;
+  line-height: 1.8;
 }
 
-.prose-idea ul {
+.prose-academic ul {
   list-style-type: disc;
 }
 
-.prose-idea ol {
+.prose-academic ol {
   list-style-type: decimal;
 }
 
-.prose-idea li {
+.prose-academic li {
   margin-bottom: 0.5rem;
 }
 
-.prose-idea blockquote {
-  border-left: 4px solid var(--primary);
-  padding: 0.75rem 1.25rem;
-  margin: 1.5rem 0;
-  background: var(--muted);
+.prose-academic blockquote {
+  border-left: 3px solid var(--primary);
+  padding: 0.9rem 1.35rem;
+  margin: 1.85rem 0;
+  background: var(--secondary);
   border-radius: 0 0.75rem 0.75rem 0;
   font-style: italic;
+  font-family: var(--font-display);
   color: var(--foreground);
+  font-size: 1.15rem;
+  line-height: 1.6;
 }
 
-.prose-idea img {
-  border-radius: 0.75rem;
-  margin: 1.5rem auto;
-  max-width: 100%;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+.prose-academic code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  padding: 0.2em 0.4em;
+  border-radius: 0.25rem;
+  background-color: var(--secondary);
 }
 
-.prose-idea iframe {
-  border-radius: 0.75rem;
-  margin: 1.5rem auto;
-  max-width: 100%;
-  aspect-ratio: 16 / 9;
+/* Hero fanned card catalog — idle sway. Reduced-motion is handled by the
+   global rule below, which zeroes animation-duration for every element. */
+@keyframes hero-card-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -8px;
+  }
+}
+
+.hero-card-float {
+  animation: hero-card-float 6.5s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -181,3 +231,60 @@ body {
   }
 }
 
+/* ==========================================================================
+   Continuous Skyline Bento Grid (thuattoan.md)
+
+   KEY INSIGHT: For perfect squares, each grid row must be the same height
+   as a single column width.
+
+   This used to be a pure-CSS trick: container-type: inline-size on this
+   same element, then grid-auto-rows: calc((100cqi - gaps) / cols) —
+   self-referencing the element's own measured inline size. That works
+   standalone, but once this grid sits inside a flex sibling layout (a
+   sidebar next to it, e.g. Khám phá's "Bộ lọc nâng cao"), the container's
+   own inline-size is no longer a simple top-down value — it now depends on
+   how much room the flex layout leaves it, and in that arrangement the
+   self-referencing cqi calc stopped resolving to the actual rendered
+   width, producing non-square cells only in that nested layout.
+   --cell is set from JS (ResizeObserver, see ExplorePage.tsx) instead —
+   measured after real layout, so it's correct in any surrounding context.
+   ========================================================================== */
+
+.skyline-grid {
+  --cols: 4;
+  --gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  grid-auto-rows: var(--cell, 90px);
+  gap: var(--gap);
+}
+
+@media (min-width: 640px) {
+  .skyline-grid {
+    --cols: 8;
+    --gap: 12px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .skyline-grid {
+    --cols: 12;
+    --gap: 14px;
+  }
+}
+
+.skyline-card-container {
+  container-type: inline-size;
+}
+
+.skyline-card-title {
+  font-size: clamp(11px, 7cqw, 34px);
+  line-height: 1.18;
+  font-weight: 700;
+  word-break: break-word;
+  text-wrap: balance;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  overflow: hidden;
+}

@@ -1,19 +1,137 @@
-import type { Post, PostCategory, UserRecord, ReadLog, AppSettings, PricingPlan } from "./types";
+export const CATEGORIES = ["Tất cả", "Mô hình Tư duy", "Mô hình Tâm trí", "Chiến lược Kinh doanh", "Ý tưởng Khởi nghiệp", "Hào kinh tế & Moats", "Deep-dive Teardown"] as const;
 
-export const CATEGORIES: readonly ("Tất cả" | PostCategory)[] = [
-  "Tất cả",
-  "Mô hình Tư duy",
-  "Mô hình Tâm trí",
-  "Chiến lược Kinh doanh",
-  "Tâm lý học & Quyết định",
-  "Hiệu ứng & Định luật",
-] as const;
+import type {
+  Post,
+  UserRecord,
+  ReadLog,
+  AppSettings,
+  PricingPlan,
+  PillarType,
+  PillarMetadata,
+  PppPricingConfig,
+  ContentAccessLevel,
+} from "./types";
+
+export const PILLARS_CONFIG: Record<PillarType, PillarMetadata> = {
+  MENTAL_MODEL: {
+    id: "MENTAL_MODEL",
+    titleVi: "Mô hình Tư duy",
+    titleEn: "Mental Models",
+    taglineVi: "Tái cấu trúc nhận thức & nguyên lý gốc rễ",
+    taglineEn: "Cognitive frameworks & first-principles reasoning",
+    colorHex: "#991B1B",
+    colorDarkHex: "#F87171",
+    badgeBg: "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20",
+    badgeText: "Mô hình Tư duy",
+    borderHover: "hover:border-rose-500/50",
+    iconName: "Brain",
+  },
+  BUSINESS_STRATEGY: {
+    id: "BUSINESS_STRATEGY",
+    titleVi: "Chiến lược Kinh doanh",
+    titleEn: "Business Strategy",
+    taglineVi: "Hào kinh tế, bánh đà tăng trưởng & playbooks",
+    taglineEn: "Economic moats, flywheels & corporate playbooks",
+    colorHex: "#B45309",
+    colorDarkHex: "#FBBF24",
+    badgeBg: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
+    badgeText: "Chiến lược Kinh doanh",
+    borderHover: "hover:border-amber-500/50",
+    iconName: "Compass",
+  },
+  STARTUP_IDEA: {
+    id: "STARTUP_IDEA",
+    titleVi: "Ý tưởng Khởi nghiệp",
+    titleEn: "Startup Ideas",
+    taglineVi: "Hồ sơ teardown khoảng trống thị trường & xu hướng",
+    taglineEn: "Market gap teardowns & global venture signals",
+    colorHex: "#065F46",
+    colorDarkHex: "#34D399",
+    badgeBg: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
+    badgeText: "Ý tưởng Khởi nghiệp",
+    borderHover: "hover:border-emerald-500/50",
+    iconName: "Lightbulb",
+  },
+};
 
 export const DEFAULT_SETTINGS: AppSettings = {
   brandName: "Think & Rich",
-  brandTagline: "Khai phóng tư duy — Đột phá chiến lược",
+  brandTagline: "Academic & Strategic Intelligence Platform",
   primaryColor: "#0f766e",
-  seoDefaultTitle: "Think & Rich — Thư viện Mô hình Tư duy & Chiến lược Kinh doanh",
+  seoDefaultTitle: "Think & Rich — Nền tảng Tri thức Học thuật & Chiến lược Chuyên sâu",
+};
+
+export const PPP_PRICING_CONFIGS: Record<string, PppPricingConfig> = {
+  VN: {
+    countryCode: "VN",
+    countryName: "Việt Nam",
+    flag: "🇻🇳",
+    currency: "VND",
+    currencySymbol: "₫",
+    gateway: "sepay",
+    pppFactorNote: "Bảng giá cơ sở ưu đãi thị trường Việt Nam (Thanh toán VietQR SePay tự động)",
+    plans: {
+      FREE: { price: 0, formatted: "0 ₫" },
+      PLUS: { price: 299000, formatted: "299.000 ₫/năm" },
+      PRO: { price: 499000, formatted: "499.000 ₫/năm" },
+    },
+  },
+  US: {
+    countryCode: "US",
+    countryName: "United States",
+    flag: "🇺🇸",
+    currency: "USD",
+    currencySymbol: "$",
+    gateway: "lemonsqueezy",
+    pppFactorNote: "US standard pricing tier (Credit Card / Apple Pay)",
+    plans: {
+      FREE: { price: 0, formatted: "$0" },
+      PLUS: { price: 49, formatted: "$49/yr" },
+      PRO: { price: 89, formatted: "$89/yr" },
+    },
+  },
+  EU: {
+    countryCode: "EU",
+    countryName: "European Union",
+    flag: "🇪🇺",
+    currency: "EUR",
+    currencySymbol: "€",
+    gateway: "lemonsqueezy",
+    pppFactorNote: "European regional PPP tier",
+    plans: {
+      FREE: { price: 0, formatted: "0 €" },
+      PLUS: { price: 39, formatted: "39 €/yr" },
+      PRO: { price: 75, formatted: "75 €/yr" },
+    },
+  },
+  JP: {
+    countryCode: "JP",
+    countryName: "Japan",
+    flag: "🇯🇵",
+    currency: "JPY",
+    currencySymbol: "¥",
+    gateway: "lemonsqueezy",
+    pppFactorNote: "Japan regional PPP tier",
+    plans: {
+      FREE: { price: 0, formatted: "0 ¥" },
+      PLUS: { price: 4980, formatted: "4.980 ¥/年" },
+      PRO: { price: 8980, formatted: "8.980 ¥/年" },
+    },
+  },
+  DEFAULT: {
+    countryCode: "DEFAULT",
+    countryName: "International",
+    flag: "🌐",
+    currency: "USD",
+    currencySymbol: "$",
+    gateway: "lemonsqueezy",
+    pppFactorNote: "Global standard international pricing",
+    plans: {
+      FREE: { price: 0, formatted: "$0" },
+      PLUS: { price: 39, formatted: "$39/yr" },
+      PRO: { price: 69, formatted: "$69/yr" },
+    },
+  },
 };
 
 export const PRICING_PLANS: PricingPlan[] = [
@@ -22,430 +140,554 @@ export const PRICING_PLANS: PricingPlan[] = [
     name: "Gói Free",
     tagline: "Dành cho người mới bắt đầu tiếp cận các mô hình tư duy",
     price: 0,
-    priceFormatted: "0đ",
-    dailyLimitText: "Đọc tối đa 10 bài viết / ngày",
+    priceFormatted: "0 ₫",
+    dailyLimitText: "Đọc tối đa 10 bài viết Free / ngày",
     features: [
-      "Đăng nhập xác thực nhanh bằng Email OTP",
-      "Đọc tối đa 10 bài viết tiêu chuẩn mỗi ngày",
-      "Xem video YouTube phân tích tích hợp",
-      "Lưu bài viết vào Tủ sách cá nhân",
-      "Thả tim, tương tác và theo dõi tiến độ",
-      "Không hỗ trợ các bài viết chuyên sâu Member",
+      "Đăng nhập xác thực nhanh bằng Email OTP (Passwordless)",
+      "Truy cập tối đa 10 bài viết Free mỗi ngày",
+      "Xem toàn bộ sơ đồ Vector SVG & Công thức tóm tắt",
+      "Lưu bài viết vào Tủ sách cá nhân (Bookmarks)",
+      "Không bao gồm các hồ sơ phân tích chuyên sâu Member",
     ],
     ctaText: "Đang sử dụng",
   },
   {
     id: "PLUS",
     name: "Gói Plus",
-    tagline: "Đọc 15 bài/ngày & Mở khóa toàn bộ bài viết Member",
+    tagline: "Đọc 25 bài/ngày & Mở khóa toàn bộ bài viết Member Plus",
     price: 299000,
-    priceFormatted: "299.000đ/năm",
-    dailyLimitText: "Đọc tối đa 15 bài viết / ngày",
+    priceFormatted: "299.000 ₫/năm",
+    dailyLimitText: "Đọc tối đa 25 bài viết / ngày",
     badge: "Tiết kiệm",
-    psychologyNote: "Gói đòn bẩy tâm lý (Decoy) — chỉ thêm 200k để lên Gói Pro Không Giới Hạn",
+    psychologyNote: "Chỉ thêm 200k để nâng cấp lên gói Pro Toàn Diện",
     features: [
-      "Mở khóa TOÀN BỘ bài viết (bao gồm cả bài viết Member)",
-      "Đọc tối đa 15 bài viết chuyên sâu mỗi ngày",
-      "Truy cập các sơ đồ tư duy Mindmap độ phân giải cao",
+      "Mở khóa toàn bộ bài viết FREE và MEMBER_PLUS",
+      "Hạn mức đọc nâng lên 25 bài viết chuyên sâu mỗi ngày",
+      "Truy cập hồ sơ phân tích chiến lược & mô hình tư duy nâng cao",
+      "Tải sơ đồ tư duy vector độ phân giải cao",
       "Lưu trữ không giới hạn tủ sách cá nhân",
-      "Trải nghiệm đọc tinh gọn không phân tâm",
     ],
     ctaText: "Nâng cấp Gói Plus (299k)",
   },
   {
     id: "PRO",
     name: "Gói Pro",
-    tagline: "Truy cập KHÔNG GIỚI HẠN toàn bộ kho tàng tri thức",
+    tagline: "Truy cập KHÔNG GIỚI HẠN toàn bộ kho tàng tri thức 3 trụ cột",
     price: 499000,
-    priceFormatted: "499.000đ/năm",
-    dailyLimitText: "Đọc KHÔNG GIỚI HẠN bài viết mỗi ngày",
+    priceFormatted: "499.000 ₫/năm",
+    dailyLimitText: "Đọc KHÔNG GIỚI HẠN mỗi ngày",
     isPopular: true,
     badge: "Khuyên dùng — Lựa chọn Tốt nhất",
-    psychologyNote: "Hiệu ứng mỏ neo giá (Price Anchoring) & Tối đa hóa giá trị tri thức trọn đời",
+    psychologyNote: "Giá trị tri thức dài hạn cho Founders & Strategists",
     features: [
-      "Đọc KHÔNG GIỚI HẠN mọi bài viết mỗi ngày",
-      "Mở khóa 100% bài viết Member và phân tích chiến lược mật",
-      "Tải trọn bộ Ebook & Sơ đồ Tư duy PDF vector",
-      "Tham gia Nhóm độc quyền thảo luận cùng các Founder",
-      "Quyền truy cập sớm các mô hình tư duy mới mỗi tuần",
-      "Huy hiệu Thành viên Tinh hoa trên trang cá nhân",
+      "Đọc KHÔNG GIỚI HẠN toàn bộ 3 trụ cột tri thức",
+      "Mở khóa 100% hồ sơ Tear-down ý tưởng khởi nghiệp toàn cầu",
+      "Quyền truy cập các Playbook thực thi và Mô hình tài chính",
+      "Quyền truy cập sớm các nghiên cứu chuyên sâu mỗi tuần",
+      "Huy hiệu Thành viên Tinh hoa (Pro Member Badge)",
     ],
     ctaText: "Nâng cấp Gói Pro (499k)",
   },
 ];
 
-
-
 export const SEED_POSTS: Post[] = [
+  // ----------------------------------------------------
+  // TRỤ CỘT 1: MENTAL MODELS (MÔ HÌNH TƯ DUY)
+  // ----------------------------------------------------
   {
     id: "first-principles-thinking",
     slug: "first-principles-thinking",
-    title: "Mô hình Tư duy Nguyên lý Đầu tiên (First Principles Thinking)",
+    title: "Nguyên lý Đệ nhất (First Principles Thinking): Phân rã về chân lý nền tảng",
+    pillar: "MENTAL_MODEL",
     category: "Mô hình Tư duy",
-    shortDescription:
-      "Cách Elon Musk và Aristotle phá vỡ mọi giả định có sẵn để tái định nghĩa ngành công nghiệp hàng không vũ trụ và xe điện từ những chân lý cơ bản nhất.",
+    displaySize: "SQUARE_LG",
+    academicFormula: "F(x) = \\sum_{i=1}^n \\text{BaseTruth}_i \\implies \\text{Reconstruct}(S)",
+    summarySnippet:
+      "Phá vỡ mọi suy luận bằng phép loại suy (Analogy). Phân rã vấn đề thành các chân lý cơ bản nhất không thể chia nhỏ hơn để tái cấu trúc giải pháp đột phá.",
+    keyTakeaways: [
+      "Loại bỏ tư duy sao chép tương đối (Reasoning by Analogy).",
+      "Xác định nguyên vật liệu & định luật vật lý cơ bản cấu thành giá trị.",
+      "Tái thiết kế giải pháp từ con số 0 với công nghệ hiện đại.",
+    ],
+    schematicSvg: `<svg viewBox="0 0 200 120" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="40" cy="60" r="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.4"/>
+      <text x="40" y="64" font-size="9" text-anchor="middle" fill="currentColor">Complex</text>
+      <path d="M72 60 L108 60" stroke="currentColor" stroke-width="1.5"/>
+      <circle cx="140" cy="35" r="14" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-width="1.5"/>
+      <text x="140" y="38" font-size="8" text-anchor="middle" fill="currentColor">Truth A</text>
+      <circle cx="140" cy="85" r="14" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-width="1.5"/>
+      <text x="140" y="88" font-size="8" text-anchor="middle" fill="currentColor">Truth B</text>
+    </svg>`,
     fullContent: `
-      <h2>1. Nguyên lý đầu tiên là gì?</h2>
-      <p>Nguyên lý đầu tiên (First Principles) là phương pháp tư duy bằng cách <strong>phân rã một vấn đề phức tạp thành những sự thật cơ bản, cốt lõi nhất không thể chia nhỏ hơn nữa</strong>, sau đó suy luận và xây dựng giải pháp ngược trở lên từ điểm xuất phát đó.</p>
-      
+      <h2>1. Bản chất của Nguyên lý Đệ nhất</h2>
+      <p>Nguyên lý Đệ nhất (First Principles Thinking) là phương pháp nhận thức xuất phát từ triết học Aristotle và vật lý học lượng tử. Thay vì kết luận dựa trên giả định hoặc tiền lệ có sẵn (<em>"Người ta luôn làm như vậy"</em>), ta chủ động bóc tách từng lớp giả định cho đến khi chạm tới chân lý cơ bản nhất được chứng thực.</p>
       <blockquote>
-        "Tôi nghĩ quá trình tư duy của hầu hết mọi người bị ràng buộc bởi việc sao chép tương đối (Reasoning by Analogy). Trong khi với Nguyên lý đầu tiên, bạn nhìn thẳng vào những chân lý nền tảng nhất và tự hỏi: 'Điều gì chúng ta chắc chắn là đúng?' rồi mới lập luận từ đó."
-        <br />— <em>Elon Musk</em>
+        "Đừng lý luận bằng phép loại suy. Hãy phân rã sự vật về các chân lý nền tảng nhất và tự hỏi: 'Điều gì chúng ta biết chắc chắn là đúng?' rồi xây dựng logic ngược lên."
+        <br/>— <em>Elon Musk</em>
       </blockquote>
-
-      <h2>2. Ví dụ kinh điển: Cách SpaceX giảm 90% chi phí tên lửa</h2>
-      <p>Khi Elon Musk muốn mua tên lửa sang Nga, người ta chào giá 65 triệu USD cho một quả tên lửa. Thay vì chấp nhận mức giá thị trường:</p>
-      <ul>
-        <li><strong>Bước 1: Phân rã nguyên vật liệu</strong>: Tên lửa được làm bằng gì? Hợp kim nhôm cấp hàng không vũ trụ, titan, đồng, sợi carbon.</li>
-        <li><strong>Bước 2: Định giá nguyên liệu thô</strong>: Chi phí nguyên vật liệu trên sàn giao dịch hàng hóa London chỉ chiếm khoảng <strong>2%</strong> giá thành của một quả tên lửa hoàn thiện.</li>
-        <li><strong>Bước 3: Tự chế tạo từ đầu</strong>: SpaceX quyết định tự gia công 85% linh kiện trong nội bộ, cắt bỏ chuỗi cung ứng trung gian cồng kềnh, giảm giá thành mỗi lần phóng xuống mức kỷ lục.</li>
-      </ul>
-
-      <h2>3. Khung 3 bước ứng dụng trong kinh doanh & cuộc sống</h2>
+      <h2>2. Minh chứng: Tái cấu trúc giá thành tên lửa SpaceX</h2>
+      <p>Khi ngành hàng không vũ trụ định giá tên lửa 65 triệu USD, SpaceX phân tích giá trị nguyên vật liệu thô (nhôm, titan, sợi carbon) chỉ chiếm 2% tổng giá thành. Bằng cách tự sản xuất 85% linh kiện, họ hạ giá phóng xuống mức không đối thủ nào theo kịp.</p>
+      <h2>3. 3 Bước thực hành</h2>
       <ol>
-        <li><strong>Nhận diện và nghi ngờ các giả định hiện tại</strong>: Liệt kê tất cả những niềm tin bạn đang coi là "hiển nhiên" (Ví dụ: "Làm khóa học online phải tốn tiền quay phòng studio").</li>
-        <li><strong>Phân tách vấn đề về chân lý nền tảng</strong>: Bản chất cốt lõi giá trị khách hàng nhận được là gì? (Ví dụ: Kiến thức cô đọng, dễ hiểu, giải quyết được nỗi đau).</li>
-        <li><strong>Kiến tạo giải pháp mới từ nền móng</strong>: Kết hợp lại các yếu tố cốt lõi mà không bị trói buộc bởi cách người khác từng làm.</li>
+        <li><strong>Xác định & nghi ngờ các giả định</strong>: Đặt câu hỏi Socratic với mọi định kiến trong ngành.</li>
+        <li><strong>Phân tách về các tiên đề không thể phủ nhận</strong>: Đơn vị kinh tế tối thiểu, giới hạn công nghệ thực tế.</li>
+        <li><strong>Tạo dựng giải pháp mới</strong>: Ghép nối lại từ nền móng mà không phụ thuộc quy trình cũ.</li>
       </ol>
-
-      <div class="p-4 my-6 rounded-xl border border-primary/20 bg-primary/5">
-        <h3 class="font-semibold text-primary mb-2">💡 Bài học đúc kết cho Founder</h3>
-        <p class="text-sm mb-0">Đừng bao giờ tối ưu hóa một thứ vốn dĩ không nên tồn tại. Hãy luôn tự hỏi: Nếu bắt đầu lại từ con số 0 trong ngày hôm nay với công nghệ hiện có, chúng ta sẽ thiết kế sản phẩm này như thế nào?</p>
-      </div>
     `,
-    thumbnailUrl:
-      "https://images.unsplash.com/photo-1507668077129-56e32842fceb?q=80&w=1200&auto=format&fit=crop",
-    videoUrl: "https://www.youtube.com/embed/NV3sBlRgzTI",
-    author: "Ban Biên Tập Think & Rich",
-    readTime: "6 phút đọc",
+    accessLevel: "FREE",
+    readingTimeMinutes: 6,
     status: "PUBLISHED",
-    views: 3420,
-    likes: 248,
-    dislikes: 6,
-    featured: true,
-    tags: ["Tư duy gốc rễ", "Elon Musk", "Đổi mới sáng tạo", "Ra quyết định"],
+    views: 4520,
+    likes: 380,
+    dislikes: 2,
+    author: "Ban Học Thuật Think & Rich",
+    tags: ["Aristotle", "Elon Musk", "Vật lý học", "Ra quyết định"],
     createdAt: "2026-08-15T08:00:00.000Z",
     updatedAt: "2026-08-15T08:00:00.000Z",
+    shortDescription: "Phá vỡ mọi suy luận bằng phép loại suy. Phân rã vấn đề thành các chân lý cơ bản nhất.",
+    readTime: "6 phút",
   },
   {
-    id: "blue-ocean-strategy",
-    slug: "blue-ocean-strategy",
-    title: "Chiến lược Đại dương Xanh: Khiến đối thủ trở nên vô nghĩa",
-    category: "Chiến lược Kinh doanh",
-    shortDescription:
-      "Nghệ thuật tạo ra không gian thị trường mới chưa có ai khai phá, thoát khỏi cuộc cạnh tranh đẫm máu về giá thông qua sáng tạo giá trị vượt trội.",
+    id: "inversion-principle",
+    slug: "inversion-principle",
+    title: "Tư duy Đảo ngược (Inversion): Nghịch đảo bài toán để phòng tránh thảm họa",
+    pillar: "MENTAL_MODEL",
+    category: "Mô hình Tư duy",
+    displaySize: "SQUARE_SM",
+    academicFormula: "\\text{Success} = \\max(S) \\iff \\min(\\text{Stupidity})",
+    summarySnippet:
+      "Thay vì cố gắng tìm cách thành công xuất chúng, hãy liệt kê tất cả những sai lầm dẫn đến thất bại chắc chắn và kiên quyết loại bỏ chúng.",
+    keyTakeaways: [
+      "Nghịch đảo vấn đề: 'Điều gì chắc chắn làm dự án thất bại?'",
+      "Áp dụng kỹ thuật Khám nghiệm tử thi trước (Pre-Mortem).",
+      "Giảm thiểu sự ngu ngốc dễ hơn tìm kiếm sự thiên tài.",
+    ],
+    schematicSvg: `<svg viewBox="0 0 100 100" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+      <path d="M50 20 L50 80 M50 80 L35 65 M50 80 L65 65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="50" cy="20" r="8" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="1.5"/>
+    </svg>`,
     fullContent: `
-      <h2>1. Đại dương Đỏ vs. Đại dương Xanh</h2>
-      <p>Trong nền kinh tế hiện đại, các doanh nghiệp thường chia thành hai trạng thái:</p>
-      <ul>
-        <li><strong>Đại dương Đỏ (Red Ocean)</strong>: Đại diện cho tất cả ngành công nghiệp hiện hữu. Ranh giới ngành đã được xác định, các công ty xâu xé nhau để giành giật thị phần, dẫn đến cạnh tranh khốc liệt và biến nước biển thành màu đỏ máu.</li>
-        <li><strong>Đại dương Xanh (Blue Ocean)</strong>: Đại diện cho những khoảng trống thị trường chưa từng có. Nơi đây nhu cầu được tạo mới chứ không phải tranh giành, tăng trưởng nhanh và lợi nhuận cao.</li>
-      </ul>
-
-      <h2>2. Case Study kinh điển: Gánh xiếc Cirque du Soleil</h2>
-      <p>Khi ngành xiếc truyền thống đang lụi tàn vì chi phí nuôi thú đắt đỏ và sự cạnh tranh của trò chơi điện tử, Cirque du Soleil đã làm nên kỳ tích khi tái định vị hoàn toàn:</p>
-      <ul>
-        <li><strong>Loại bỏ</strong>: Ngôi sao biểu diễn đắt giá, xiếc thú nguy hiểm tốn kém, 3 sàn diễn song song gây rối mắt.</li>
-        <li><strong>Cắt giảm</strong>: Sự hài hước vui nhộn nhí nhố của các chú hề truyền thống.</li>
-        <li><strong>Gia tăng</strong>: Địa điểm rạp hát cố định đẳng cấp, sự thoải mái và tinh tế.</li>
-        <li><strong>Tạo mới</strong>: Cốt truyện kịch tính xuyên suốt, âm nhạc trực tiếp huyền ảo, vũ đạo nghệ thuật đỉnh cao kết hợp nhạc kịch Broadway.</li>
-      </ul>
-      <p>Kết quả: Họ không còn cạnh tranh với các gánh xiếc khác, mà thu hút đối tượng khách hàng trưởng thành sẵn sàng trả vé đắt gấp nhiều lần như đi xem opera.</p>
-
-      <h2>3. Ma trận ERRC (Eliminate - Reduce - Raise - Create)</h2>
-      <p>Để tìm đại dương xanh của riêng bạn, hãy trả lời 4 câu hỏi:</p>
-      <ol>
-        <li><strong>Loại bỏ (Eliminate)</strong>: Những yếu tố nào ngành mặc nhiên công nhận nhưng thực chất không còn tạo giá trị?</li>
-        <li><strong>Cắt giảm (Reduce)</strong>: Những yếu tố nào nên giảm xuống dưới mức tiêu chuẩn ngành?</li>
-        <li><strong>Gia tăng (Raise)</strong>: Những yếu tố nào nên nâng lên cao hơn mức tiêu chuẩn ngành?</li>
-        <li><strong>Tạo mới (Create)</strong>: Những yếu tố nào ngành chưa từng cung cấp mà khách hàng khao khát?</li>
-      </ol>
+      <h2>1. Tiên đề Carl Jacobi</h2>
+      <p>Nhà toán học người Đức Carl Jacobi có câu châm ngôn nổi tiếng: <em>"Man muss immer umkehren" (Nghịch đảo, luôn luôn nghịch đảo)</em>. Khi giải một phương trình hóc búa, việc biến đổi ngược thường mang lại lời giải tức thì.</p>
+      <h2>2. Ứng dụng của Charlie Munger</h2>
+      <p>Charlie Munger cho rằng tránh né sai lầm ngớ ngẩn đem lại lợi thế sinh tồn lớn hơn nhiều so với việc cố trở nên thông thái:</p>
+      <blockquote>"Tất cả những gì tôi muốn biết là nơi tôi sẽ chết, để tôi không bao giờ đến đó."</blockquote>
     `,
-    thumbnailUrl:
-      "https://images.unsplash.com/photo-1518837695005-2083093ee35b?q=80&w=1200&auto=format&fit=crop",
-    videoUrl: "https://www.youtube.com/embed/clg-Qv3_f2g",
-    author: "Ban Biên Tập Think & Rich",
-    readTime: "7 phút đọc",
+    accessLevel: "FREE",
+    readingTimeMinutes: 4,
     status: "PUBLISHED",
-    views: 4890,
-    likes: 382,
-    dislikes: 4,
-    featured: true,
-    tags: ["Chiến lược", "Đại dương xanh", "Định vị", "Kinh doanh"],
-    createdAt: "2026-08-16T09:30:00.000Z",
-    updatedAt: "2026-08-16T09:30:00.000Z",
-  },
-  {
-    id: "circle-of-competence",
-    slug: "circle-of-competence",
-    title: "Mô hình Tâm trí: Vòng tròn Năng lực (Circle of Competence)",
-    category: "Mô hình Tâm trí",
-    shortDescription:
-      "Bí quyết đầu tư và sống sót qua hơn nửa thế kỷ của Warren Buffett & Charlie Munger: Biết chính xác mình giỏi điều gì và tuyệt đối không bước qua lằn ranh mù quáng.",
-    fullContent: `
-      <h2>1. Định nghĩa Vòng tròn Năng lực</h2>
-      <p>Vòng tròn năng lực (Circle of Competence) là phạm vi những lĩnh vực, chủ đề hoặc ngành nghề mà bạn thực sự thấu hiểu sâu sắc từ kinh nghiệm thực chiến, nguyên lý hoạt động và quy luật kinh tế của nó.</p>
-      
-      <blockquote>
-        "Bạn không cần phải là một chuyên gia về mọi lĩnh vực. Nhưng việc biết được biên giới vòng tròn năng lực của bạn nằm ở đâu và ở yên bên trong nó là điều quan trọng nhất."
-        <br />— <em>Warren Buffett</em>
-      </blockquote>
-
-      <h2>2. Sự khác biệt giữa 'Hiểu biết thật' và 'Hiểu biết mượn mỏ'</h2>
-      <p>Charlie Munger thường kể câu chuyện về nhà vật lý đoạt giải Nobel Max Planck và người tài xế:</p>
-      <p>Người tài xế nghe giáo sư giảng bài khắp các trường đại học đến mức thuộc làu từng chữ. Một hôm, tài xế xin được lên bục giảng thay. Mọi chuyện diễn ra trôi chảy cho đến khi một giáo sư đặt câu hỏi phản biện nâng cao. Lúc đó tài xế cứng họng và đành nhờ 'tài xế phía dưới' (chính là Max Planck thật) giải thích giúp.</p>
-      <p>Bài học: <strong>Kiến thức có thể thuộc vẹt, nhưng năng lực thực sự chỉ đến từ việc trực tiếp trải nghiệm, va vấp và tư duy sâu.</strong></p>
-
-      <h2>3. 3 Bước làm chủ Vòng tròn Năng lực</h2>
-      <ul>
-        <li><strong>Xác định đường biên rõ ràng</strong>: Trung thực tuyệt đối với bản thân. Bạn hiểu sâu về cái gì (công nghệ, tài chính, phân phối bán lẻ) và hoàn toàn mù mờ về cái gì?</li>
-        <li><strong>Nói 'Không' với những cơ hội ngoài vòng tròn</strong>: Dù thị trường có sốt dẻo hay hấp dẫn đến đâu, nếu không hiểu cách nó tạo ra tiền, đừng mạo hiểm.</li>
-        <li><strong>Mở rộng vòng tròn từ tốn và kiên định</strong>: Đọc sách, học hỏi chuyên gia, tích lũy kinh nghiệm qua nhiều năm tháng để dần nới rộng biên giới.</li>
-      </ul>
-    `,
-    thumbnailUrl:
-      "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200&auto=format&fit=crop",
-    videoUrl: "https://www.youtube.com/embed/m91f_ZfO1_Y",
+    views: 3120,
+    likes: 240,
+    dislikes: 1,
     author: "Charlie Munger / Think & Rich",
-    readTime: "5 phút đọc",
-    status: "PUBLISHED",
-    views: 2950,
-    likes: 195,
-    dislikes: 2,
-    featured: true,
-    tags: ["Warren Buffett", "Charlie Munger", "Tâm trí", "Đầu tư"],
-    createdAt: "2026-08-17T11:15:00.000Z",
-    updatedAt: "2026-08-17T11:15:00.000Z",
+    tags: ["Charlie Munger", "Nghịch đảo", "Quản trị rủi ro"],
+    createdAt: "2026-08-16T09:00:00.000Z",
+    updatedAt: "2026-08-16T09:00:00.000Z",
+    shortDescription: "Thay vì cố gắng tìm cách thành công xuất chúng, hãy liệt kê và loại bỏ các nguyên nhân thất bại.",
+    readTime: "4 phút",
   },
   {
     id: "second-order-thinking",
     slug: "second-order-thinking",
-    title: "Tư duy Bậc hai (Second-Order Thinking): Nhìn xa hơn điều hiển nhiên",
+    title: "Tư duy Bậc hai (Second-Order Thinking): Tính toán hệ quả dây chuyền",
+    pillar: "MENTAL_MODEL",
     category: "Mô hình Tư duy",
-    shortDescription:
-      "Trong khi người bình thường chỉ hỏi 'Hành động này mang lại kết quả gì?', bậc thầy tư duy luôn hỏi câu tiếp theo: 'Và rồi sau đó sẽ xảy ra chuyện gì nữa?'",
+    displaySize: "SQUARE_MD",
+    academicFormula: "\\mathcal{E}_2 = f(\\mathcal{E}_1(t)) \\quad \\text{với } \\mathcal{E}_2 \\gg \\mathcal{E}_1",
+    summarySnippet:
+      "Người bình thường chỉ nhìn thấy kết quả trước mắt (Bậc 1). Nhà hoạch định chiến lược luôn đặt câu hỏi then chốt: 'Và rồi sau đó thì sao?'",
+    keyTakeaways: [
+      "Hệ quả bậc một thường dễ chịu nhưng hệ quả bậc hai gây kiệt quệ.",
+      "Hiệu ứng Rắn hổ mang (Cobra Effect) trong hoạch định chính sách.",
+      "Đánh giá quyết định qua lăng kính 10 phút, 10 tháng, 10 năm.",
+    ],
+    schematicSvg: `<svg viewBox="0 0 160 100" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+      <rect x="15" y="35" width="30" height="30" rx="6" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-width="1.5"/>
+      <text x="30" y="53" font-size="10" text-anchor="middle" fill="currentColor">1st</text>
+      <path d="M48 50 L72 50" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 2"/>
+      <rect x="75" y="25" width="40" height="50" rx="8" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="2"/>
+      <text x="95" y="53" font-size="11" text-anchor="middle" font-weight="bold" fill="currentColor">2nd</text>
+    </svg>`,
     fullContent: `
-      <h2>1. Phân biệt Tư duy bậc một và Tư duy bậc hai</h2>
-      <p>Nhà đầu tư huyền thoại Howard Marks trong cuốn sách <em>The Most Important Thing</em> đã chỉ rõ:</p>
-      <ul>
-        <li><strong>Tư duy bậc một (First-Order Thinking)</strong>: Nhanh chóng, đơn giản, chỉ tập trung vào giải quyết vấn đề tức thời trước mắt. Ví dụ: <em>"Công ty này tốt, hãy mua cổ phiếu của nó."</em></li>
-        <li><strong>Tư duy bậc hai (Second-Order Thinking)</strong>: Phức tạp, đa chiều, tính toán đến các hệ quả dây chuyền kéo theo trong tương lai dài hạn. Ví dụ: <em>"Công ty này tốt, nhưng tất cả mọi người đều nghĩ vậy nên giá cổ phiếu đã bị thổi phồng quá mức. Hãy bán ra."</em></li>
-      </ul>
-
-      <h2>2. Hiệu ứng Rắn hổ mang (The Cobra Effect)</h2>
-      <p>Thời kỳ thuộc địa tại Ấn Độ, chính quyền Anh muốn diệt trừ rắn hổ mang ở Delhi. Họ ra chính sách thưởng tiền cho mỗi con rắn chết nộp lên (Tư duy bậc một: Treo thưởng &rarr; Người dân đi bắt rắn &rarr; Hết rắn).</p>
-      <p>Kết quả của Tư duy bậc hai: Người dân nhận thấy nuôi rắn đẻ con đem nộp lấy tiền dễ hơn đi săn. Khi chính quyền phát hiện và hủy bỏ tiền thưởng, người nuôi thả hàng vạn con rắn vô giá trị ra đường, khiến số lượng rắn hổ mang tăng gấp bội!</p>
-
-      <h2>3. Ứng dụng trong quản trị và xây dựng sản phẩm</h2>
-      <ol>
-        <li>Luôn đặt câu hỏi: <strong>"Và rồi sau đó thì sao?" (And then what?)</strong></li>
-        <li>Xem xét tác động qua các mốc thời gian: 10 phút nữa, 10 tháng nữa, 10 năm nữa.</li>
-        <li>Dự đoán phản ứng của đối thủ, nhân viên và người dùng khi một chính sách mới được ban hành.</li>
-      </ol>
+      <h2>1. Phân cấp mức độ tư duy</h2>
+      <p>Howard Marks trong cuốn sách <em>The Most Important Thing</em> khẳng định: Tư duy bậc một đơn giản và phổ biến, do đó không thể mang lại lợi nhuận vượt trội. Tư duy bậc hai đòi hỏi phải tính đến các phản ứng dây chuyền từ thị trường và đối thủ cạnh tranh.</p>
+      <h2>2. Bài học từ Hiệu ứng Rắn hổ mang</h2>
+      <p>Khi chính quyền thực dân Anh trả tiền thưởng cho mỗi con rắn chết nộp lên, người dân lập trang trại nuôi rắn để kiếm tiền. Khi chính sách bị bãi bỏ, hàng vạn con rắn được thả rông ra đường, biến thảm họa thành gấp bội.</p>
     `,
-    thumbnailUrl:
-      "https://images.unsplash.com/photo-1529699211952-734e80c4d42b?q=80&w=1200&auto=format&fit=crop",
-    videoUrl: "https://www.youtube.com/embed/4q1dH4j1xXg",
-    author: "Howard Marks / Think & Rich",
-    readTime: "6 phút đọc",
+    accessLevel: "MEMBER_PLUS",
+    readingTimeMinutes: 5,
     status: "PUBLISHED",
-    views: 3820,
+    views: 2890,
     likes: 310,
-    dislikes: 5,
-    featured: false,
-    isPro: true,
-    tags: ["Tư duy chiến lược", "Ra quyết định", "Hệ quả bậc hai"],
-
-    createdAt: "2026-08-18T14:00:00.000Z",
-    updatedAt: "2026-08-18T14:00:00.000Z",
+    dislikes: 3,
+    author: "Howard Marks / Think & Rich",
+    tags: ["Howard Marks", "Hệ quả bậc hai", "Động lực học"],
+    createdAt: "2026-08-17T11:00:00.000Z",
+    updatedAt: "2026-08-17T11:00:00.000Z",
+    shortDescription: "Người bình thường chỉ nhìn thấy kết quả trước mắt. Nhà chiến lược hỏi: 'Và rồi sau đó thì sao?'",
+    readTime: "5 phút",
   },
+  {
+    id: "game-theory-nash-equilibrium",
+    slug: "game-theory-nash-equilibrium",
+    title: "Lý thuyết Trò chơi & Cân bằng Nash: Chiến lược hợp tác trong bất định",
+    pillar: "MENTAL_MODEL",
+    category: "Mô hình Tâm trí",
+    displaySize: "SQUARE_MD",
+    academicFormula: "u_i(s_i^*, s_{-i}^*) \\ge u_i(s_i, s_{-i}^*) \\quad \\forall s_i \\in S_i",
+    summarySnippet:
+      "Trạng thái mà không người chơi nào có động lực đơn phương thay đổi chiến lược nếu các đối thủ khác giữ nguyên lựa chọn của họ.",
+    keyTakeaways: [
+      "Thế lưỡng nan của người tù (Prisoner's Dilemma).",
+      "Xây dựng cơ chế khuyến khích hợp tác dài hạn (Tit-for-Tat).",
+      "Nhận diện trò chơi có tổng bằng 0 (Zero-sum) vs. tổng dương.",
+    ],
+    schematicSvg: `<svg viewBox="0 0 160 100" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+      <line x1="20" y1="50" x2="140" y2="50" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+      <line x1="80" y1="15" x2="80" y2="85" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+      <circle cx="110" cy="35" r="16" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="1.5"/>
+      <text x="110" y="39" font-size="9" text-anchor="middle" fill="currentColor">Nash</text>
+    </svg>`,
+    fullContent: `
+      <h2>1. Khung toán học của Cân bằng Nash</h2>
+      <p>John Nash chứng minh rằng trong bất kỳ trò chơi hữu hạn nào với thông tin hoàn hảo hoặc không hoàn hảo, luôn tồn tại ít nhất một điểm cân bằng nơi mọi người chơi đều tối ưu hóa lợi ích dựa trên kỳ vọng về đối phương.</p>
+    `,
+    accessLevel: "MEMBER_PRO",
+    readingTimeMinutes: 7,
+    status: "PUBLISHED",
+    views: 1980,
+    likes: 185,
+    dislikes: 0,
+    author: "Ban Học Thuật Think & Rich",
+    tags: ["John Nash", "Lý thuyết trò chơi", "Toán học ứng dụng"],
+    createdAt: "2026-08-18T14:30:00.000Z",
+    updatedAt: "2026-08-18T14:30:00.000Z",
+    shortDescription: "Tối ưu hóa chiến lược hợp tác và cạnh tranh trong điều kiện bất định.",
+    readTime: "7 phút",
+  },
+
+  // ----------------------------------------------------
+  // TRỤ CỘT 2: BUSINESS STRATEGY (CHIẾN LƯỢC KINH DOANH)
+  // ----------------------------------------------------
   {
     id: "the-flywheel-effect",
     slug: "the-flywheel-effect",
-    title: "Hiệu ứng Bánh đà (The Flywheel Effect): Động lực tăng trưởng kép",
+    title: "Bánh đà Tăng trưởng (The Flywheel Effect): Động lực tự gia tốc",
+    pillar: "BUSINESS_STRATEGY",
     category: "Chiến lược Kinh doanh",
-    shortDescription:
-      "Cách Amazon, Uber và Costco xây dựng cỗ máy kinh doanh tự vận hành và tự gia tốc ngày càng mạnh mẽ nhờ vòng lặp phản hồi tích cực.",
+    displaySize: "SQUARE_LG",
+    academicFormula: "\\omega(t) = \\int \\frac{\\tau_{\\text{net}}(t)}{I} \\, dt \\implies \\text{Compounding Loop}",
+    summarySnippet:
+      "Tạo dựng cỗ máy kinh doanh tuần hoàn nơi mỗi mắt xích thành công tự động tiếp thêm động năng cho mắt xích kế tiếp, tạo đà bứt phá không thể ngăn cản.",
+    keyTakeaways: [
+      "Chiếc bánh đà cần lực đẩy ban đầu rất lớn nhưng quán tính sẽ duy trì vòng quay.",
+      "Mô hình khăn ăn Amazon: Giá thấp -> Khách hàng -> Sellers -> Chi phí biên giảm.",
+      "Loại bỏ triệt để ma sát nội bộ cản trở vòng quay.",
+    ],
+    schematicSvg: `<svg viewBox="0 0 160 120" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="80" cy="60" r="38" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="8 4"/>
+      <circle cx="80" cy="22" r="6" fill="currentColor"/>
+      <circle cx="118" cy="60" r="6" fill="currentColor"/>
+      <circle cx="80" cy="98" r="6" fill="currentColor"/>
+      <circle cx="42" cy="60" r="6" fill="currentColor"/>
+      <path d="M86 16 L94 22 L86 28" fill="currentColor"/>
+      <text x="80" y="64" font-size="9" text-anchor="middle" font-weight="bold" fill="currentColor">Flywheel</text>
+    </svg>`,
     fullContent: `
       <h2>1. Khái niệm Bánh đà của Jim Collins</h2>
-      <p>Trong cuốn sách kinh điển <em>Good to Great</em>, Jim Collins mô tả quá trình chuyển đổi vĩ đại của một công ty không bao giờ đến từ một cú hích duy nhất, một phát minh thần kỳ hay một chiến dịch quảng cáo rầm rộ. Nó giống như việc đẩy một chiếc bánh đà khổng lồ bằng kim loại nặng hàng chục tấn.</p>
-      <p>Ban đầu bạn phải dùng hết sức bình sinh để đẩy nó nhích từng milimet. Nhưng qua thời gian, khi lực đẩy liên tục theo đúng một hướng nhất định, trọng lượng của chính chiếc bánh đà sẽ tạo ra quán tính tự quay cuồng cuộn.</p>
-
-      <h2>2. Vòng tròn Bánh đà của Jeff Bezos (Amazon)</h2>
-      <p>Năm 2001, Jeff Bezos đã phác thảo mô hình bánh đà Amazon trên một tờ khăn ăn giấy:</p>
-      <ul>
-        <li><strong>Trải nghiệm khách hàng tuyệt vời</strong> &rarr; Tăng lưu lượng truy cập (Traffic).</li>
-        <li><strong>Nhiều Traffic</strong> &rarr; Thu hút các nhà bán hàng bên thứ 3 (Sellers).</li>
-        <li><strong>Nhiều Sellers</strong> &rarr; Mở rộng danh mục sản phẩm và tạo sự cạnh tranh.</li>
-        <li><strong>Quy mô mở rộng</strong> &rarr; Giảm chi phí vận hành cố định trên từng đơn hàng.</li>
-        <li><strong>Chi phí thấp hơn</strong> &rarr; Giảm giá bán cho khách hàng &rarr; Tăng trải nghiệm khách hàng!</li>
-      </ul>
-
-      <h2>3. Cách thiết kế Bánh đà cho doanh nghiệp của bạn</h2>
-      <ol>
-        <li>Xác định 4–6 thành tố then chốt tạo nên thành công của doanh nghiệp.</li>
-        <li>Sắp xếp chúng theo vòng tròn tuần hoàn sao cho: <strong>A thúc đẩy B, B thúc đẩy C, C thúc đẩy D, và D quay lại củng cố A</strong>.</li>
-        <li>Tập trung toàn lực của tổ chức vào việc loại bỏ mọi ma sát cản trở vòng quay đó.</li>
-      </ol>
+      <p>Trong <em>Good to Great</em>, Jim Collins mô tả chuyển đổi của một công ty vĩ đại không bao giờ đến từ một cú hích may mắn hay sự kiện đơn lẻ. Nó giống như việc kiên trì đẩy chiếc bánh đà khổng lồ bằng kim loại.</p>
+      <h2>2. Bản phác thảo khăn ăn của Jeff Bezos</h2>
+      <p>Năm 2001, Bezos mô tả bánh đà Amazon: Trải nghiệm người dùng tốt thu hút Traffic -> Traffic thu hút người bán bên thứ 3 -> Tăng danh mục sản phẩm -> Tối ưu hóa quy mô và chi phí vận hành -> Giảm giá bán -> Cải thiện trải nghiệm người dùng!</p>
     `,
-    thumbnailUrl:
-      "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1200&auto=format&fit=crop",
-    videoUrl: "https://www.youtube.com/embed/5_hKooT_e18",
+    accessLevel: "FREE",
+    readingTimeMinutes: 6,
+    status: "PUBLISHED",
+    views: 5210,
+    likes: 490,
+    dislikes: 4,
     author: "Jim Collins / Think & Rich",
-    readTime: "8 phút đọc",
+    tags: ["Amazon", "Tăng trưởng kép", "Bánh đà", "Jim Collins"],
+    createdAt: "2026-08-16T10:00:00.000Z",
+    updatedAt: "2026-08-16T10:00:00.000Z",
+    shortDescription: "Tạo dựng cỗ máy kinh doanh tuần hoàn tự gia tốc ngày càng mạnh mẽ.",
+    readTime: "6 phút",
+  },
+  {
+    id: "7-powers-economic-moats",
+    slug: "7-powers-economic-moats",
+    title: "7 Quyền lực Chiến lược (7 Powers): Cấu trúc con hào kinh tế bền vững",
+    pillar: "BUSINESS_STRATEGY",
+    category: "Hào kinh tế & Moats",
+    displaySize: "SQUARE_MD",
+    academicFormula: "\\text{Moat} = \\text{Value Differential} \\times \\text{Barrier to Arbitrage}",
+    summarySnippet:
+      "Khung phân tích của Hamilton Helmer giải mã 7 nguồn sức mạnh duy nhất tạo ra lợi nhuận vượt trội bền vững và rào cản bất khả xâm phạm trước đối thủ.",
+    keyTakeaways: [
+      "Scale Economies, Network Effects, Counter-Positioning.",
+      "Switching Costs, Branding, Cornered Resource, Process Power.",
+      "Sức mạnh chỉ tồn tại khi có đồng thời: Lợi thế cạnh tranh + Rào cản sao chép.",
+    ],
+    schematicSvg: `<svg viewBox="0 0 160 100" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="80,15 135,45 135,75 80,95 25,75 25,45" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-width="1.5"/>
+      <circle cx="80" cy="55" r="14" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="1.5"/>
+      <text x="80" y="58" font-size="8" text-anchor="middle" font-weight="bold" fill="currentColor">7 Powers</text>
+    </svg>`,
+    fullContent: `
+      <h2>1. 7 Nguồn sức mạnh phòng thủ</h2>
+      <p>Hamilton Helmer chỉ ra rằng 99% chiến lược tiếp thị thông thường chỉ tạo ra lợi thế ngắn hạn. Chỉ có 7 cấu trúc sức mạnh này mới bảo vệ được dòng tiền doanh nghiệp trong hàng thập kỷ.</p>
+    `,
+    accessLevel: "MEMBER_PLUS",
+    readingTimeMinutes: 8,
+    status: "PUBLISHED",
+    views: 3900,
+    likes: 340,
+    dislikes: 1,
+    author: "Hamilton Helmer / Think & Rich",
+    tags: ["7 Powers", "Con hào kinh tế", "Hamilton Helmer"],
+    createdAt: "2026-08-17T08:30:00.000Z",
+    updatedAt: "2026-08-17T08:30:00.000Z",
+    shortDescription: "7 nguồn sức mạnh tạo ra lợi nhuận vượt trội bền vững và rào cản bất khả xâm phạm.",
+    readTime: "8 phút",
+  },
+  {
+    id: "unit-economics-saas",
+    slug: "unit-economics-saas",
+    title: "Đơn vị Kinh tế Cốt lõi (Unit Economics): LTV / CAC & Thời gian hoàn vốn",
+    pillar: "BUSINESS_STRATEGY",
+    category: "Chiến lược Kinh doanh",
+    displaySize: "SQUARE_SM",
+    academicFormula: "\\frac{\\text{LTV}}{\\text{CAC}} \\ge 3.0 \\quad \\& \\quad \\text{Payback Period} \\le 12 \\text{ months}",
+    summarySnippet:
+      "Quy luật sống còn của mô hình kinh doanh số. Nếu từng đơn vị khách hàng không tạo ra lợi nhuận ròng sau chi phí thu hút, mở rộng quy mô chỉ dẫn tới phá sản nhanh hơn.",
+    keyTakeaways: [
+      "Tỷ lệ LTV/CAC tối thiểu đạt 3x để duy trì tái đầu tư.",
+      "Thời gian hoàn vốn (CAC Payback) quyết định nhu cầu vốn lưu động.",
+      "Net Revenue Retention (NRR) trên 115% chứng minh Product-Market Fit vững.",
+    ],
+    schematicSvg: `<svg viewBox="0 0 100 100" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+      <path d="M20 75 L45 50 L65 60 L85 25" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="85" cy="25" r="4" fill="currentColor"/>
+    </svg>`,
+    fullContent: `
+      <h2>1. Phương trình toán học LTV</h2>
+      <p>LTV (Customer Lifetime Value) = (ARPU × Gross Margin %) / Churn Rate. Khi tỷ lệ Churn giảm một nửa, LTV sẽ tăng gấp đôi mà không tốn thêm 1 đồng chi phí quảng cáo.</p>
+    `,
+    accessLevel: "FREE",
+    readingTimeMinutes: 5,
     status: "PUBLISHED",
     views: 4120,
-    likes: 345,
-    dislikes: 3,
-    featured: true,
-    tags: ["Amazon", "Tăng trưởng kép", "Bánh đà", "Quy mô"],
-    createdAt: "2026-08-19T07:20:00.000Z",
-    updatedAt: "2026-08-19T07:20:00.000Z",
-  },
-  {
-    id: "inversion-thinking",
-    slug: "inversion-thinking",
-    title: "Phương pháp Nghịch đảo (Inversion): Đảo ngược vấn đề để chiến thắng",
-    category: "Mô hình Tư duy",
-    shortDescription:
-      "Lời khuyên của nhà toán học Carl Jacobi: 'Nghịch đảo, luôn luôn nghịch đảo'. Thay vì tìm cách trở nên xuất sắc, hãy tìm cách không trở nên ngu ngốc.",
-    fullContent: `
-      <h2>1. Nghịch đảo là gì?</h2>
-      <p>Hầu hết chúng ta dành cả đời để suy nghĩ theo hướng tiến về phía trước: <em>"Làm sao để kiếm được nhiều tiền?", "Làm sao để công ty thành công?", "Làm sao để hạnh phúc?"</em>.</p>
-      <p>Tư duy nghịch đảo yêu cầu bạn lật ngược vấn đề: <em>"Điều gì chắc chắn sẽ làm công ty phá sản?", "Điều gì sẽ khiến cuộc sống rơi vào bất hạnh và nợ nần?"</em>. Khi bạn liệt kê hết các nguyên nhân gây thất bại và kiên quyết tránh xa chúng, thành công sẽ tự động xuất hiện.</p>
-
-      <blockquote>
-        "Tất cả những gì tôi muốn biết là nơi tôi sẽ chết, để tôi không bao giờ đến đó."
-        <br />— <em>Charlie Munger</em>
-      </blockquote>
-
-      <h2>2. Ứng dụng trong Quản trị Rủi ro (Pre-Mortem)</h2>
-      <p>Trước khi tung ra một dự án lớn, hãy tổ chức một buổi họp <strong>Khám nghiệm tử thi trước (Pre-Mortem)</strong>:</p>
-      <ul>
-        <li>Tưởng tượng chúng ta đang ở thời điểm 1 năm sau và dự án này đã <strong>thất bại thảm hại toàn diện</strong>.</li>
-        <li>Yêu cầu mỗi thành viên trong nhóm viết ra 5 nguyên nhân trực tiếp dẫn đến cái chết của dự án.</li>
-        <li>Tập hợp danh sách và xây dựng phương án phòng ngừa ngay từ ngày đầu tiên.</li>
-      </ul>
-    `,
-    thumbnailUrl:
-      "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=1200&auto=format&fit=crop",
-    videoUrl: "https://www.youtube.com/embed/Yx_6rPqLz_Y",
-    author: "Charlie Munger / Think & Rich",
-    readTime: "5 phút đọc",
-    status: "PUBLISHED",
-    views: 2190,
-    likes: 178,
-    dislikes: 1,
-    featured: false,
-    tags: ["Charlie Munger", "Nghịch đảo", "Quản trị rủi ro", "Tư duy"],
-    createdAt: "2026-08-20T10:00:00.000Z",
-    updatedAt: "2026-08-20T10:00:00.000Z",
-  },
-  {
-    id: "ooda-loop-strategy",
-    slug: "ooda-loop-strategy",
-    title: "Vòng lặp OODA: Tốc độ ra quyết định trong môi trường biến động",
-    category: "Chiến lược Kinh doanh",
-    shortDescription:
-      "Chiến lược không chiến của phi công John Boyd áp dụng vào kỷ nguyên số: Observe - Orient - Decide - Act để luôn dẫn trước đối thủ một bước.",
-    fullContent: `
-      <h2>1. Nguồn gốc Vòng lặp OODA</h2>
-      <p>Được phát triển bởi Đại tá không quân Hoa Kỳ John Boyd, OODA Loop ban đầu giải thích lý do các phi công lái F-86 có thể đánh bại MiG-15 của đối phương dù MiG có thông số kỹ thuật vượt trội. Bí quyết nằm ở <strong>tốc độ hoàn thành một vòng lặp ra quyết định nhanh hơn đối thủ</strong>.</p>
-
-      <h2>2. 4 Giai đoạn của OODA</h2>
-      <ol>
-        <li><strong>Observe (Quan sát)</strong>: Thu thập dữ liệu thực tế từ thị trường, phản hồi khách hàng và hành động của đối thủ mà không bị thiên kiến.</li>
-        <li><strong>Orient (Định hướng - Khâu quan trọng nhất)</strong>: Phân tích dữ liệu thông qua lăng kính kinh nghiệm, mô hình tâm trí và văn hóa để hiểu đúng thực tại.</li>
-        <li><strong>Decide (Quyết định)</strong>: Đưa ra giả thuyết hành động rõ ràng và dứt khoát.</li>
-        <li><strong>Act (Hành động)</strong>: Thực thi nhanh chóng, kiểm tra kết quả để bắt đầu vòng quan sát tiếp theo.</li>
-      </ol>
-
-      <p>Khi bạn vận hành OODA nhanh hơn đối thủ, bạn sẽ làm họ rối loạn phản xạ, liên tục rơi vào thế bị động chống đỡ.</p>
-    `,
-    thumbnailUrl:
-      "https://images.unsplash.com/photo-1551836022-d5d88e9218df?q=80&w=1200&auto=format&fit=crop",
-    videoUrl: "https://www.youtube.com/embed/8w1bVfH5Ecg",
-    author: "John Boyd / Think & Rich",
-    readTime: "7 phút đọc",
-    status: "PUBLISHED",
-    views: 3100,
-    likes: 220,
-    dislikes: 4,
-    featured: false,
-    isPro: true,
-    tags: ["OODA", "Tốc độ", "Chiến lược", "Linh hoạt"],
-    createdAt: "2026-08-20T16:30:00.000Z",
-    updatedAt: "2026-08-20T16:30:00.000Z",
-  },
-  {
-    id: "barbell-strategy",
-    slug: "barbell-strategy",
-    title: "Chiến lược Đòn tạ (The Barbell Strategy): Vững như bàn thạch",
-    category: "Tâm lý học & Quyết định",
-    shortDescription:
-      "Khung tư duy của Nassim Nicholas Taleb: Kết hợp giữa sự an toàn cực độ ở một đầu và những canh bạc có tiềm năng vô hạn ở đầu kia, triệt tiêu vùng trung dung nguy hiểm.",
-    fullContent: `
-      <h2>1. Nghịch lý của vùng Trung bình</h2>
-      <p>Trong cuốn sách <em>Antifragile (Khả năng chống mong manh)</em>, Nassim Taleb chỉ ra rằng hầu hết mọi người thất bại vì họ chọn con đường 'rủi ro trung bình'. Một rủi ro trung bình thực chất đem lại sự an toàn giả tạo và nguy cơ mất trắng khi có biến cố Thiên nga đen.</p>
-
-      <h2>2. Cấu trúc Đòn tạ (Barbell)</h2>
-      <p>Hình ảnh chiếc đòn tạ với hai quả tạ nặng ở hai đầu cực, ở giữa là thanh nối rỗng:</p>
-      <ul>
-        <li><strong>Đầu 1 (85–90% nguồn lực)</strong>: Cực kỳ bảo thủ và an toàn tuyệt đối (tiền mặt, tài sản phòng thủ, công việc ổn định mang lại dòng tiền). Mục tiêu: Không bao giờ bị loại khỏi cuộc chơi.</li>
-        <li><strong>Đầu 2 (10–15% nguồn lực)</strong>: Đầu tư vào các dự án mạo hiểm có rủi ro hữu hạn (chỉ mất tối đa số tiền nhỏ bỏ ra) nhưng nếu thắng thì tiềm năng tăng trưởng là vô cực (Startups, công nghệ mới, bản quyền trí tuệ).</li>
-      </ul>
-      <p>Chiến lược này giúp bạn miễn nhiễm với sự sụp đổ của thị trường trong khi vẫn nắm bắt được những cơ hội đổi đời.</p>
-    `,
-    thumbnailUrl:
-      "https://images.unsplash.com/photo-1574680096145-d05b474e2155?q=80&w=1200&auto=format&fit=crop",
-    videoUrl: "https://www.youtube.com/embed/Fw03oR4_pG4",
-    author: "Nassim Taleb / Think & Rich",
-    readTime: "6 phút đọc",
-    status: "PUBLISHED",
-    views: 2680,
-    likes: 215,
+    likes: 310,
     dislikes: 2,
-    featured: false,
-    isPro: true,
-    tags: ["Nassim Taleb", "Chống mong manh", "Quản lý vốn", "Đòn tạ"],
-
-    createdAt: "2026-08-21T09:00:00.000Z",
-    updatedAt: "2026-08-21T09:00:00.000Z",
+    author: "Ban Biên Tập Think & Rich",
+    tags: ["SaaS", "Unit Economics", "LTV", "CAC", "Tài chính"],
+    createdAt: "2026-08-18T16:00:00.000Z",
+    updatedAt: "2026-08-18T16:00:00.000Z",
+    shortDescription: "Quy luật sống còn của mô hình kinh doanh số: LTV/CAC và CAC Payback.",
+    readTime: "5 phút",
   },
   {
-    id: "network-effects-moat",
-    slug: "network-effects-moat",
-    title: "Hiệu ứng Mạng lưới (Network Effects): Con hào kinh tế thời đại số",
-    category: "Hiệu ứng & Định luật",
-    shortDescription:
-      "Mỗi người dùng mới tham gia sẽ làm gia tăng trực tiếp giá trị dịch vụ cho tất cả người dùng hiện tại, tạo ra rào cản độc quyền tự nhiên không thể lật đổ.",
+    id: "blitzscaling-defensibility",
+    slug: "blitzscaling-defensibility",
+    title: "Blitzscaling: Tăng trưởng chớp nhoáng & Độc chiếm thị trường",
+    pillar: "BUSINESS_STRATEGY",
+    category: "Chiến lược Kinh doanh",
+    displaySize: "SQUARE_MD",
+    academicFormula: "\\text{Speed} > \\text{Efficiency} \\quad \\text{khi rủi ro lớn nhất là chậm trễ}",
+    summarySnippet:
+      "Khung chiến lược của Reid Hoffman (LinkedIn): Chấp nhận sự thiếu hiệu quả trong vận hành để ưu tiên tốc độ chiếm lĩnh thị trường mạng lưới người thắng hưởng tất.",
+    keyTakeaways: [
+      "Winner-Take-Most / Winner-Take-All Market Dynamics.",
+      "Quản lý sự hỗn loạn khi tổ chức tăng quy mô 10x mỗi năm.",
+      "Khi nào nên Blitzscale và khi nào KHÔNG ĐƯỢC áp dụng.",
+    ],
+    schematicSvg: `<svg viewBox="0 0 160 100" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+      <path d="M20 80 Q 70 75 90 40 T 140 15" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <circle cx="140" cy="15" r="5" fill="currentColor"/>
+      <text x="50" y="45" font-size="8" fill="currentColor">Blitz</text>
+    </svg>`,
     fullContent: `
-      <h2>1. Định luật Metcalfe</h2>
-      <p>Hiệu ứng mạng lưới xảy ra khi giá trị của một sản phẩm/dịch vụ tăng lên theo cấp số nhân khi số lượng người sử dụng nó tăng lên. Giá trị của mạng lưới tỷ lệ thuận với bình phương số người dùng: <code>V = N²</code>.</p>
-      
-      <h2>2. Các loại Hiệu ứng Mạng lưới</h2>
-      <ul>
-        <li><strong>Trực tiếp (Direct)</strong>: Thêm 1 người dùng thì mạng lưới hữu ích hơn cho người khác (Ví dụ: Facebook, Zalo, WhatsApp - nếu chỉ có 1 mình bạn dùng thì vô nghĩa).</li>
-        <li><strong>Hai phía (2-Sided Marketplace)</strong>: Càng nhiều người mua thì càng hút nhiều người bán, và ngược lại (Ví dụ: Shopee, Grab, Airbnb).</li>
-        <li><strong>Dữ liệu (Data Network Effects)</strong>: Càng nhiều người dùng tìm kiếm &rarr; thuật toán càng thông minh &rarr; trả kết quả chính xác hơn &rarr; hút thêm người dùng (Ví dụ: Google Search, Waze).</li>
-      </ul>
-
-      <h2>3. Vượt qua bài toán 'Con gà & Quả trứng' (Cold Start Problem)</h2>
-      <p>Khi chưa có mạng lưới, làm sao thu hút người đầu tiên? Hãy tạo ra công cụ hữu ích cho người dùng đơn lẻ trước (<em>"Come for the tool, stay for the network"</em> - Ví dụ: Instagram ban đầu chỉ là app chỉnh sửa bộ lọc ảnh đẹp).</p>
+      <h2>1. Nghịch lý Blitzscaling</h2>
+      <p>Trong điều kiện bình thường, quản trị kinh doanh luôn hướng tới tối ưu hóa chi phí và hiệu quả. Nhưng trong thị trường có hiệu ứng mạng lưới khổng lồ, công ty đạt quy mô tới hạn trước tiên sẽ chiếm lĩnh toàn bộ giá trị.</p>
     `,
-    thumbnailUrl:
-      "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=1200&auto=format&fit=crop",
-    videoUrl: "https://www.youtube.com/embed/p1716G2F-oY",
-    author: "Ban Biên Tập Think & Rich",
-    readTime: "7 phút đọc",
+    accessLevel: "MEMBER_PRO",
+    readingTimeMinutes: 7,
     status: "PUBLISHED",
-    views: 3560,
-    likes: 290,
-    dislikes: 3,
-    featured: false,
-    tags: ["Hiệu ứng mạng lưới", "Con hào kinh tế", "Nền tảng", "Công nghệ"],
-    createdAt: "2026-08-21T14:15:00.000Z",
-    updatedAt: "2026-08-21T14:15:00.000Z",
+    views: 2650,
+    likes: 210,
+    dislikes: 2,
+    author: "Reid Hoffman / Think & Rich",
+    tags: ["Reid Hoffman", "Blitzscaling", "Silicon Valley"],
+    createdAt: "2026-08-19T13:00:00.000Z",
+    updatedAt: "2026-08-19T13:00:00.000Z",
+    shortDescription: "Chấp nhận sự thiếu hiệu quả trong vận hành để ưu tiên tốc độ độc chiếm thị trường.",
+    readTime: "7 phút",
+  },
+
+  // ----------------------------------------------------
+  // TRỤ CỘT 3: STARTUP IDEAS (Ý TƯỞNG KHỞI NGHIỆP)
+  // ----------------------------------------------------
+  {
+    id: "regulatory-tech-saas-teardown",
+    slug: "regulatory-tech-saas-teardown",
+    title: "Regulatory Tech Micro-SaaS: Tự động hóa kiểm định tuân thủ AI & ESG",
+    pillar: "STARTUP_IDEA",
+    category: "Deep-dive Teardown",
+    displaySize: "SQUARE_LG",
+    academicFormula: "\\text{Opportunity} = \\text{Compliance Cost} \\times \\Delta \\text{Penalty Risk} \\times \\text{API Automation}",
+    summarySnippet:
+      "Hồ sơ phân tích cơ hội thị trường 12 tỷ USD: Xây dựng công cụ kiểm tra và cấp chứng chỉ tuân thủ quy chuẩn AI Act & chuẩn phát thải Scope 3 tự động cho doanh nghiệp vừa và nhỏ.",
+    keyTakeaways: [
+      "Khoảng trống thị trường: Luật mới ban hành nhưng thiếu công cụ triển khai mức giá rẻ.",
+      "Mô hình doanh thu: Thu phí thuê bao định kỳ + Phí kiểm định theo lượt báo cáo.",
+      "Rào cản gia nhập: Xây dựng bộ quy chuẩn dữ liệu độc quyền.",
+    ],
+    schematicSvg: `<svg viewBox="0 0 180 120" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+      <rect x="15" y="40" width="40" height="40" rx="8" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-width="1.5"/>
+      <text x="35" y="63" font-size="8" text-anchor="middle" fill="currentColor">Raw Data</text>
+      <path d="M58 60 L78 60" stroke="currentColor" stroke-width="1.5"/>
+      <polygon points="90,40 110,60 90,80 70,60" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="1.5"/>
+      <text x="90" y="63" font-size="7" text-anchor="middle" font-weight="bold" fill="currentColor">RegEngine</text>
+      <path d="M112 60 L132 60" stroke="currentColor" stroke-width="1.5"/>
+      <rect x="135" y="40" width="35" height="40" rx="8" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-width="1.5"/>
+      <text x="152" y="63" font-size="8" text-anchor="middle" fill="currentColor">Audit Pass</text>
+    </svg>`,
+    fullContent: `
+      <h2>1. Tín hiệu thị trường & Nỗi đau ngành</h2>
+      <p>Liên minh Châu Âu (EU) ban hành AI Act và quy định báo cáo phát thải ESG bắt buộc. Hàng trăm ngàn doanh nghiệp SMB đang đối mặt với án phạt hàng triệu Euro nhưng không đủ ngân sách thuê các hãng kiểm toán Big 4.</p>
+      <h2>2. Cấu trúc sản phẩm cốt lõi</h2>
+      <ul>
+        <li><strong>API Ingestion</strong>: Thu thập metadata từ hệ thống CI/CD hoặc hóa đơn năng lượng.</li>
+        <li><strong>Rule Validator</strong>: Đối soát với 180+ điều khoản pháp lý bằng mô hình ngôn ngữ chuyên sâu.</li>
+        <li><strong>One-click Certified Export</strong>: Xuất báo cáo PDF chuẩn mực có gắn chữ ký số.</li>
+      </ul>
+      <h2>3. Lộ trình Go-to-Market (GTM)</h2>
+      <p>Tập trung tiếp cận các công ty công nghệ B2B chuẩn bị gọi vốn Series A/B cần hoàn tất hồ sơ Due Diligence pháp lý.</p>
+    `,
+    accessLevel: "FREE",
+    readingTimeMinutes: 7,
+    status: "PUBLISHED",
+    views: 4890,
+    likes: 412,
+    dislikes: 1,
+    author: "Venture Intelligence Desk",
+    tags: ["RegTech", "ESG", "EU AI Act", "Micro-SaaS", "Teardown"],
+    createdAt: "2026-08-17T15:00:00.000Z",
+    updatedAt: "2026-08-17T15:00:00.000Z",
+    shortDescription: "Cơ hội thị trường 12 tỷ USD: Tự động hóa kiểm định tuân thủ luật AI & ESG cho SMBs.",
+    readTime: "7 phút",
+  },
+  {
+    id: "vertical-erp-specialty-manufacturing",
+    slug: "vertical-erp-specialty-manufacturing",
+    title: "Vertical ERP ngách cho xưởng sản xuất thiết bị y tế & phòng thí nghiệm",
+    pillar: "STARTUP_IDEA",
+    category: "Ý tưởng Khởi nghiệp",
+    displaySize: "SQUARE_MD",
+    academicFormula: "\\text{TAM} = 45{,}000 \\text{ Labs} \\times \\$18{,}000/\\text{yr} = \\$810\\text{M ARR}",
+    summarySnippet:
+      "Thay thế các phần mềm kế toán rời rạc bằng hệ thống ERP chuyên biệt hóa cho chu trình kiểm nghiệm, quản lý hóa chất độc hại và chứng nhận ISO 13485.",
+    keyTakeaways: [
+      "Phần mềm ngang hàng (SAP/Oracle) quá đắt và không đáp ứng tiêu chuẩn phòng Lab.",
+      "Tỷ lệ rời bỏ (Churn) cực thấp (< 3%/năm) do chi phí chuyển đổi dữ liệu cao.",
+      "Tích hợp IoT cân đo tự động giảm 90% lỗi con người.",
+    ],
+    schematicSvg: `<svg viewBox="0 0 160 100" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+      <rect x="20" y="20" width="35" height="60" rx="4" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-width="1.5"/>
+      <rect x="65" y="20" width="35" height="60" rx="4" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="1.5"/>
+      <rect x="110" y="20" width="35" height="60" rx="4" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-width="1.5"/>
+      <text x="82" y="55" font-size="8" text-anchor="middle" fill="currentColor">ERP Lab</text>
+    </svg>`,
+    fullContent: `
+      <h2>1. Tại sao Vertical ERP là xu hướng thống trị thập kỷ mới?</h2>
+      <p>Các giải pháp phần mềm tổng quát đã bão hòa. Cơ hội lớn nhất hiện nay thuộc về việc phục vụ sâu sắc một ngành nghề ngách có rào cản kỹ thuật cao.</p>
+    `,
+    accessLevel: "MEMBER_PLUS",
+    readingTimeMinutes: 6,
+    status: "PUBLISHED",
+    views: 3200,
+    likes: 275,
+    dislikes: 1,
+    author: "Venture Intelligence Desk",
+    tags: ["Vertical SaaS", "ERP", "Y tế", "B2B"],
+    createdAt: "2026-08-18T10:20:00.000Z",
+    updatedAt: "2026-08-18T10:20:00.000Z",
+    shortDescription: "ERP chuyên biệt hóa cho chu trình kiểm nghiệm và chứng nhận y tế ISO 13485.",
+    readTime: "6 phút",
+  },
+  {
+    id: "cross-border-logistics-arbitrage",
+    slug: "cross-border-logistics-arbitrage",
+    title: "Nền tảng Tối ưu Kho vận Xuyên biên giới & Tự động tính Thuế quan",
+    pillar: "STARTUP_IDEA",
+    category: "Deep-dive Teardown",
+    displaySize: "SQUARE_SM",
+    academicFormula: "\\text{Margin} = \\text{Freight Consolidation} - \\text{Customs Clearance Overhead}",
+    summarySnippet:
+      "Tích hợp dữ liệu biểu thuế quan hải quan thời gian thực để tự động đề xuất lộ trình gom hàng đa phương thức rẻ nhất cho nhà bán lẻ e-Commerce.",
+    keyTakeaways: [
+      "Hợp nhất đơn hàng (Consolidation) tiết kiệm 35% cước hàng không.",
+      "Tự động tính thuế DDP (Delivered Duty Paid) chính xác 99.8%.",
+      "Plug-in kết nối trực tiếp Shopify & Amazon FBA.",
+    ],
+    schematicSvg: `<svg viewBox="0 0 100 100" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="30" cy="50" r="14" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-width="1.5"/>
+      <circle cx="70" cy="50" r="14" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M44 50 L56 50" stroke="currentColor" stroke-width="2"/>
+    </svg>`,
+    fullContent: `
+      <h2>1. Bài toán hải quan xuyên biên giới</h2>
+      <p>Nhà bán lẻ quốc tế mất tới 15% doanh thu vì các khoản phí ẩn và tiền phạt phân loại sai mã HS Code. Phần mềm tự động giải quyết dứt điểm vấn đề này bằng thị giác máy tính và cơ sở dữ liệu luật hải quan.</p>
+    `,
+    accessLevel: "FREE",
+    readingTimeMinutes: 4,
+    status: "PUBLISHED",
+    views: 2980,
+    likes: 230,
+    dislikes: 1,
+    author: "Venture Intelligence Desk",
+    tags: ["Logistics", "Cross-border", "eCommerce", "Thuế quan"],
+    createdAt: "2026-08-19T09:15:00.000Z",
+    updatedAt: "2026-08-19T09:15:00.000Z",
+    shortDescription: "Tự động tính thuế quan và tối ưu hóa lộ trình gom hàng vận chuyển xuyên biên giới.",
+    readTime: "4 phút",
+  },
+  {
+    id: "ai-patent-intelligence-copilot",
+    slug: "ai-patent-intelligence-copilot",
+    title: "AI Bằng sáng chế & Phân tích Bản đồ Công nghệ Đối thủ",
+    pillar: "STARTUP_IDEA",
+    category: "Ý tưởng Khởi nghiệp",
+    displaySize: "SQUARE_MD",
+    academicFormula: "\\text{Patent Defense} = \\text{Semantic Search}(\\mathcal{D}_{\\text{Prior Art}}) \\cap \\text{Claim Matrix}",
+    summarySnippet:
+      "Công cụ quét và đối soát hàng triệu hồ sơ sáng chế USPTO / EPO để cảnh báo vi phạm bản quyền và phát hiện các cụm bằng sáng chế chưa được bảo hộ.",
+    keyTakeaways: [
+      "Chi phí luật sư sáng chế trung bình $600/giờ -> Công cụ AI giảm 80% thời gian nghiên cứu.",
+      "Bản đồ nhiệt công nghệ (Technology Landscape Heatmap) cho các quỹ đầu tư VC.",
+      "Tạo báo cáo Freedom-to-Operate (FTO) tự động.",
+    ],
+    schematicSvg: `<svg viewBox="0 0 160 100" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="50" cy="50" r="25" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 2"/>
+      <circle cx="110" cy="50" r="25" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 2"/>
+      <path d="M70 50 A 25 25 0 0 1 90 50 A 25 25 0 0 1 70 50" fill="currentColor" fill-opacity="0.3"/>
+      <text x="80" y="53" font-size="8" text-anchor="middle" fill="currentColor">Patent Gap</text>
+    </svg>`,
+    fullContent: `
+      <h2>1. Thị trường sở hữu trí tuệ công nghệ cao</h2>
+      <p>Hàng năm có hơn 3.5 triệu bằng sáng chế mới được nộp. Các công ty R&D lớn và quỹ DeepTech VC cần liên tục quét không gian giải pháp để bảo vệ sản phẩm trước những kẻ đầu cơ bằng sáng chế (Patent Trolls).</p>
+    `,
+    accessLevel: "MEMBER_PRO",
+    readingTimeMinutes: 7,
+    status: "PUBLISHED",
+    views: 2450,
+    likes: 190,
+    dislikes: 0,
+    author: "Venture Intelligence Desk",
+    tags: ["AI", "Bằng sáng chế", "Sở hữu trí tuệ", "DeepTech"],
+    createdAt: "2026-08-20T11:00:00.000Z",
+    updatedAt: "2026-08-20T11:00:00.000Z",
+    shortDescription: "Quét và đối soát hàng triệu bằng sáng chế toàn cầu bằng AI.",
+    readTime: "7 phút",
   },
 ];
 
@@ -456,17 +698,19 @@ export const SEED_USERS: UserRecord[] = [
     name: "Admin Think & Rich",
     role: "ADMIN",
     tier: "PRO",
+    countryCode: "VN",
+    preferredLang: "vi",
     createdAt: "2026-08-01T00:00:00.000Z",
-    lastLoginAt: "2026-08-21T19:00:00.000Z",
+    lastLoginAt: "2026-08-23T06:00:00.000Z",
     readPosts: [
       "first-principles-thinking",
-      "blue-ocean-strategy",
-      "circle-of-competence",
       "the-flywheel-effect",
-      "second-order-thinking",
-      "inversion-thinking",
+      "7-powers-economic-moats",
+      "regulatory-tech-saas-teardown",
+      "inversion-principle",
     ],
-    likedPosts: ["first-principles-thinking", "the-flywheel-effect", "blue-ocean-strategy"],
+    bookmarkedPosts: ["first-principles-thinking", "7-powers-economic-moats", "regulatory-tech-saas-teardown"],
+    likedPosts: ["first-principles-thinking", "the-flywheel-effect", "regulatory-tech-saas-teardown"],
     dislikedPosts: [],
   },
   {
@@ -475,65 +719,22 @@ export const SEED_USERS: UserRecord[] = [
     name: "Minh Trí",
     role: "USER",
     tier: "FREE",
+    countryCode: "VN",
+    preferredLang: "vi",
     createdAt: "2026-08-05T10:20:00.000Z",
-    lastLoginAt: "2026-08-21T18:30:00.000Z",
-    dailyReads: { date: "2026-08-21", count: 4 },
+    lastLoginAt: "2026-08-23T05:30:00.000Z",
+    dailyReads: { date: "2026-08-23", count: 4 },
     readPosts: [
       "first-principles-thinking",
-      "blue-ocean-strategy",
+      "inversion-principle",
       "the-flywheel-effect",
-      "barbell-strategy",
+      "cross-border-logistics-arbitrage",
     ],
+    bookmarkedPosts: ["first-principles-thinking", "the-flywheel-effect"],
     likedPosts: ["first-principles-thinking", "the-flywheel-effect"],
     dislikedPosts: [],
   },
-  {
-    id: "user-hoanganh",
-    email: "hoanganh.strategy@outlook.com",
-    name: "Hoàng Anh",
-    role: "USER",
-    tier: "PLUS",
-    createdAt: "2026-08-10T14:00:00.000Z",
-    lastLoginAt: "2026-08-21T15:45:00.000Z",
-    dailyReads: { date: "2026-08-21", count: 7 },
-    readPosts: [
-      "circle-of-competence",
-      "second-order-thinking",
-      "inversion-thinking",
-      "network-effects-moat",
-    ],
-    likedPosts: ["circle-of-competence", "second-order-thinking"],
-    dislikedPosts: [],
-  },
-  {
-    id: "user-thanhha",
-    email: "thanhha.invest@gmail.com",
-    name: "Thanh Hà",
-    role: "USER",
-    tier: "FREE",
-    createdAt: "2026-08-12T09:15:00.000Z",
-    lastLoginAt: "2026-08-20T20:10:00.000Z",
-    dailyReads: { date: "2026-08-21", count: 2 },
-    readPosts: ["circle-of-competence", "barbell-strategy", "inversion-thinking"],
-    likedPosts: ["barbell-strategy"],
-    dislikedPosts: [],
-  },
-  {
-    id: "user-ducthang",
-    email: "ducthang.ceo@techcorp.vn",
-    name: "Đức Thắng",
-    role: "USER",
-    tier: "PRO",
-    createdAt: "2026-08-15T16:40:00.000Z",
-    lastLoginAt: "2026-08-21T12:00:00.000Z",
-    dailyReads: { date: "2026-08-21", count: 12 },
-    readPosts: ["ooda-loop-strategy", "the-flywheel-effect", "blue-ocean-strategy"],
-    likedPosts: ["ooda-loop-strategy", "blue-ocean-strategy"],
-    dislikedPosts: [],
-  },
-
 ];
-
 
 export const SEED_READ_LOGS: ReadLog[] = [
   {
@@ -542,9 +743,9 @@ export const SEED_READ_LOGS: ReadLog[] = [
     userEmail: "minhtri.founder@gmail.com",
     userName: "Minh Trí",
     postId: "first-principles-thinking",
-    postTitle: "Mô hình Tư duy Nguyên lý Đầu tiên (First Principles Thinking)",
-    postCategory: "Mô hình Tư duy",
-    readAt: "2026-08-21T18:30:00.000Z",
+    postTitle: "Nguyên lý Đệ nhất (First Principles Thinking)",
+    pillar: "MENTAL_MODEL",
+    readAt: "2026-08-23T05:30:00.000Z",
     reaction: "like",
   },
   {
@@ -553,76 +754,59 @@ export const SEED_READ_LOGS: ReadLog[] = [
     userEmail: "minhtri.founder@gmail.com",
     userName: "Minh Trí",
     postId: "the-flywheel-effect",
-    postTitle: "Hiệu ứng Bánh đà (The Flywheel Effect): Động lực tăng trưởng kép",
-    postCategory: "Chiến lược Kinh doanh",
-    readAt: "2026-08-21T17:45:00.000Z",
-    reaction: "like",
-  },
-  {
-    id: "log-3",
-    userId: "user-hoanganh",
-    userEmail: "hoanganh.strategy@outlook.com",
-    userName: "Hoàng Anh",
-    postId: "circle-of-competence",
-    postTitle: "Mô hình Tâm trí: Vòng tròn Năng lực (Circle of Competence)",
-    postCategory: "Mô hình Tâm trí",
-    readAt: "2026-08-21T15:45:00.000Z",
-    reaction: "like",
-  },
-  {
-    id: "log-4",
-    userId: "user-hoanganh",
-    userEmail: "hoanganh.strategy@outlook.com",
-    userName: "Hoàng Anh",
-    postId: "second-order-thinking",
-    postTitle: "Tư duy Bậc hai (Second-Order Thinking): Nhìn xa hơn điều hiển nhiên",
-    postCategory: "Mô hình Tư duy",
-    readAt: "2026-08-21T15:10:00.000Z",
-    reaction: "like",
-  },
-  {
-    id: "log-5",
-    userId: "user-thanhha",
-    userEmail: "thanhha.invest@gmail.com",
-    userName: "Thanh Hà",
-    postId: "barbell-strategy",
-    postTitle: "Chiến lược Đòn tạ (The Barbell Strategy): Vững như bàn thạch",
-    postCategory: "Tâm lý học & Quyết định",
-    readAt: "2026-08-20T20:10:00.000Z",
-    reaction: "like",
-  },
-  {
-    id: "log-6",
-    userId: "user-ducthang",
-    userEmail: "ducthang.ceo@techcorp.vn",
-    userName: "Đức Thắng",
-    postId: "ooda-loop-strategy",
-    postTitle: "Vòng lặp OODA: Tốc độ ra quyết định trong môi trường biến động",
-    postCategory: "Chiến lược Kinh doanh",
-    readAt: "2026-08-21T12:00:00.000Z",
-    reaction: "like",
-  },
-  {
-    id: "log-7",
-    userId: "user-ducthang",
-    userEmail: "ducthang.ceo@techcorp.vn",
-    userName: "Đức Thắng",
-    postId: "blue-ocean-strategy",
-    postTitle: "Chiến lược Đại dương Xanh: Khiến đối thủ trở nên vô nghĩa",
-    postCategory: "Chiến lược Kinh doanh",
-    readAt: "2026-08-21T11:20:00.000Z",
-    reaction: "like",
-  },
-  {
-    id: "log-8",
-    userId: "admin-1",
-    userEmail: "admin@thinkandrich.com",
-    userName: "Admin Think & Rich",
-    postId: "first-principles-thinking",
-    postTitle: "Mô hình Tư duy Nguyên lý Đầu tiên (First Principles Thinking)",
-    postCategory: "Mô hình Tư duy",
-    readAt: "2026-08-21T19:00:00.000Z",
+    postTitle: "Bánh đà Tăng trưởng (The Flywheel Effect)",
+    pillar: "BUSINESS_STRATEGY",
+    readAt: "2026-08-23T04:45:00.000Z",
     reaction: "like",
   },
 ];
 
+// Tự động tạo 50 bài viết giả để test thuật toán lưới
+const dummyTitles = [
+  // Ngắn (ưu tiên ô 2x2)
+  "Bẫy tâm lý cơ bản", "Chiến lược giá", "Tư duy khác biệt", "Khởi nghiệp tinh gọn", "Lợi thế cạnh tranh",
+  // Vừa (ưu tiên ô 3x3 hoặc 2x2)
+  "Quy luật 80/20 trong việc tối ưu hóa hiệu suất làm việc",
+  "Làm thế nào để xây dựng một văn hóa doanh nghiệp bền vững?",
+  "Bản chất của tiền tệ và những nguyên lý tài chính cá nhân",
+  "Tư duy hệ thống: Nhìn nhận bức tranh toàn cảnh của doanh nghiệp",
+  // Dài (ưu tiên ô 4x4 hoặc 3x3)
+  "Nguyên lý Đệ nhất (First Principles Thinking): Phân rã vấn đề về chân lý nền tảng để tái cấu trúc giải pháp đột phá, loại bỏ tư duy sao chép tương đối trong thời đại thay đổi liên tục.",
+  "Hiệu ứng Bánh đà (The Flywheel Effect): Bí quyết xây dựng quán tính tăng trưởng không thể cản phá của Amazon và cách áp dụng vào mô hình kinh doanh SME.",
+  "Chiến lược Đại dương Xanh: Cách tạo ra không gian thị trường không cạnh tranh, biến đối thủ trở nên không liên quan bằng cách tái định nghĩa giá trị cốt lõi."
+];
+
+const dummyPosts: Post[] = Array.from({ length: 50 }).map((_, i): Post => {
+  const titleCategory = i % 3; // 0: ngắn, 1: vừa, 2: dài
+  const titleBase = dummyTitles[titleCategory * 4 + (i % 4)] || dummyTitles[i % dummyTitles.length];
+  const pillar: PillarType = i % 2 === 0 ? "MENTAL_MODEL" : "BUSINESS_STRATEGY";
+  const accessLevel: ContentAccessLevel =
+    i % 4 === 0 ? "MEMBER_PRO" : i % 3 === 0 ? "MEMBER_PLUS" : "FREE";
+
+  return {
+    id: `dummy-post-${i}`,
+    slug: `dummy-post-${i}`,
+    title: `[Seed ${i+1}] ${titleBase}`,
+    pillar,
+    category: "Thử nghiệm Lưới",
+    displaySize: "SQUARE_SM",
+    summarySnippet: "Đây là dữ liệu tự động tạo ra nhằm kiểm tra thuật toán Continuous Skyline Tiling và Elastic Dispatcher trên diện rộng với số lượng bài viết lớn.",
+    keyTakeaways: ["Kiểm tra độ khít lưới", "Kiểm tra Container Queries font-size", "Kiểm tra sự đa dạng kích thước (Variety Rule)"],
+    schematicSvg: "",
+    fullContent: "<p>Nội dung thử nghiệm hiển thị chi tiết.</p>",
+    accessLevel,
+    readingTimeMinutes: Math.floor(Math.random() * 10) + 1,
+    status: "PUBLISHED",
+    views: Math.floor(Math.random() * 5000),
+    likes: Math.floor(Math.random() * 500),
+    dislikes: Math.floor(Math.random() * 10),
+    author: "Thuật toán Seed",
+    tags: ["Test", "UI/UX", "Bento Grid"],
+    createdAt: new Date(Date.now() - i * 86400000).toISOString(),
+    updatedAt: new Date(Date.now() - i * 86400000).toISOString(),
+    shortDescription: "Dữ liệu test grid.",
+    readTime: "3 phút",
+  };
+});
+
+SEED_POSTS.push(...dummyPosts);

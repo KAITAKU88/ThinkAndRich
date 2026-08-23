@@ -1,418 +1,423 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import {
-  Sparkles,
-  BookOpen,
+  ArrowRight,
   Brain,
   Compass,
-  ArrowRight,
-  ShieldCheck,
-  BookmarkCheck,
-  RotateCcw,
+  Lightbulb,
+  Globe,
+  Sparkles,
+  LineChart,
+  CheckCircle2,
 } from "lucide-react";
-
-import { CATEGORIES } from "@/lib/data";
+import { PILLARS_CONFIG, PRICING_PLANS } from "@/lib/data";
+import { InteractiveSquareCard } from "@/components/ideas/InteractiveSquareCard";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { PostCard } from "@/components/ideas/IdeaCard";
-import { useSession, type ReadStatusFilter } from "@/store/session";
-import { cn } from "@/lib/utils";
-import { getTranslation } from "@/lib/i18n/translations";
+import { useSession } from "@/store/session";
+import { cn, formatFormula } from "@/lib/utils";
+import type { Post, PillarType } from "@/lib/types";
 
-type SortKey = "newest" | "views" | "likes";
+const PILLAR_ORDER: PillarType[] = ["MENTAL_MODEL", "BUSINESS_STRATEGY", "STARTUP_IDEA"];
 
-function HomePageContent() {
-  const searchParams = useSearchParams();
-  const initialQ = searchParams.get("q") || "";
+const PILLAR_ICONS: Record<PillarType, typeof Brain> = {
+  MENTAL_MODEL: Brain,
+  BUSINESS_STRATEGY: Compass,
+  STARTUP_IDEA: Lightbulb,
+};
 
-  const posts = useSession((s) => s.posts);
-  const user = useSession((s) => s.user);
-  const bookmarks = useSession((s) => s.bookmarks);
-  const hideSavedPosts = useSession((s) => s.hideSavedPosts);
-  const setHideSavedPosts = useSession((s) => s.setHideSavedPosts);
-  const isPostRead = useSession((s) => s.isPostRead);
-  const setAuthOpen = useSession((s) => s.setAuthOpen);
-  const language = useSession((s) => s.language);
+// Same theme-reactive CSS vars InteractiveSquareCard borders with, so the
+// pillar showcase cards below read as the exact same "object" as the real
+// content cards, not a separate marketing-only palette.
+const PILLAR_ACCENT_VAR: Record<PillarType, string> = {
+  MENTAL_MODEL: "var(--pillar-crimson)",
+  BUSINESS_STRATEGY: "var(--pillar-amber)",
+  STARTUP_IDEA: "var(--pillar-jade)",
+};
 
-  const t = getTranslation(language);
-
-  const [category, setCategory] = useState<string>("Tất cả");
-  const [readStatus, setReadStatus] = useState<ReadStatusFilter>("ALL");
-  const [sort, setSort] = useState<SortKey>("newest");
-  const [searchQuery, setSearchQuery] = useState(initialQ);
-  const [page, setPage] = useState(1);
-  const pageSize = 9;
-
-  useEffect(() => {
-    const q = searchParams.get("q");
-    if (q !== null) {
-      setSearchQuery(q);
-      setPage(1);
-    }
-  }, [searchParams]);
-
-  // Filter and sort posts from store
-  const filteredPosts = useMemo(() => {
-    let list = posts.filter((p) => p.status === "PUBLISHED");
-
-    // 1. Hide bookmarked posts
-    if (hideSavedPosts && user) {
-      list = list.filter((p) => !bookmarks.includes(p.id));
-    }
-
-    // 2. Read status
-    if (readStatus === "UNREAD" && user) {
-      list = list.filter((p) => !isPostRead(p.id));
-    } else if (readStatus === "READ" && user) {
-      list = list.filter((p) => isPostRead(p.id));
-    }
-
-    // 3. Category
-    if (category !== "Tất cả") {
-      list = list.filter((p) => p.category === category);
-    }
-
-    // 4. Search query
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          p.shortDescription.toLowerCase().includes(q) ||
-          p.category.toLowerCase().includes(q) ||
-          p.tags?.some((tag) => tag.toLowerCase().includes(q))
-      );
-    }
-
-    // 5. Sort
-    return list.sort((a, b) => {
-      if (sort === "views") return b.views - a.views;
-      if (sort === "likes") return b.likes - a.likes;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-  }, [
-    posts,
-    category,
-    searchQuery,
-    sort,
-    hideSavedPosts,
-    readStatus,
-    bookmarks,
-    user,
-    isPostRead,
-  ]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredPosts.length / pageSize));
-  const currentPage = Math.min(Math.max(1, page), totalPages);
-  const paginatedPosts = filteredPosts.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
-
-  const pages = useMemo(
-    () => Array.from({ length: totalPages }, (_, i) => i + 1),
-    [totalPages]
-  );
-
+export function HomePage() {
   return (
-    <div className="container mx-auto max-w-7xl px-4 py-8">
-      {/* Hero Section */}
-      <section className="relative py-12 md:py-20 text-center overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 -z-10">
-          <div className="absolute left-1/2 top-0 h-96 w-[44rem] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
-        </div>
-
-        <Badge
-          variant="secondary"
-          className="mb-6 rounded-full px-4 py-1.5 border border-primary/20 bg-primary/5 text-primary text-xs font-medium inline-flex items-center gap-1.5 shadow-sm"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-primary" />
-          {t.hero.badge}
-        </Badge>
-
-        <h1 className="font-display text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-5 max-w-4xl mx-auto leading-[1.15] text-foreground">
-          {t.hero.title}
-        </h1>
-
-        <p className="text-base md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
-          {t.hero.subtitle}
-        </p>
-
-        {/* Hero Actions */}
-        <div className="flex flex-wrap items-center justify-center gap-3 mb-10">
-          <Button size="lg" className="rounded-full px-7 font-semibold shadow-md gap-2" asChild>
-            <Link href="/explore">
-              <Compass className="w-4 h-4" /> {t.hero.exploreBtn} &rarr;
-            </Link>
-          </Button>
-          <Button size="lg" variant="outline" className="rounded-full px-6" asChild>
-            <Link href="/pricing">{t.hero.pricingBtn}</Link>
-          </Button>
-        </div>
-
-        {/* Quick Highlights */}
-        <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-muted-foreground font-medium pt-2">
-          <div className="flex items-center gap-1.5">
-            <Brain className="w-4 h-4 text-primary" />
-            <span>{t.hero.highlight1}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Compass className="w-4 h-4 text-primary" />
-            <span>{t.hero.highlight2}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-primary" />
-            <span>{t.hero.highlight3}</span>
-          </div>
-        </div>
-      </section>
-
-
-      {/* Categories & Filter Control Toolbar */}
-      <div
-        id="models-grid"
-        className="space-y-4 border-b border-border pb-4 mb-8 scroll-mt-24"
-      >
-        {/* Row 1: Categories */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
-            {CATEGORIES.map((cat) => (
-              <Button
-                key={cat}
-                size="sm"
-                variant={category === cat ? "default" : "outline"}
-                className={cn(
-                  "rounded-full shrink-0 text-xs md:text-sm font-medium transition-all",
-                  category === cat && "shadow-sm"
-                )}
-                onClick={() => {
-                  setCategory(cat);
-                  setPage(1);
-                }}
-              >
-                {cat}
-              </Button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-4 text-xs md:text-sm font-medium text-muted-foreground shrink-0">
-            <span className="text-xs uppercase tracking-wider text-muted-foreground/70">Sắp xếp:</span>
-            {(
-              [
-                ["newest", "Mới nhất"],
-                ["views", "Xem nhiều nhất"],
-                ["likes", "Yêu thích nhất"],
-              ] as const
-            ).map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => {
-                  setSort(key);
-                  setPage(1);
-                }}
-                className={cn(
-                  "hover:text-foreground transition-colors",
-                  sort === key && "text-primary font-bold underline underline-offset-4"
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Row 2: Read Status Filters & Hide Saved Toggle */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 text-xs">
-          {/* Read status filter */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-muted-foreground font-medium">Trạng thái:</span>
-            <div className="flex items-center bg-muted/60 p-0.5 rounded-full border border-border/60">
-              {(
-                [
-                  ["ALL", "Toàn bộ"],
-                  ["UNREAD", "Chưa đọc"],
-                  ["READ", "Đã đọc"],
-                ] as const
-              ).map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => {
-                    setReadStatus(id);
-                    setPage(1);
-                  }}
-                  className={cn(
-                    "px-3 py-1 rounded-full text-xs font-medium transition-all",
-                    readStatus === id
-                      ? "bg-background text-foreground font-semibold shadow-xs"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Hide Saved Checkbox */}
-          {user && bookmarks.length > 0 && (
-            <label className="inline-flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground">
-              <input
-                type="checkbox"
-                checked={hideSavedPosts}
-                onChange={(e) => {
-                  setHideSavedPosts(e.target.checked);
-                  setPage(1);
-                }}
-                className="w-3.5 h-3.5 rounded text-primary accent-primary cursor-pointer"
-              />
-              <span className="text-xs font-medium">
-                Ẩn {bookmarks.length} bài đã lưu vào Tủ sách
-              </span>
-            </label>
-          )}
-        </div>
-      </div>
-
-      {/* Posts Cards Grid */}
-      {paginatedPosts.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-          {paginatedPosts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-20 bg-card rounded-3xl border border-dashed border-border p-8">
-          <BookOpen className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
-          <h3 className="font-display font-semibold text-lg mb-1">
-            Không tìm thấy mô hình nào
-          </h3>
-          <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
-            {hideSavedPosts && bookmarks.length > 0
-              ? `Có thể các bài viết phù hợp đã được bạn lưu vào Tủ sách (${bookmarks.length} bài). Hãy thử tắt tùy chọn "Ẩn bài đã lưu".`
-              : "Không có bài viết nào khớp với bộ lọc hiện tại."}
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            {hideSavedPosts && bookmarks.length > 0 && (
-              <Button
-                variant="outline"
-                className="rounded-full"
-                onClick={() => setHideSavedPosts(false)}
-              >
-                <BookmarkCheck className="w-4 h-4 mr-2" /> Hiện bài đã lưu ({bookmarks.length})
-              </Button>
-            )}
-            <Button
-              className="rounded-full"
-              onClick={() => {
-                setCategory("Tất cả");
-                setReadStatus("ALL");
-                setSearchQuery("");
-                setHideSavedPosts(false);
-                setPage(1);
-              }}
-            >
-              <RotateCcw className="w-4 h-4 mr-2" /> Đặt lại bộ lọc
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-12">
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-full px-4 text-xs font-medium"
-            disabled={currentPage <= 1}
-            onClick={() => {
-              setPage((p) => Math.max(1, p - 1));
-              const el = document.getElementById("models-grid");
-              if (el) el.scrollIntoView({ behavior: "smooth" });
-            }}
-          >
-            &larr; Trang trước
-          </Button>
-
-          <div className="flex items-center gap-1">
-            {pages.map((p) => (
-              <Button
-                key={p}
-                variant={p === currentPage ? "default" : "ghost"}
-                className="w-8 h-8 p-0 rounded-full text-xs font-semibold"
-                onClick={() => {
-                  setPage(p);
-                  const el = document.getElementById("models-grid");
-                  if (el) el.scrollIntoView({ behavior: "smooth" });
-                }}
-              >
-                {p}
-              </Button>
-            ))}
-          </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-full px-4 text-xs font-medium"
-            disabled={currentPage >= totalPages}
-            onClick={() => {
-              setPage((p) => Math.min(totalPages, p + 1));
-              const el = document.getElementById("models-grid");
-              if (el) el.scrollIntoView({ behavior: "smooth" });
-            }}
-          >
-            Trang sau &rarr;
-          </Button>
-        </div>
-      )}
-
-      {/* Bottom Conversion Banner */}
-      {!user && (
-        <section className="mt-20 p-8 md:p-12 rounded-3xl bg-gradient-to-br from-primary/10 via-card to-card border border-primary/20 text-center relative overflow-hidden">
-          <div className="max-w-2xl mx-auto space-y-4">
-            <Badge className="bg-primary/20 text-primary border-none">
-              Dành cho mọi người
-            </Badge>
-            <h2 className="font-display text-2xl md:text-3xl font-bold">
-              Bắt đầu hành trình nâng cấp tư duy với Think & Rich
-            </h2>
-            <p className="text-muted-foreground text-sm md:text-base leading-relaxed">
-              Đăng nhập chỉ với 1 bước xác thực Email OTP để đọc 10 bài viết tiêu chuẩn mỗi ngày hoặc nâng cấp Hội viên để mở khóa toàn bộ kho tàng tri thức.
-            </p>
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Button
-                size="lg"
-                className="rounded-full px-8 font-semibold shadow-md"
-                onClick={() => setAuthOpen(true)}
-              >
-                Đăng nhập nhận mã OTP ngay <ArrowRight className="w-4 h-4 ml-1.5" />
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="rounded-full px-6"
-                asChild
-              >
-                <Link href="/pricing">Bảng gói Hội viên</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
-      )}
+    <div>
+      <HeroSection />
+      <PillarsSection />
+      <FormatShowcaseSection />
+      <StatsStrip />
+      <PricingTeaserSection />
+      <FinalCtaSection />
     </div>
   );
 }
 
-export function HomePage() {
+// ─────────────────────────────────────────────────────────────────────────
+// HERO — the thesis: an actual fanned catalog of real index cards, pulled
+// straight from the store (one top post per pillar), not a mockup graphic.
+// ─────────────────────────────────────────────────────────────────────────
+function HeroSection() {
+  const posts = useSession((s) => s.posts);
+  const user = useSession((s) => s.user);
+  const setAuthOpen = useSession((s) => s.setAuthOpen);
+
+  const heroPosts = useMemo(() => {
+    const published = posts.filter((p) => p.status === "PUBLISHED");
+    return PILLAR_ORDER.map((pillar) =>
+      published.filter((p) => p.pillar === pillar).sort((a, b) => b.views - a.views)[0]
+    ).filter((p): p is Post => Boolean(p));
+  }, [posts]);
+
+  const rotations = ["-7deg", "4deg", "10deg"];
+  const lifts = ["0px", "-18px", "8px"];
+
   return (
-    <Suspense fallback={<div className="container mx-auto max-w-7xl px-4 py-16 text-center text-muted-foreground text-sm">Đang tải mô hình tư duy...</div>}>
-      <HomePageContent />
-    </Suspense>
+    <section className="border-b border-border/70">
+      <div className="container mx-auto max-w-[1400px] px-4 sm:px-6 pt-14 sm:pt-20 pb-16 sm:pb-24 grid lg:grid-cols-[1.1fr_1fr] gap-12 lg:gap-10 items-center">
+        <div className="max-w-xl">
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-primary mb-4">
+            <Sparkles className="w-3.5 h-3.5" /> Không phải một feed tin tức
+          </span>
+          <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-foreground leading-[1.08]">
+            Một thư viện thẻ tri thức — để tra cứu, không phải để lướt.
+          </h1>
+          <p className="mt-5 text-base sm:text-lg text-muted-foreground leading-relaxed">
+            Think &amp; Rich đóng gói tư duy chiến lược thành từng hồ sơ tra cứu: công thức học
+            thuật, sơ đồ vector, luận điểm cốt lõi — xếp theo 3 trụ cột, như một tủ thẻ mục lục
+            thư viện.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <Button asChild size="lg" className="rounded-full px-6 font-semibold">
+              <Link href="/explore">
+                Khám phá thư viện <ArrowRight className="w-4 h-4 ml-1" />
+              </Link>
+            </Button>
+            {!user && (
+              <Button
+                variant="outline"
+                size="lg"
+                className="rounded-full px-6 font-semibold"
+                onClick={() => setAuthOpen(true)}
+              >
+                Đăng nhập miễn phí
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {heroPosts.length > 0 && (
+          <div className="relative h-[280px] sm:h-[340px] lg:h-[380px]">
+            <div className="absolute inset-0 flex items-center justify-center">
+              {heroPosts.map((post, i) => (
+                <div
+                  key={post.id}
+                  className="hero-card-float w-36 sm:w-44 lg:w-48 shrink-0"
+                  style={{
+                    marginLeft: i === 0 ? 0 : "-2.75rem",
+                    marginTop: lifts[i % lifts.length],
+                    rotate: rotations[i % rotations.length],
+                    zIndex: i,
+                    animationDelay: `${i * 0.7}s`,
+                  }}
+                >
+                  <InteractiveSquareCard post={post} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// 3 PILLARS — parallel categories, not a sequence, so no 01/02/03 markers.
+// ─────────────────────────────────────────────────────────────────────────
+function PillarsSection() {
+  const posts = useSession((s) => s.posts);
+
+  const pillarCounts = useMemo(() => {
+    const published = posts.filter((p) => p.status === "PUBLISHED");
+    return {
+      MENTAL_MODEL: published.filter((p) => p.pillar === "MENTAL_MODEL").length,
+      BUSINESS_STRATEGY: published.filter((p) => p.pillar === "BUSINESS_STRATEGY").length,
+      STARTUP_IDEA: published.filter((p) => p.pillar === "STARTUP_IDEA").length,
+    } as Record<PillarType, number>;
+  }, [posts]);
+
+  return (
+    <section className="border-b border-border/70 bg-secondary/30">
+      <div className="container mx-auto max-w-[1400px] px-4 sm:px-6 py-14 sm:py-20">
+        <div className="max-w-xl mb-10">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
+            3 trụ cột tri thức
+          </span>
+          <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-2">
+            Ba ngăn tủ, một hệ quy chiếu chiến lược
+          </h2>
+          <p className="text-sm sm:text-base text-muted-foreground mt-2">
+            Mỗi hồ sơ thuộc đúng một trụ cột — không có mục &quot;khác&quot;, không có nội dung lạc chủ đề.
+          </p>
+        </div>
+
+        <div className="grid sm:grid-cols-3 gap-4 sm:gap-5">
+          {PILLAR_ORDER.map((pillar) => {
+            const meta = PILLARS_CONFIG[pillar];
+            const Icon = PILLAR_ICONS[pillar];
+            return (
+              <Link
+                key={pillar}
+                href={`/explore?pillar=${pillar}`}
+                className="group relative rounded-3xl border-[1.5px] bg-card p-6 sm:p-7 transition-all hover:shadow-xl flex flex-col"
+                style={{
+                  borderColor: `color-mix(in oklab, ${PILLAR_ACCENT_VAR[pillar]} 35%, var(--border))`,
+                }}
+              >
+                <div className={cn("flex items-center justify-center w-11 h-11 rounded-2xl mb-5 border", meta.badgeBg)}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                <h3 className="font-display text-xl font-bold text-foreground mb-1.5">{meta.titleVi}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed flex-1">{meta.taglineVi}</p>
+                <div className="mt-5 pt-4 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-muted-foreground">
+                  <span className="font-mono tabular-nums">{pillarCounts[pillar]} hồ sơ</span>
+                  <span className="inline-flex items-center gap-1 text-primary group-hover:gap-1.5 transition-all">
+                    Xem trụ cột <ArrowRight className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// FORMAT SHOWCASE — what a "hồ sơ" actually contains, mocked up with one
+// real post instead of described in the abstract.
+// ─────────────────────────────────────────────────────────────────────────
+function FormatShowcaseSection() {
+  const posts = useSession((s) => s.posts);
+
+  const post = useMemo(() => {
+    const published = posts.filter((p) => p.status === "PUBLISHED");
+    return (
+      published.find((p) => p.academicFormula && p.keyTakeaways && p.keyTakeaways.length > 0) ||
+      published[0]
+    );
+  }, [posts]);
+
+  if (!post) return null;
+
+  return (
+    <section className="border-b border-border/70">
+      <div className="container mx-auto max-w-[1400px] px-4 sm:px-6 py-14 sm:py-20 grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+        <div className="order-2 lg:order-1">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
+            Định dạng hồ sơ
+          </span>
+          <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-2 mb-5">
+            Không phải một bài blog dài — mà là một hồ sơ tra cứu
+          </h2>
+          <ul className="space-y-4 text-sm sm:text-base text-foreground/90">
+            <li className="flex items-start gap-3">
+              <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                <Sparkles className="w-3 h-3" />
+              </span>
+              <span>
+                <strong className="font-semibold">Công thức học thuật</strong> — mô hình rút gọn
+                thành một biểu thức logic, không diễn giải dài dòng.
+              </span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                <LineChart className="w-3 h-3" />
+              </span>
+              <span>
+                <strong className="font-semibold">Sơ đồ vector</strong> — minh hoạ trực quan cấu
+                trúc mô hình, không phải ảnh chụp màn hình.
+              </span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                <CheckCircle2 className="w-3 h-3" />
+              </span>
+              <span>
+                <strong className="font-semibold">3 luận điểm cốt lõi</strong> — thứ áp dụng được
+                ngay, đặt lên đầu thay vì chôn ở cuối bài.
+              </span>
+            </li>
+          </ul>
+        </div>
+
+        <div className="order-1 lg:order-2 rounded-3xl border border-border bg-card p-5 sm:p-7 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+            {PILLARS_CONFIG[post.pillar]?.titleVi}
+          </p>
+          <h3 className="font-display text-lg sm:text-xl font-bold text-foreground mb-3 leading-snug">
+            {post.title}
+          </h3>
+          {post.academicFormula && (
+            <div className="p-3.5 rounded-2xl bg-secondary/80 border border-border mb-3">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1 mb-1">
+                <Sparkles className="w-3 h-3 text-amber-500" /> Công thức
+              </span>
+              <div className="font-mono text-sm text-foreground font-semibold academic-formula">
+                {formatFormula(post.academicFormula)}
+              </div>
+            </div>
+          )}
+          {post.keyTakeaways && post.keyTakeaways.length > 0 && (
+            <ul className="space-y-1.5 text-xs sm:text-sm text-foreground/90">
+              {post.keyTakeaways.slice(0, 3).map((item, idx) => (
+                <li key={idx} className="flex items-start gap-2">
+                  <span className="text-primary font-bold mt-0.5">•</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// STATS — quiet, mono-set numbers pulled live from the store. No oversized
+// gradient hero-stat treatment.
+// ─────────────────────────────────────────────────────────────────────────
+function StatsStrip() {
+  const posts = useSession((s) => s.posts);
+  const publishedCount = useMemo(() => posts.filter((p) => p.status === "PUBLISHED").length, [posts]);
+
+  const stats = [
+    { label: "hồ sơ tri thức", value: publishedCount },
+    { label: "trụ cột nội dung", value: 3 },
+    { label: "ngôn ngữ giao diện", value: 14 },
+  ];
+
+  return (
+    <section className="border-b border-border/70">
+      <div className="container mx-auto max-w-[1400px] px-4 sm:px-6 py-8 sm:py-10">
+        <div className="flex flex-wrap items-center justify-center sm:justify-between gap-x-8 gap-y-4 text-center sm:text-left">
+          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+            {stats.map((s) => (
+              <div key={s.label} className="flex items-baseline gap-2">
+                <span className="font-mono text-2xl sm:text-3xl font-bold text-foreground tabular-nums">
+                  {s.value}
+                </span>
+                <span className="text-xs sm:text-sm text-muted-foreground">{s.label}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+            <Globe className="w-4 h-4 text-primary" />
+            <span>Giá quy đổi PPP theo khu vực · SePay &amp; Lemon Squeezy</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// PRICING TEASER — real plan copy from data.ts, condensed; full detail
+// stays on /pricing.
+// ─────────────────────────────────────────────────────────────────────────
+function PricingTeaserSection() {
+  return (
+    <section className="border-b border-border/70 bg-secondary/30">
+      <div className="container mx-auto max-w-[1400px] px-4 sm:px-6 py-14 sm:py-20">
+        <div className="max-w-xl mb-10">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
+            Gói thành viên
+          </span>
+          <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-2">
+            Đọc theo tốc độ bạn cần
+          </h2>
+          <p className="text-sm sm:text-base text-muted-foreground mt-2">
+            Giá hiển thị theo VND — tự động quy đổi PPP nếu bạn ở khu vực khác.
+          </p>
+        </div>
+
+        <div className="grid sm:grid-cols-3 gap-4 sm:gap-5">
+          {PRICING_PLANS.map((plan) => (
+            <div
+              key={plan.id}
+              className={cn(
+                "rounded-3xl border bg-card p-6 flex flex-col",
+                plan.isPopular ? "border-primary shadow-lg" : "border-border"
+              )}
+            >
+              {plan.badge && (
+                <span
+                  className={cn(
+                    "self-start text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full mb-4",
+                    plan.isPopular ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+                  )}
+                >
+                  {plan.badge}
+                </span>
+              )}
+              <h3 className="font-display text-lg font-bold text-foreground">{plan.name}</h3>
+              <p className="text-xs text-muted-foreground mt-1 mb-4">{plan.tagline}</p>
+              <div className="font-display text-2xl font-extrabold text-foreground mb-1">
+                {plan.priceFormatted}
+              </div>
+              <p className="text-[11px] text-muted-foreground mb-5">{plan.dailyLimitText}</p>
+              <ul className="space-y-2 text-xs text-foreground/90 mb-6 flex-1">
+                {plan.features.slice(0, 3).map((f) => (
+                  <li key={f} className="flex items-start gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <Button asChild variant={plan.isPopular ? "default" : "outline"} className="rounded-full font-semibold">
+                <Link href="/pricing">Xem chi tiết</Link>
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// FINAL CTA
+// ─────────────────────────────────────────────────────────────────────────
+function FinalCtaSection() {
+  const user = useSession((s) => s.user);
+  const setAuthOpen = useSession((s) => s.setAuthOpen);
+
+  return (
+    <section>
+      <div className="container mx-auto max-w-[1400px] px-4 sm:px-6 py-16 sm:py-24 text-center">
+        <h2 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground max-w-2xl mx-auto leading-tight">
+          Bắt đầu tra cứu — không cần đọc lướt.
+        </h2>
+        <p className="text-sm sm:text-base text-muted-foreground mt-3 max-w-md mx-auto">
+          10 hồ sơ miễn phí mỗi ngày, không cần thẻ thanh toán.
+        </p>
+        <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+          <Button asChild size="lg" className="rounded-full px-7 font-semibold">
+            <Link href="/explore">
+              Khám phá thư viện <ArrowRight className="w-4 h-4 ml-1" />
+            </Link>
+          </Button>
+          {!user && (
+            <Button
+              variant="outline"
+              size="lg"
+              className="rounded-full px-7 font-semibold"
+              onClick={() => setAuthOpen(true)}
+            >
+              Đăng nhập miễn phí
+            </Button>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }

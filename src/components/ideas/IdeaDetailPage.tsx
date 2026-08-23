@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   ChevronLeft,
   Eye,
@@ -10,27 +10,39 @@ import {
   ThumbsDown,
   Bookmark,
   Share2,
-  PlayCircle,
+  Link2,
+  Smartphone,
   Clock,
   User,
-  BookOpen,
-  Crown,
+  Lock,
+  Brain,
+  Compass,
+  Lightbulb,
+  Sparkles,
+  Type,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { Post } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { PaywallCTA } from "@/components/paywall/PaywallCTA";
+import { InteractiveSquareCard } from "@/components/ideas/InteractiveSquareCard";
 import { useSession } from "@/store/session";
-import { cn, formatViews, timeAgo } from "@/lib/utils";
-
+import { cn, formatViews, formatFormula } from "@/lib/utils";
+import { PILLARS_CONFIG } from "@/lib/data";
 
 export function PostDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = String(params.id ?? "");
-  const [post, setPost] = useState<Post | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [fontSize, setFontSize] = useState<"normal" | "large" | "xlarge">("normal");
+  const [readProgress, setReadProgress] = useState(0);
 
   const posts = useSession((s) => s.posts);
   const bookmarks = useSession((s) => s.bookmarks);
@@ -39,34 +51,41 @@ export function PostDetailPage() {
   const toggleReaction = useSession((s) => s.toggleReaction);
   const recordPostView = useSession((s) => s.recordPostView);
   const canAccessPost = useSession((s) => s.canAccessPost);
+  const user = useSession((s) => s.user);
 
+  // Synchronously find post without triggering extra re-renders
+  const post = useMemo(() => {
+    return posts.find((p) => p.id === id || p.slug === id) || null;
+  }, [posts, id]);
 
+  // Record view exactly once per post ID
+  const recordedPostIdRef = useRef<string | null>(null);
   useEffect(() => {
-    setLoading(true);
-    const found = posts.find((p) => p.id === id || p.slug === id);
-    if (found) {
-      setPost(found);
-      recordPostView(found.id);
+    if (post && recordedPostIdRef.current !== post.id) {
+      recordedPostIdRef.current = post.id;
+      recordPostView(post.id);
     }
-    setLoading(false);
-  }, [id, posts, recordPostView]);
+  }, [post?.id, recordPostView]);
 
-
-  if (loading) {
-    return (
-      <div className="container mx-auto max-w-4xl px-4 py-20 text-center">
-        <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-muted-foreground">Đang tải toàn bộ mô hình...</p>
-      </div>
-    );
-  }
+  // Scroll reading progress listener
+  useEffect(() => {
+    function handleScroll() {
+      const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (totalHeight > 0) {
+        const currentProgress = (window.scrollY / totalHeight) * 100;
+        setReadProgress(Math.min(100, Math.max(0, currentProgress)));
+      }
+    }
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   if (!post) {
     return (
       <div className="container mx-auto max-w-3xl px-4 py-20 text-center space-y-4">
-        <h2 className="font-display text-2xl font-bold">Không tìm thấy bài viết</h2>
-        <p className="text-muted-foreground">
-          Mô hình tư duy hoặc chiến lược này có thể đã được cập nhật hoặc chuyển địa chỉ.
+        <h2 className="font-display text-2xl font-bold">Không tìm thấy hồ sơ</h2>
+        <p className="text-muted-foreground text-sm">
+          Bài viết hoặc mô hình chiến lược này không tồn tại hoặc đã được cập nhật.
         </p>
         <Button asChild className="rounded-full">
           <Link href="/">Quay lại trang chủ Think & Rich</Link>
@@ -75,287 +94,312 @@ export function PostDetailPage() {
     );
   }
 
+  const pillarMeta = PILLARS_CONFIG[post.pillar] || PILLARS_CONFIG.MENTAL_MODEL;
   const isSaved = bookmarks.includes(post.id);
   const userReaction = userReactions[post.id];
   const access = canAccessPost(post);
   const hasAccess = access.allowed;
 
-  // Related posts
-  const relatedPosts = posts
-    .filter((p) => p.id !== post.id && p.category === post.category)
+  const PillarIcon =
+    post.pillar === "MENTAL_MODEL"
+      ? Brain
+      : post.pillar === "BUSINESS_STRATEGY"
+      ? Compass
+      : Lightbulb;
+
+  // Next recommended posts in same pillar
+  const recommendedPosts = posts
+    .filter((p) => p.id !== post.id && p.pillar === post.pillar)
     .slice(0, 2);
 
+  const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+
+  function copyShareLink() {
+    navigator.clipboard.writeText(shareUrl);
+    toast.success("Đã sao chép liên kết vào clipboard!");
+  }
+
+  function openShareWindow(url: string) {
+    window.open(url, "_blank", "noopener,noreferrer,width=600,height=520");
+  }
+
+  async function shareViaDevice() {
+    try {
+      await navigator.share({ title: post!.title, text: post!.summarySnippet, url: shareUrl });
+    } catch {
+      // User cancelled the native share sheet — nothing to do.
+    }
+  }
+
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-8 pb-32">
-      {/* Breadcrumb & Navigation */}
-      <div className="flex items-center justify-between mb-6">
-        <Link
-          href="/explore"
-          className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground transition-colors group"
-        >
-          <ChevronLeft className="w-4 h-4 mr-1 transition-transform group-hover:-translate-x-1" />
-          Về Thư viện Khám phá
-        </Link>
-        <div className="flex items-center gap-1.5">
-          {(post.isMemberOnly || post.isPro) && (
-            <Badge className="bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold text-xs">
-              <Crown className="w-3 h-3 mr-1" /> MEMBER
-            </Badge>
-          )}
-          <Badge variant="outline" className="text-xs">
-            {post.category}
-          </Badge>
-        </div>
-      </div>
+    <>
+      {/* Top Reading Progress Bar */}
+      <div
+        className="fixed top-0 left-0 right-0 h-1 bg-primary z-50 transition-all duration-75 origin-left"
+        style={{ transform: `scaleX(${readProgress / 100})` }}
+      />
 
-      {/* Article Header */}
-      <header className="mb-8 space-y-4">
-        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
-            {post.category}
-          </Badge>
-          {(post.isMemberOnly || post.isPro) && (
-            <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30">
-              Bài viết Member
-            </Badge>
-          )}
-          <span className="text-border">•</span>
-          <span className="inline-flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5" /> {post.readTime}
-          </span>
+      <div className="container mx-auto max-w-4xl px-3 sm:px-6 py-6 md:py-10 pb-36">
+        {/* Navigation & Breadcrumbs */}
+        <div className="flex items-center justify-between mb-6 gap-2">
+          <Link
+            href="/"
+            className="inline-flex items-center text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors group"
+          >
+            <ChevronLeft className="w-4 h-4 mr-0.5 transition-transform group-hover:-translate-x-1" />
+            Trang chủ
+          </Link>
 
-          <span className="text-border">•</span>
-          <span>Xuất bản: {timeAgo(post.createdAt)}</span>
-        </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className={cn(
+              "inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md border",
+              pillarMeta.badgeBg,
+              pillarMeta.badgeText
+            )}>
+              <PillarIcon className="w-3 h-3" />
+              <span>{pillarMeta.titleVi}</span>
+            </span>
 
-        <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground leading-[1.15]">
-          {post.title}
-        </h1>
-
-        <p className="text-lg md:text-xl text-muted-foreground leading-relaxed font-normal">
-          {post.shortDescription}
-        </p>
-
-        {/* Author and Engagement Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-border/80">
-          <div className="flex items-center gap-2 text-sm">
-            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
-              <User className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="font-semibold leading-none">{post.author}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Think & Rich Editorial</p>
-            </div>
-          </div>
-
-          {/* Metrics: Views, Likes, Dislikes */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/60 text-xs font-medium text-muted-foreground">
-              <Eye className="w-3.5 h-3.5 text-primary" />
-              <span>{formatViews(post.views)} lượt xem</span>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                const res = toggleReaction(post.id, "like");
-                if (!res.ok && res.message) toast.error(res.message);
-              }}
-              className={cn(
-                "inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border",
-                userReaction === "like"
-                  ? "border-primary bg-primary/10 text-primary font-semibold"
-                  : "border-border/60 hover:bg-muted text-muted-foreground"
-              )}
-            >
-              <ThumbsUp className={cn("w-3.5 h-3.5", userReaction === "like" && "fill-primary")} />
-              <span>{post.likes}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                const res = toggleReaction(post.id, "dislike");
-                if (!res.ok && res.message) toast.error(res.message);
-              }}
-              className={cn(
-                "inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border",
-                userReaction === "dislike"
-                  ? "border-destructive bg-destructive/10 text-destructive font-semibold"
-                  : "border-border/60 hover:bg-muted text-muted-foreground"
-              )}
-            >
-              <ThumbsDown className={cn("w-3.5 h-3.5", userReaction === "dislike" && "fill-destructive")} />
-              <span>{post.dislikes}</span>
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Featured Media (Video or Thumbnail) */}
-      <div className="mb-10 rounded-3xl overflow-hidden border border-border shadow-lg bg-card">
-        {post.videoUrl && hasAccess ? (
-          <div className="aspect-video w-full">
-            <iframe
-              src={post.videoUrl}
-              title={post.title}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="w-full h-full"
-            />
-          </div>
-        ) : (
-          <div className="relative aspect-video w-full overflow-hidden bg-muted">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={post.thumbnailUrl}
-              alt={post.title}
-              className="w-full h-full object-cover"
-            />
-            {post.videoUrl && !hasAccess && (
-              <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex flex-col items-center justify-center text-white">
-                <PlayCircle className="w-14 h-14 text-white/90 mb-2 animate-pulse" />
-                <p className="font-semibold text-lg">Video phân tích đi kèm mô hình</p>
-                <p className="text-xs text-white/80">Xác thực tài khoản để xem video trực tiếp</p>
-              </div>
+            {post.accessLevel !== "FREE" && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                <Lock className="w-2.5 h-2.5" /> {post.accessLevel === "MEMBER_PRO" ? "PRO ONLY" : "PLUS"}
+              </span>
             )}
           </div>
-        )}
-      </div>
-
-      {/* Main Content Area / Access Gatekeeper */}
-      <article className="relative min-h-[300px]">
-        {hasAccess ? (
-          <div
-            className="prose-idea max-w-none text-foreground/90 leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: post.fullContent }}
-          />
-        ) : (
-          <div className="relative">
-            {/* Blurred Teaser Preview */}
-            <div
-              className="prose-idea max-w-none opacity-25 select-none pointer-events-none max-h-[220px] overflow-hidden filter blur-[4px]"
-              aria-hidden="true"
-              dangerouslySetInnerHTML={{ __html: post.fullContent }}
-            />
-
-            <PaywallCTA
-              reason={access.reason}
-              limit={access.limit}
-              currentReads={access.currentReads}
-            />
-          </div>
-        )}
-      </article>
-
-      {/* Tags section */}
-      {post.tags && post.tags.length > 0 && hasAccess && (
-        <div className="flex flex-wrap items-center gap-2 pt-10 mt-10 border-t border-border">
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mr-1">
-            Chủ đề liên quan:
-          </span>
-          {post.tags.map((tag) => (
-            <Badge key={tag} variant="secondary" className="rounded-full px-3 py-1">
-              #{tag}
-            </Badge>
-          ))}
         </div>
-      )}
 
-      {/* Related Posts */}
-      {relatedPosts.length > 0 && (
-        <div className="mt-16 pt-10 border-t border-border">
-          <div className="flex items-center gap-2 mb-6">
-            <BookOpen className="w-5 h-5 text-primary" />
-            <h3 className="font-display text-xl font-bold">Mô hình cùng chuyên mục</h3>
+        {/* Article Header */}
+        <header className="mb-8 space-y-4">
+          <h1 className="font-display text-2.5xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-foreground leading-[1.18]">
+            {post.title}
+          </h1>
+
+          <p className="text-base sm:text-lg md:text-xl text-muted-foreground leading-relaxed font-normal">
+            {post.summarySnippet || post.shortDescription}
+          </p>
+
+          {/* Academic Formula Callout Banner */}
+          {post.academicFormula && (
+            <div className="p-4 sm:p-5 rounded-2xl bg-secondary/80 border border-border space-y-1.5">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-amber-500" /> Tiên đề học thuật / Công thức logic:
+              </span>
+              <div className="font-mono text-sm sm:text-base md:text-lg text-foreground font-semibold academic-formula">
+                {formatFormula(post.academicFormula)}
+              </div>
+            </div>
+          )}
+
+          {/* Key Takeaways Box */}
+          {post.keyTakeaways && post.keyTakeaways.length > 0 && (
+            <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border space-y-2">
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                3 Luận điểm chiến lược cốt lõi:
+              </span>
+              <ul className="space-y-1.5 text-xs sm:text-sm text-foreground/90">
+                {post.keyTakeaways.map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-2">
+                    <span className="text-primary font-bold mt-0.5">•</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Author, Time, Metrics bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border/70 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
+                <User className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <p className="font-semibold text-foreground">{post.author}</p>
+                <p className="text-[10px] text-muted-foreground">Think & Rich Academic Desk</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5" /> {post.readingTimeMinutes || 5} phút đọc
+              </span>
+              <span className="flex items-center gap-1">
+                <Eye className="w-3.5 h-3.5" /> {formatViews(post.views)} lượt tra cứu
+              </span>
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {relatedPosts.map((r) => (
-              <Card key={r.id} className="overflow-hidden hover:shadow-md transition-all">
-                <Link href={`/post/${r.id}`} className="block p-5">
-                  <Badge variant="outline" className="text-xs mb-2">{r.category}</Badge>
-                  <h4 className="font-display font-semibold text-base line-clamp-1 mb-1 group-hover:text-primary">
-                    {r.title}
-                  </h4>
-                  <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
-                    {r.shortDescription}
-                  </p>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/40">
-                    <span className="inline-flex items-center gap-1">
-                      <Eye className="w-3.5 h-3.5 text-primary" /> {formatViews(r.views)}
-                    </span>
-                    <span className="text-primary font-medium">Đọc bài &rarr;</span>
-                  </div>
-                </Link>
-              </Card>
+        </header>
+
+        {/* Minimalist Vector Schematic Display Box */}
+        {post.schematicSvg && (
+          <div className="mb-10 p-6 sm:p-10 rounded-3xl bg-secondary/50 border border-border flex flex-col items-center justify-center relative overflow-hidden">
+            <div className="w-full max-w-md h-48 sm:h-64 flex items-center justify-center text-foreground">
+              <div
+                className="w-full h-full"
+                dangerouslySetInnerHTML={{ __html: post.schematicSvg }}
+              />
+            </div>
+            <span className="text-[10px] font-mono text-muted-foreground mt-3 uppercase tracking-widest">
+              — Sơ đồ Khái niệm Vector (Schematic Model) —
+            </span>
+          </div>
+        )}
+
+        {/* Article Body & Paywall Gate */}
+        <article className={cn(
+          "relative min-h-[300px] prose-academic max-w-none text-foreground/90",
+          fontSize === "large" ? "text-lg leading-[1.9]" : fontSize === "xlarge" ? "text-xl leading-[2.0]" : "text-base"
+        )}>
+          {hasAccess ? (
+            <div dangerouslySetInnerHTML={{ __html: post.fullContent }} />
+          ) : (
+            <div className="relative">
+              {/* Sliced 30% Teaser preview */}
+              <div
+                className="opacity-30 select-none pointer-events-none max-h-[180px] overflow-hidden filter blur-[3px]"
+                aria-hidden="true"
+                dangerouslySetInnerHTML={{ __html: post.fullContent }}
+              />
+
+              <PaywallCTA
+                reason={access.reason}
+                limit={access.limit}
+                currentReads={access.currentReads}
+              />
+            </div>
+          )}
+        </article>
+
+        {/* Tags Section */}
+        {post.tags && post.tags.length > 0 && hasAccess && (
+          <div className="flex flex-wrap items-center gap-2 pt-8 mt-10 border-t border-border">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mr-1">
+              Nhãn từ khóa:
+            </span>
+            {post.tags.map((tag) => (
+              <Badge key={tag} variant="secondary" className="rounded-full px-3 py-0.5 text-xs font-normal">
+                #{tag}
+              </Badge>
             ))}
           </div>
+        )}
+
+        {/* Next Recommended in same pillar */}
+        {recommendedPosts.length > 0 && (
+          <div className="mt-14 pt-8 border-t border-border space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-lg sm:text-xl font-bold text-foreground">
+                Hồ sơ liên quan trong cùng Trụ cột
+              </h3>
+              <Link href="/explore" className="text-xs text-primary font-semibold hover:underline">
+                Xem tất cả &rarr;
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {recommendedPosts.map((r) => (
+                <InteractiveSquareCard key={r.id} post={r} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* FLOATING MOBILE READER DOCK */}
+        <div className="fixed bottom-16 sm:bottom-6 left-1/2 -translate-x-1/2 bg-card/95 backdrop-blur-md border border-border/80 rounded-full shadow-2xl px-4 sm:px-5 py-2 flex items-center gap-2 sm:gap-3 z-40">
+          <button
+            type="button"
+            onClick={() => {
+              const res = toggleReaction(post.id, "like");
+              if (!res.ok && res.message) toast.error(res.message);
+            }}
+            className={cn(
+              "p-2 rounded-full hover:bg-secondary transition-colors text-muted-foreground",
+              userReaction === "like" && "text-primary bg-primary/10"
+            )}
+            title="Tâm đắc"
+          >
+            <ThumbsUp className={cn("w-4 h-4", userReaction === "like" && "fill-primary")} />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              const res = toggleBookmark(post.id);
+              if (!res.ok && res.message) toast.error(res.message);
+              else toast.success(isSaved ? "Đã bỏ lưu" : "Đã lưu vào Tủ sách");
+            }}
+            className={cn(
+              "p-2 rounded-full hover:bg-secondary transition-colors text-muted-foreground",
+              isSaved && "text-primary bg-primary/10"
+            )}
+            title="Lưu vào Tủ sách"
+          >
+            <Bookmark className={cn("w-4 h-4", isSaved && "fill-current")} />
+          </button>
+
+          {/* Font Size Adjuster */}
+          <button
+            type="button"
+            onClick={() => {
+              setFontSize((prev) =>
+                prev === "normal" ? "large" : prev === "large" ? "xlarge" : "normal"
+              );
+            }}
+            className="p-2 rounded-full hover:bg-secondary text-muted-foreground text-xs font-bold"
+            title="Đổi cỡ chữ"
+          >
+            <Type className="w-4 h-4" />
+          </button>
+
+          {/* Share — explicit picker (copy link, Facebook, X) instead of
+              silently falling back to "just copy the link" on desktop,
+              where navigator.share() mostly doesn't exist. Zalo/Messenger/
+              etc. are reached through "Chia sẻ qua thiết bị", which opens
+              the OS share sheet where those apps register themselves. */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="p-2 rounded-full hover:bg-secondary text-muted-foreground"
+                title="Chia sẻ"
+              >
+                <Share2 className="w-4 h-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center" side="top" sideOffset={10} className="w-52 rounded-2xl p-1.5 shadow-2xl border-border/80">
+              <DropdownMenuItem onClick={copyShareLink} className="flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-xs cursor-pointer">
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-secondary text-foreground shrink-0">
+                  <Link2 className="w-3 h-3" />
+                </span>
+                <span className="font-medium">Sao chép liên kết</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => openShareWindow(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`)}
+                className="flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-xs cursor-pointer"
+              >
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#1877F2] text-white text-[11px] font-bold shrink-0">f</span>
+                <span className="font-medium">Chia sẻ lên Facebook</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => openShareWindow(`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(post.title)}`)}
+                className="flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-xs cursor-pointer"
+              >
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-foreground text-background text-[10px] font-bold shrink-0">X</span>
+                <span className="font-medium">Chia sẻ lên X</span>
+              </DropdownMenuItem>
+              {typeof navigator !== "undefined" && !!navigator.share && (
+                <DropdownMenuItem onClick={shareViaDevice} className="flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-xs cursor-pointer">
+                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-secondary text-foreground shrink-0">
+                    <Smartphone className="w-3 h-3" />
+                  </span>
+                  <span className="font-medium">Chia sẻ qua thiết bị (Zalo, Messenger...)</span>
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-      )}
-
-      {/* Sticky floating bottom action dock */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-card/95 backdrop-blur-md border border-border rounded-full shadow-2xl px-5 py-2.5 flex items-center gap-3 z-40">
-        <Button
-          variant={userReaction === "like" ? "default" : "ghost"}
-          size="sm"
-          className="rounded-full gap-1.5 h-9"
-          onClick={() => {
-            const res = toggleReaction(post.id, "like");
-            if (!res.ok && res.message) toast.error(res.message);
-          }}
-          title="Yêu thích bài viết"
-        >
-          <ThumbsUp className="w-4 h-4" />
-          <span className="text-xs font-semibold">{post.likes}</span>
-        </Button>
-
-        <Button
-          variant={userReaction === "dislike" ? "destructive" : "ghost"}
-          size="sm"
-          className="rounded-full gap-1.5 h-9"
-          onClick={() => {
-            const res = toggleReaction(post.id, "dislike");
-            if (!res.ok && res.message) toast.error(res.message);
-          }}
-          title="Không thích bài viết"
-        >
-          <ThumbsDown className="w-4 h-4" />
-          <span className="text-xs font-semibold">{post.dislikes}</span>
-        </Button>
-
-        <div className="w-px h-5 bg-border mx-1" />
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn("rounded-full h-9 w-9", isSaved && "text-primary bg-primary/10")}
-          onClick={() => {
-            const res = toggleBookmark(post.id);
-            if (!res.ok && res.message) toast.error(res.message);
-            else toast.success(isSaved ? "Đã bỏ lưu" : "Đã lưu vào danh sách đọc");
-          }}
-          title="Lưu bài viết"
-        >
-          <Bookmark className={cn("w-4 h-4", isSaved && "fill-current")} />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full h-9 w-9"
-          onClick={async () => {
-            await navigator.clipboard.writeText(window.location.href);
-            toast.success("Đã sao chép liên kết bài viết vào clipboard!");
-          }}
-          title="Chia sẻ liên kết"
-        >
-          <Share2 className="w-4 h-4" />
-        </Button>
       </div>
-    </div>
+    </>
   );
 }
 
-// Backward compatibility alias
 export const IdeaDetailPage = PostDetailPage;
-

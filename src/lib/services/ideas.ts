@@ -1,11 +1,12 @@
 import { SEED_POSTS } from "@/lib/data";
 import { delay } from "@/lib/access";
-import type { Post, PostCategory, PostStatus } from "@/lib/types";
+import type { Post, PillarType, PostStatus } from "@/lib/types";
 
 let postsDb: Post[] = structuredClone(SEED_POSTS);
 
 export type PostListParams = {
   category?: string;
+  pillar?: PillarType | "ALL";
   sort?: "newest" | "views" | "likes";
   page?: number;
   pageSize?: number;
@@ -17,6 +18,7 @@ export async function listPosts(params: PostListParams = {}) {
   await delay(100);
   const {
     category = "Tất cả",
+    pillar = "ALL",
     sort = "newest",
     page = 1,
     pageSize = 9,
@@ -28,6 +30,10 @@ export async function listPosts(params: PostListParams = {}) {
     status === "ALL" ? true : i.status === status
   );
 
+  if (pillar !== "ALL") {
+    list = list.filter((i) => i.pillar === pillar);
+  }
+
   if (category && category !== "Tất cả") {
     list = list.filter((i) => i.category === category);
   }
@@ -36,7 +42,8 @@ export async function listPosts(params: PostListParams = {}) {
     list = list.filter(
       (i) =>
         i.title.toLowerCase().includes(needle) ||
-        i.shortDescription.toLowerCase().includes(needle) ||
+        (i.summarySnippet && i.summarySnippet.toLowerCase().includes(needle)) ||
+        (i.shortDescription && i.shortDescription.toLowerCase().includes(needle)) ||
         i.tags.some((t) => t.toLowerCase().includes(needle))
     );
   }
@@ -65,7 +72,7 @@ export async function getPost(id: string) {
 }
 
 export async function upsertPost(
-  input: Partial<Post> & { title: string; shortDescription: string }
+  input: Partial<Post> & { title: string; summarySnippet?: string; shortDescription?: string }
 ) {
   await delay(100);
   if (input.id) {
@@ -82,23 +89,25 @@ export async function upsertPost(
     id,
     slug: id,
     title: input.title,
-    shortDescription: input.shortDescription,
+    pillar: input.pillar ?? "MENTAL_MODEL",
+    category: input.category ?? "Mô hình Tư duy",
+    displaySize: input.displaySize ?? "SQUARE_SM",
+    academicFormula: input.academicFormula,
+    summarySnippet: input.summarySnippet ?? input.shortDescription ?? "",
     fullContent: input.fullContent ?? "<p></p>",
-    thumbnailUrl:
-      input.thumbnailUrl ??
-      "https://images.unsplash.com/photo-1507668077129-56e32842fceb?q=80&w=1200&auto=format&fit=crop",
-    videoUrl: input.videoUrl,
-    category: (input.category as PostCategory) ?? "Mô hình Tư duy",
+    schematicSvg: input.schematicSvg,
+    keyTakeaways: input.keyTakeaways ?? [],
+    accessLevel: input.accessLevel ?? "FREE",
+    readingTimeMinutes: input.readingTimeMinutes ?? 5,
     status: input.status ?? "PUBLISHED",
     author: input.author ?? "Think & Rich",
-    readTime: input.readTime ?? "5 phút đọc",
     views: input.views ?? 0,
     likes: input.likes ?? 0,
     dislikes: input.dislikes ?? 0,
-    featured: input.featured ?? false,
     tags: input.tags ?? ["Tư duy", "Chiến lược"],
     createdAt: now,
     updatedAt: now,
+    videoUrl: input.videoUrl,
   };
   postsDb = [post, ...postsDb];
   return post;
@@ -112,4 +121,3 @@ export const upsertIdea = upsertPost;
 export function resetPostsDb() {
   postsDb = structuredClone(SEED_POSTS);
 }
-

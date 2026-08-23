@@ -8,61 +8,80 @@ import {
   Brain,
   Moon,
   Sun,
-  Menu,
-  X,
   UserCircle,
-  LogOut,
   Sparkles,
   Search,
+  X,
+  Compass,
+  Home,
   ArrowRight,
-  Eye,
+  Command,
+  Globe,
+  Check
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useSession } from "@/store/session";
-import { cn, formatViews } from "@/lib/utils";
-import { LanguageSelector } from "@/components/layout/LanguageSelector";
-import { getTranslation } from "@/lib/i18n/translations";
+import { cn, formatFormula } from "@/lib/utils";
+import { PILLARS_CONFIG } from "@/lib/data";
+import { SUPPORTED_LANGUAGES_LIST } from "@/lib/i18n/translations";
 
 export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Search state
+  // Search state & Modal
+  const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [searchFocused, setSearchFocused] = useState(false);
-  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const user = useSession((s) => s.user);
   const posts = useSession((s) => s.posts);
-  const settings = useSession((s) => s.settings);
-  const bookmarks = useSession((s) => s.bookmarks);
   const setAuthOpen = useSession((s) => s.setAuthOpen);
-  const logout = useSession((s) => s.logout);
+  const settings = useSession((s) => s.settings);
   const language = useSession((s) => s.language);
-  const detectGeo = useSession((s) => s.detectGeo);
-
-  const t = getTranslation(language);
-
-  const navLinks = [
-    { name: t.nav.explore, path: "/explore" },
-    { name: t.nav.pricing, path: "/pricing" },
-    { name: t.nav.library, path: "/profile" },
-    { name: t.nav.admin, path: "/admin" },
-  ];
+  const setLanguage = useSession((s) => s.setLanguage);
 
   useEffect(() => {
     setMounted(true);
-    detectGeo();
-  }, [detectGeo]);
 
+    // Keyboard shortcut (Ctrl+K or Cmd+K) to open search
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen((v) => !v);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
-  // Filter posts for instant search popup
+  useEffect(() => {
+    if (searchOpen) {
+      setTimeout(() => inputRef.current?.focus(), 50);
+    } else {
+      setQuery("");
+    }
+  }, [searchOpen]);
+
+  // Filter posts for live search popup
   const searchResults = useMemo(() => {
     if (!query.trim()) return [];
     const q = query.toLowerCase();
@@ -71,343 +90,292 @@ export function Header() {
         (p) =>
           p.status === "PUBLISHED" &&
           (p.title.toLowerCase().includes(q) ||
-            p.shortDescription.toLowerCase().includes(q) ||
+            p.summarySnippet?.toLowerCase().includes(q) ||
             p.category.toLowerCase().includes(q) ||
+            p.academicFormula?.toLowerCase().includes(q) ||
             p.tags?.some((t) => t.toLowerCase().includes(q)))
       )
-      .slice(0, 5);
+      .slice(0, 6);
   }, [query, posts]);
-
-  // Close search dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (
-        searchContainerRef.current &&
-        !searchContainerRef.current.contains(e.target as Node)
-      ) {
-        setSearchFocused(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   function handleSearchSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (query.trim()) {
-      setSearchFocused(false);
+      setSearchOpen(false);
       router.push(`/explore?q=${encodeURIComponent(query.trim())}`);
     }
   }
 
-
-  const isActive = (path: string) =>
-    path === "/" ? pathname === "/" : pathname.startsWith(path);
-
+  const isActive = (path: string) => {
+    if (path === "/") return pathname === "/";
+    return pathname.startsWith(path);
+  };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/80 bg-card/95 backdrop-blur-md transition-colors">
-      <div className="container mx-auto max-w-7xl px-4 h-16 flex items-center justify-between gap-3 md:gap-4">
-        {/* Brand Logo */}
-        <Link
-          href="/"
-          className="flex items-center gap-2.5 font-semibold text-lg tracking-tight shrink-0 group"
-        >
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm transition-transform group-hover:scale-105">
-            <Brain className="h-5 w-5" />
-          </span>
-          <div className="flex flex-col">
-            <span className="font-display font-bold text-lg leading-none tracking-tight">
-              {settings.brandName}
-            </span>
-            <span className="text-[10px] text-muted-foreground font-medium hidden lg:inline leading-tight mt-0.5">
-              Mental Models & Strategies
-            </span>
-          </div>
-        </Link>
+    <>
+      <header className="sticky top-0 z-50 w-full border-b border-border/80 bg-background/95 backdrop-blur-md transition-colors">
+        <div className="container mx-auto max-w-[1600px] px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-4">
+          {/* 1. LEFT: LOGO, BRAND NAME, SLOGAN */}
+          <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group shrink-0">
+            <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-xs transition-transform group-hover:scale-105">
+              <Brain className="h-4 w-4 sm:h-5 sm:w-5" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-display font-bold text-base sm:text-lg tracking-tight leading-none text-foreground">
+                {settings.brandName || "Think & Rich"}
+              </span>
+              <span className="text-[10px] sm:text-[11px] text-muted-foreground font-medium hidden sm:inline leading-tight mt-0.5">
+                Khai phóng tư duy. Đột phá chiến lược.
+              </span>
+            </div>
+          </Link>
 
-        {/* ALWAYS VISIBLE SEARCH BAR (DESKTOP & TABLET) */}
-        <div
-          ref={searchContainerRef}
-          className="hidden sm:block flex-1 max-w-md relative mx-2"
-        >
-          <form onSubmit={handleSearchSubmit} className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          {/* 2. CENTER: MENU (HOME, KHÁM PHÁ, BẢNG GIÁ, CÁ NHÂN) ĐẸP NẰM GIỮA HEADER */}
+          <nav className="flex items-center gap-1 bg-secondary/70 p-1 rounded-full border border-border/60 shadow-xs">
+            <Link
+              href="/"
+              className={cn(
+                "px-4 sm:px-5 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 select-none",
+                isActive("/")
+                  ? "bg-card text-foreground shadow-sm font-bold"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Home className="w-3.5 h-3.5" />
+              <span>Trang chủ</span>
+            </Link>
+            <Link
+              href="/explore"
+              className={cn(
+                "px-4 sm:px-5 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 select-none",
+                isActive("/explore")
+                  ? "bg-card text-foreground shadow-sm font-bold"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Compass className="w-3.5 h-3.5" />
+              <span>Khám phá</span>
+            </Link>
+            <Link
+              href="/pricing"
+              className={cn(
+                "px-4 sm:px-5 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 select-none",
+                isActive("/pricing")
+                  ? "bg-card text-foreground shadow-sm font-bold"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Bảng giá</span>
+            </Link>
+            {user && (
+              <Link
+                href="/profile"
+                className={cn(
+                  "px-4 sm:px-5 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 select-none",
+                  isActive("/profile")
+                    ? "bg-card text-foreground shadow-sm font-bold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <UserCircle className="w-3.5 h-3.5" />
+                <span>Khu vực cá nhân</span>
+              </Link>
+            )}
+          </nav>
+
+          {/* 3. RIGHT: [NÚT SEARCH] [NÚT THEME] [NÚT NGÔN NGỮ] [NÚT LOGIN/ACCOUNT] */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Nút Search đặt ngay bên trái của Theme Toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full h-8 w-8 sm:h-9 sm:w-9 text-muted-foreground hover:text-foreground hover:bg-secondary"
+              onClick={() => setSearchOpen(true)}
+              title="Tìm kiếm (Ctrl+K)"
+              aria-label="Tìm kiếm"
+            >
+              <Search className="w-4 h-4" />
+            </Button>
+
+            {/* Nút đổi Dark / Light Theme */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full h-8 w-8 sm:h-9 sm:w-9 text-muted-foreground hover:text-foreground hover:bg-secondary"
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+              title="Đổi giao diện Sáng / Tối"
+              aria-label="Đổi giao diện Sáng / Tối"
+            >
+              {mounted && resolvedTheme === "dark" ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-slate-700" />
+              )}
+            </Button>
+
+            {/* Nút Ngôn ngữ — trigger luôn chỉ hiện biểu tượng quả cầu (nhất
+                quán mọi nơi trên site), danh sách bên trong dùng chung bộ
+                14 ngôn ngữ với Footer. */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full h-8 w-8 sm:h-9 sm:w-9 text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  title="Chọn ngôn ngữ"
+                  aria-label="Chọn ngôn ngữ"
+                >
+                  <Globe className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 rounded-2xl p-1.5 shadow-2xl border-border/80">
+                <DropdownMenuLabel className="text-[11px] text-muted-foreground font-semibold px-2 py-1">
+                  Ngôn ngữ (14 quốc gia)
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <div className="max-h-72 overflow-y-auto space-y-0.5 pr-1">
+                  {SUPPORTED_LANGUAGES_LIST.map((lang) => (
+                    <DropdownMenuItem
+                      key={lang.code}
+                      onClick={() => setLanguage(lang.code)}
+                      className="flex items-center justify-between rounded-xl px-2.5 py-1.5 text-xs cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-base leading-none">{lang.flag}</span>
+                        <div>
+                          <span className="font-medium text-foreground block leading-tight">{lang.nativeLabel}</span>
+                          <span className="text-[10px] text-muted-foreground leading-none">{lang.label}</span>
+                        </div>
+                      </div>
+                      {language === lang.code && (
+                        <Check className="w-3.5 h-3.5 text-primary stroke-[2.5]" />
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Nút Đăng nhập — khi đã đăng nhập, mọi thứ về tài khoản (hồ sơ,
+                gói cước, đăng xuất) đã nằm trong "Khu vực cá nhân" ở menu
+                giữa header, nên không lặp lại ở đây nữa. */}
+            {!user && (
+              <Button
+                size="sm"
+                className="rounded-full px-3.5 sm:px-4 h-8 sm:h-9 font-semibold text-xs shadow-xs bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={() => setAuthOpen(true)}
+              >
+                <Sparkles className="w-3.5 h-3.5 mr-1" />
+                <span>Đăng nhập</span>
+              </Button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* QUICK SEARCH DIALOG / MODAL (TRIGGERED BY SEARCH BUTTON OR CTRL+K) */}
+      <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
+        <DialogContent className="sm:max-w-xl p-0 gap-0 overflow-hidden rounded-3xl border border-border shadow-2xl">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Tìm kiếm mô hình tri thức</DialogTitle>
+          </DialogHeader>
+
+          {/* Search Input Bar */}
+          <form onSubmit={handleSearchSubmit} className="relative flex items-center border-b border-border/70 px-4 py-3 bg-card">
+            <Search className="w-5 h-5 text-muted-foreground mr-3 shrink-0" />
             <Input
+              ref={inputRef}
               type="search"
-              placeholder="Tìm mô hình tư duy, chiến lược..."
+              placeholder="Tìm kiếm công thức, mô hình tư duy, chiến lược..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              onFocus={() => setSearchFocused(true)}
-              className="pl-10 pr-8 h-10 rounded-full bg-muted/60 hover:bg-muted/90 focus:bg-background border-border/80 text-xs md:text-sm transition-all focus-visible:ring-primary shadow-sm"
-
+              className="flex-1 border-none bg-transparent shadow-none focus-visible:ring-0 text-sm md:text-base px-0 h-9"
             />
-            {query && (
+            {query ? (
               <button
                 type="button"
                 onClick={() => setQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="p-1 rounded-full hover:bg-secondary text-muted-foreground"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
               </button>
+            ) : (
+              <div className="flex items-center gap-1 text-[10px] font-mono font-medium text-muted-foreground bg-secondary px-1.5 py-0.5 rounded border border-border">
+                <span>ESC</span>
+              </div>
             )}
           </form>
 
-          {/* Instant Live Search Results Dropdown */}
-          {searchFocused && query.trim().length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-2xl shadow-xl overflow-hidden z-50 divide-y divide-border/60 animate-in fade-in-50 zoom-in-95 duration-100">
-              <div className="p-2.5 bg-muted/40 flex items-center justify-between text-xs text-muted-foreground font-medium">
-                <span>Kết quả tìm kiếm ({searchResults.length})</span>
-                <span className="text-[11px]">Nhấn Enter để tìm</span>
+          {/* Results List */}
+          <div className="max-h-[60vh] overflow-y-auto p-2">
+            {query.trim().length === 0 ? (
+              <div className="p-6 text-center text-xs text-muted-foreground">
+                <p>Nhập từ khóa để tra cứu trong 3 trụ cột tri thức...</p>
+                <div className="flex items-center justify-center gap-2 mt-3 text-[11px]">
+                  <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 font-medium">🔴 Tư duy</span>
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 font-medium">🟡 Chiến lược</span>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">🟢 Khởi nghiệp</span>
+                </div>
               </div>
-
-              {searchResults.length > 0 ? (
-                <div className="max-h-80 overflow-y-auto p-1.5 space-y-1">
-                  {searchResults.map((item) => (
+            ) : searchResults.length > 0 ? (
+              <div className="space-y-1">
+                {searchResults.map((item) => {
+                  const pillarMeta = PILLARS_CONFIG[item.pillar];
+                  return (
                     <Link
                       key={item.id}
-                      href={`/post/${item.id}`}
-                      onClick={() => {
-                        setSearchFocused(false);
-                        setQuery("");
-                      }}
-                      className="flex items-center gap-3 p-2 rounded-xl hover:bg-muted/70 transition-colors group"
+                      href={`/post/${item.slug || item.id}`}
+                      onClick={() => setSearchOpen(false)}
+                      className="flex items-center justify-between p-3 rounded-2xl hover:bg-secondary transition-all group"
                     >
-                      <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-muted border border-border">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={item.thumbnailUrl}
-                          alt={item.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                        />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-semibold uppercase text-primary">
-                            {item.category}
+                      <div className="min-w-0 flex-1 pr-3">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className={cn("text-[9px] font-bold uppercase px-2 py-0.5 rounded-full border", pillarMeta?.badgeBg, pillarMeta?.badgeText)}>
+                            {pillarMeta?.titleVi}
                           </span>
-                          <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                            <Eye className="w-2.5 h-2.5" /> {formatViews(item.views)}
-                          </span>
+                          {item.accessLevel !== "FREE" && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold">
+                              {item.accessLevel === "MEMBER_PRO" ? "PRO" : "PLUS"}
+                            </span>
+                          )}
                         </div>
-                        <h4 className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                        <h4 className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
                           {item.title}
                         </h4>
+                        {item.academicFormula && (
+                          <p className="text-xs text-muted-foreground font-mono truncate mt-0.5">
+                            {formatFormula(item.academicFormula)}
+                          </p>
+                        )}
                       </div>
-                      <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
+                      <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0" />
                     </Link>
-                  ))}
-
-                  <div className="pt-1 text-center">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSearchFocused(false);
-                        router.push(`/?q=${encodeURIComponent(query.trim())}`);
-                      }}
-                      className="w-full py-1.5 text-xs text-primary font-medium hover:underline flex items-center justify-center gap-1"
-                    >
-                      Xem tất cả kết quả cho &quot;{query}&quot; &rarr;
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-6 text-center text-xs text-muted-foreground">
-                  Không tìm thấy mô hình nào phù hợp với &quot;{query}&quot;.
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Desktop Navigation Links */}
-        <nav className="hidden lg:flex items-center gap-1 text-sm font-medium">
-          {navLinks.map((link) => (
-            <Link
-              key={link.path}
-              href={link.path}
-              className={cn(
-                "px-3.5 py-1.5 rounded-full transition-all text-xs font-semibold text-muted-foreground hover:text-foreground",
-                isActive(link.path) &&
-                  "bg-accent text-accent-foreground shadow-sm"
-              )}
-            >
-              {link.name}
-              {link.path === "/profile" && bookmarks.length > 0 && (
-                <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-bold">
-                  {bookmarks.length}
-                </span>
-              )}
-            </Link>
-          ))}
-        </nav>
-
-        {/* Right Actions */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {/* Language Selector */}
-          <LanguageSelector />
-
-          {/* Theme Toggle */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-full h-8 w-8 text-muted-foreground hover:text-foreground"
-            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-            aria-label="Đổi giao diện"
-          >
-            {mounted && resolvedTheme === "dark" ? (
-              <Sun className="w-4 h-4" />
-            ) : (
-              <Moon className="w-4 h-4" />
-            )}
-          </Button>
-
-          {/* User Section */}
-          {user ? (
-            <div className="hidden sm:flex items-center gap-1.5">
-              <Link
-                href="/profile"
-                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted/60 hover:bg-muted border border-border/50 text-xs font-medium transition-colors"
-              >
-                <UserCircle className="w-3.5 h-3.5 text-primary" />
-                <span className="max-w-[100px] truncate">{user.name}</span>
-                {user.role === "ADMIN" ? (
-                  <Badge className="bg-primary/20 text-primary text-[9px] px-1 py-0 border-none">
-                    Admin
-                  </Badge>
-                ) : user.tier === "PRO" ? (
-                  <Badge className="bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[9px] px-1 py-0 border-none">
-                    Pro
-                  </Badge>
-                ) : user.tier === "PLUS" ? (
-                  <Badge className="bg-blue-600/20 text-blue-600 dark:text-blue-400 text-[9px] px-1 py-0 border-none">
-                    Plus
-                  </Badge>
-                ) : null}
-
-              </Link>
-
-
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full h-8 w-8 text-muted-foreground hover:text-destructive"
-                onClick={logout}
-                title={t.nav.logout}
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-          ) : (
-            <Button
-              size="sm"
-              className="hidden sm:inline-flex rounded-full px-4 h-9 font-semibold text-xs shadow-sm"
-              onClick={() => setAuthOpen(true)}
-            >
-              <Sparkles className="w-3.5 h-3.5 mr-1" /> {t.nav.login}
-            </Button>
-          )}
-
-          {/* Mobile Menu Trigger */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden rounded-full h-9 w-9"
-            onClick={() => setMobileOpen((v) => !v)}
-            aria-label="Menu"
-          >
-            {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-          </Button>
-        </div>
-      </div>
-
-      {/* MOBILE SEARCH BAR - ALWAYS VISIBLE DIRECTLY UNDER HEADER ON MOBILE */}
-      <div className="sm:hidden px-4 pb-2.5 pt-0.5">
-        <form onSubmit={handleSearchSubmit} className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-          <Input
-            type="search"
-            placeholder={t.nav.searchPlaceholder}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="pl-9 pr-8 h-9 rounded-full bg-muted/60 focus:bg-background border-border/80 text-xs shadow-sm"
-          />
-          {query && (
-            <button
-              type="button"
-              onClick={() => setQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          )}
-        </form>
-      </div>
-
-
-      {/* Mobile Drawer Menu */}
-      {mobileOpen && (
-        <div className="lg:hidden border-t border-border bg-card px-4 py-4 space-y-2 shadow-lg animate-in slide-in-from-top-2">
-          {navLinks.map((link) => (
-            <Link
-              key={link.path}
-              href={link.path}
-              onClick={() => setMobileOpen(false)}
-              className={cn(
-                "flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium",
-                isActive(link.path)
-                  ? "bg-accent text-accent-foreground font-semibold"
-                  : "text-muted-foreground hover:bg-muted"
-              )}
-            >
-              <span>{link.name}</span>
-              {link.path === "/profile" && bookmarks.length > 0 && (
-                <Badge variant="secondary">{bookmarks.length}</Badge>
-              )}
-            </Link>
-          ))}
-
-
-          <div className="pt-2 border-t border-border">
-            {user ? (
-              <div className="space-y-2">
-                <div className="px-3 py-2 bg-muted/40 rounded-xl flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <UserCircle className="w-4 h-4 text-primary" />
-                    <div>
-                      <p className="font-semibold">{user.name}</p>
-                      <p className="text-muted-foreground">{user.email}</p>
-                    </div>
-                  </div>
-                  {user.role === "ADMIN" && <Badge>Admin</Badge>}
-                </div>
-                <Button
-                  variant="outline"
-                  className="w-full rounded-xl text-destructive hover:bg-destructive/10"
-                  onClick={() => {
-                    logout();
-                    setMobileOpen(false);
-                  }}
-                >
-                  <LogOut className="w-4 h-4 mr-2" /> Đăng xuất
-                </Button>
+                  );
+                })}
               </div>
             ) : (
-              <Button
-                className="w-full rounded-xl font-medium"
-                onClick={() => {
-                  setMobileOpen(false);
-                  setAuthOpen(true);
-                }}
-              >
-                <Sparkles className="w-4 h-4 mr-2" /> Đăng nhập bằng Email OTP
-              </Button>
+              <div className="p-8 text-center text-xs text-muted-foreground">
+                Không tìm thấy hồ sơ nào khớp với &quot;{query}&quot;.
+              </div>
             )}
           </div>
-        </div>
-      )}
-    </header>
+
+          {/* Footer of modal */}
+          {query.trim().length > 0 && searchResults.length > 0 && (
+            <div className="p-2.5 bg-muted/40 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+              <span>Tìm thấy {searchResults.length} kết quả</span>
+              <button
+                type="button"
+                onClick={handleSearchSubmit}
+                className="text-primary hover:underline font-medium flex items-center gap-1 text-xs"
+              >
+                Xem toàn bộ trang Khám phá &rarr;
+              </button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
-
-

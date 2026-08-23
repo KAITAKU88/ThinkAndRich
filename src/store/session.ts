@@ -181,7 +181,7 @@ export const useSession = create<SessionState>()(
       getDailyLimit: () => {
         const { user } = get();
         if (!user || user.role === "ADMIN" || user.tier === "PRO") return Infinity;
-        if (user.tier === "PLUS") return 15;
+        if (user.tier === "PLUS") return 25;
         return 10;
       },
 
@@ -214,10 +214,10 @@ export const useSession = create<SessionState>()(
 
         const tier = user.tier || "FREE";
         const todayReads = get().getTodayReadCount();
-        const isMemberPost = Boolean(post.isMemberOnly || post.isPro);
+        const level = post.accessLevel || (post.isPro || post.isMemberOnly ? "MEMBER_PLUS" : "FREE");
 
         if (tier === "FREE") {
-          if (isMemberPost) {
+          if (level === "MEMBER_PLUS" || level === "MEMBER_PRO") {
             return {
               allowed: false,
               reason: "PRO_REQUIRED",
@@ -237,11 +237,18 @@ export const useSession = create<SessionState>()(
         }
 
         if (tier === "PLUS") {
-          if (todayReads >= 15 && !get().isPostRead(post.id)) {
+          if (level === "MEMBER_PRO") {
+            return {
+              allowed: false,
+              reason: "PRO_REQUIRED",
+              tier: "PLUS",
+            };
+          }
+          if (todayReads >= 25 && !get().isPostRead(post.id)) {
             return {
               allowed: false,
               reason: "DAILY_LIMIT_REACHED",
-              limit: 15,
+              limit: 25,
               currentReads: todayReads,
               tier: "PLUS",
             };
@@ -301,6 +308,7 @@ export const useSession = create<SessionState>()(
             lastLoginAt: new Date().toISOString(),
             dailyReads: { date: getTodayString(), count: 0 },
             readPosts: [],
+            bookmarkedPosts: [],
             likedPosts: [],
             dislikedPosts: [],
           };
@@ -351,6 +359,7 @@ export const useSession = create<SessionState>()(
             createdAt: new Date().toISOString(),
             lastLoginAt: new Date().toISOString(),
             readPosts: [],
+            bookmarkedPosts: [],
             likedPosts: [],
             dislikedPosts: [],
           };
@@ -392,6 +401,7 @@ export const useSession = create<SessionState>()(
             userName: user.name,
             postId: targetPost.id,
             postTitle: targetPost.title,
+            pillar: targetPost.pillar,
             postCategory: targetPost.category,
             readAt: now,
             reaction: get().userReactions[postId] || "none",
@@ -590,7 +600,8 @@ export const useSession = create<SessionState>()(
       },
     }),
     {
-      name: "think-and-rich-storage-v1",
+      name: "think-and-rich-storage-v2",
+      version: 2,
       partialize: (state) => ({
         user: state.user,
         users: state.users,

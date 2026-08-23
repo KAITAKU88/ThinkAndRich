@@ -1,39 +1,81 @@
 export type Role = "USER" | "ADMIN";
 
 export type MembershipTier = "FREE" | "PLUS" | "PRO";
+export type SubscriptionTier = MembershipTier;
+
+export type PillarType = "MENTAL_MODEL" | "BUSINESS_STRATEGY" | "STARTUP_IDEA";
+
+export type CardDisplaySize = "SQUARE_SM" | "SQUARE_MD" | "SQUARE_LG";
+
+export type ContentAccessLevel = "FREE" | "MEMBER_PLUS" | "MEMBER_PRO";
 
 export type PostCategory =
   | "Mô hình Tư duy"
   | "Mô hình Tâm trí"
   | "Chiến lược Kinh doanh"
+  | "Ý tưởng Khởi nghiệp"
   | "Tâm lý học & Quyết định"
-  | "Hiệu ứng & Định luật";
+  | "Hào kinh tế & Moats"
+  | "Deep-dive Teardown";
 
 export type PostStatus = "DRAFT" | "PUBLISHED";
+
+export interface PillarMetadata {
+  id: PillarType;
+  titleVi: string;
+  titleEn: string;
+  taglineVi: string;
+  taglineEn: string;
+  colorHex: string;
+  colorDarkHex: string;
+  badgeBg: string;
+  badgeText: string;
+  borderHover: string;
+  iconName: string;
+}
 
 export interface Post {
   id: string;
   slug: string;
   title: string;
-  category: PostCategory;
-  shortDescription: string;
+  pillar: PillarType;
+  category: string;
+  displaySize: CardDisplaySize;
+  
+  academicFormula?: string;
+  summarySnippet: string;
   fullContent: string;
-  thumbnailUrl: string;
-  videoUrl?: string; // YouTube / Vimeo embed URL
-  author: string;
-  readTime: string;
+  schematicSvg?: string;
+  keyTakeaways?: string[];
+
+  accessLevel: ContentAccessLevel;
+  readingTimeMinutes: number;
   status: PostStatus;
   views: number;
   likes: number;
   dislikes: number;
-  featured?: boolean;
-  isMemberOnly?: boolean; // Requires PLUS or PRO tier (paid user)
-  isPro?: boolean; // Backward compatibility alias for isMemberOnly
+  author: string;
   tags: string[];
   createdAt: string;
   updatedAt: string;
+
+  // Additional & Backward compatibility fields
+  shortDescription?: string;
+  readTime?: string;
+  thumbnailUrl?: string;
+  videoUrl?: string;
+  isMemberOnly?: boolean;
+  isPro?: boolean;
+  featured?: boolean;
 }
 
+export interface Bookmark {
+  id: string;
+  userId: string;
+  postId: string;
+  createdAt: string;
+  post?: Post;
+}
 
 export interface UserRecord {
   id: string;
@@ -42,6 +84,8 @@ export interface UserRecord {
   role: Role;
   tier: MembershipTier;
   avatar?: string;
+  countryCode?: string;
+  preferredLang?: string;
   createdAt: string;
   lastLoginAt: string;
   dailyReads?: {
@@ -49,6 +93,7 @@ export interface UserRecord {
     count: number;
   };
   readPosts: string[]; // List of post IDs read by this user
+  bookmarkedPosts?: string[];
   likedPosts: string[];
   dislikedPosts: string[];
 }
@@ -60,7 +105,8 @@ export interface ReadLog {
   userName: string;
   postId: string;
   postTitle: string;
-  postCategory: PostCategory;
+  pillar?: PillarType;
+  postCategory?: string;
   readAt: string;
   reaction?: "like" | "dislike" | "none";
 }
@@ -71,6 +117,8 @@ export interface SessionUser {
   name: string;
   role: Role;
   tier: MembershipTier;
+  countryCode?: string;
+  preferredLang?: string;
   dailyReads?: {
     date: string; // YYYY-MM-DD
     count: number;
@@ -121,7 +169,6 @@ export type SupportedLanguage =
   | "id"
   | "th";
 
-
 export type CountryCode =
   | "VN"
   | "US"
@@ -166,6 +213,3 @@ export interface PppPricingConfig {
     };
   };
 }
-
-
-
