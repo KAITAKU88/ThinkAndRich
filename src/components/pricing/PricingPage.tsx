@@ -56,47 +56,29 @@ export function PricingPage() {
       dailyLimitText: t.pricing.plans.freeLimit,
       isPro: false,
       badge: undefined,
-      features: [
-        "10 bài viết tiêu chuẩn mỗi ngày",
-        "Ghi chú & đánh dấu bài viết yêu thích",
-        "Truy cập kho bài học mở",
-        "Tra cứu nhanh bằng ô tìm kiếm toàn trang",
-      ],
+      features: t.pricing.plans.freeFeatures,
       ctaText: t.pricing.startFree,
     },
     {
       id: "PLUS" as const,
       name: t.pricing.plans.plusName,
       tagline: t.pricing.plans.plusTagline,
-      priceFormatted: `${currentPpp.plans.PLUS.formatted} / năm`,
+      priceFormatted: `${currentPpp.plans.PLUS.formatted} ${t.pricing.yearSuffix}`,
       dailyLimitText: t.pricing.plans.plusLimit,
       isPro: false,
-      badge: "Gói Đột Phá",
-      features: [
-        "Đọc 15 bài viết / ngày",
-        "Mở khóa toàn bộ Bài viết Member",
-        "Xem sơ đồ tư duy & Mindmap tóm tắt",
-        "Tải bản tóm tắt chiến lược",
-        "Tự động ẩn các bài đã đọc / đã lưu",
-      ],
+      badge: t.pricing.planBadgePlus,
+      features: t.pricing.plans.plusFeatures,
       ctaText: t.pricing.upgradePlus,
     },
     {
       id: "PRO" as const,
       name: t.pricing.plans.proName,
       tagline: t.pricing.plans.proTagline,
-      priceFormatted: `${currentPpp.plans.PRO.formatted} / năm`,
+      priceFormatted: `${currentPpp.plans.PRO.formatted} ${t.pricing.yearSuffix}`,
       dailyLimitText: t.pricing.plans.proLimit,
       isPro: true,
-      badge: "👑 Khuyên dùng (Best Value)",
-      features: [
-        "Đọc KHÔNG GIỚI HẠN mọi bài viết",
-        "Mở khóa 100% Bài viết Member độc quyền",
-        "Toàn bộ Video phân tích case study thực chiến",
-        "Tải trọn bộ Ebook PDF & Mindmap vector",
-        "Huy hiệu PRO danh dự trên hồ sơ",
-        "Quyền tham gia cộng đồng Think & Rich VIP",
-      ],
+      badge: t.pricing.planBadgePro,
+      features: t.pricing.plans.proFeatures,
       ctaText: t.pricing.upgradePro,
     },
   ];
@@ -137,20 +119,18 @@ export function PricingPage() {
                     : "bg-blue-600 text-white"
                 }
               >
-                {currentPpp.gateway === "sepay"
-                  ? "Cổng SePay (VietQR)"
-                  : "Cổng Lemon Squeezy (Global)"}
+                {currentPpp.gateway === "sepay" ? t.pricing.gatewaySepayFull : t.pricing.gatewayLemonFull}
               </Badge>
             </div>
             <p className="text-muted-foreground mt-0.5">
-              Hệ số PPP: <em>{currentPpp.pppFactorNote}</em>. Tiền tệ bị khóa theo IP.
+              {t.pricing.pppFactorPrefix} <em>{currentPpp.pppFactorNote}</em>. {t.pricing.currencyLockSuffix}
             </p>
           </div>
         </div>
 
         {/* IP Simulator Switcher for Reviewing */}
         <div className="flex items-center gap-2">
-          <span className="text-muted-foreground hidden sm:inline">Mô phỏng IP:</span>
+          <span className="text-muted-foreground hidden sm:inline">{t.pricing.ipSimulatorLabel}</span>
           <select
             value={countryCode}
             onChange={(e) => setCountryCode(e.target.value as CountryCode)}
@@ -169,7 +149,7 @@ export function PricingPage() {
             onClick={() => setShowPppTable((v) => !v)}
             className="rounded-xl text-xs"
           >
-            {showPppTable ? "Ẩn bảng PPP" : "Bảng giá Toàn cầu (PPP)"}
+            {showPppTable ? t.pricing.hidePppTableBtn : t.pricing.showPppTableBtn}
           </Button>
         </div>
       </div>
@@ -282,23 +262,23 @@ export function PricingPage() {
           <div className="flex items-center gap-2 mb-4">
             <Globe2 className="w-5 h-5 text-primary" />
             <h3 className="font-display text-lg font-bold">
-              Bảng Định Giá Đa Quốc Gia Theo Sức Mua (PPP Index)
+              {t.pricing.pppTableTitle}
             </h3>
           </div>
           <p className="text-xs text-muted-foreground mb-4">
-            Giá được định tuyến tự động qua SePay (Việt Nam) hoặc Lemon Squeezy (Toàn cầu). Tiền tệ bị khóa cứng theo IP.
+            {t.pricing.pppTableDesc}
           </p>
 
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left border-collapse">
               <thead>
                 <tr className="border-b border-border bg-muted/50 font-semibold text-foreground">
-                  <th className="p-3">Thị trường (IP)</th>
-                  <th className="p-3">Cổng Thanh toán</th>
-                  <th className="p-3">Gói Free</th>
-                  <th className="p-3">Gói Plus (1 Năm)</th>
-                  <th className="p-3">Gói Pro (1 Năm)</th>
-                  <th className="p-3">Ghi chú PPP so với VN</th>
+                  <th className="p-3">{t.pricing.colMarket}</th>
+                  <th className="p-3">{t.pricing.colGateway}</th>
+                  <th className="p-3">{t.pricing.colFree}</th>
+                  <th className="p-3">{t.pricing.colPlus}</th>
+                  <th className="p-3">{t.pricing.colPro}</th>
+                  <th className="p-3">{t.pricing.colNote}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
@@ -315,7 +295,7 @@ export function PricingPage() {
                       <span>{row.flag}</span>
                       <span>{row.countryName} ({row.countryCode})</span>
                       {countryCode === row.countryCode && (
-                        <Badge className="text-[9px] px-1 py-0 bg-primary">Hiện tại</Badge>
+                        <Badge className="text-[9px] px-1 py-0 bg-primary">{t.pricing.currentRowBadge}</Badge>
                       )}
                     </td>
                     <td className="p-3">
@@ -327,7 +307,7 @@ export function PricingPage() {
                             : "border-blue-500 text-blue-600 dark:text-blue-400 font-bold"
                         }
                       >
-                        {row.gateway === "sepay" ? "SePay" : "Lemon Squeezy"}
+                        {row.gateway === "sepay" ? t.pricing.gatewaySepayShort : t.pricing.gatewayLemonShort}
                       </Badge>
                     </td>
                     <td className="p-3">{row.plans.FREE.formatted}</td>
@@ -355,9 +335,7 @@ export function PricingPage() {
           <div className="flex items-center gap-2 pt-1 text-[11px] text-muted-foreground">
             <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
             <span>
-              {currentPpp.gateway === "sepay"
-                ? "Thanh toán nội địa VN được bảo đảm qua hệ thống Ngân hàng Nhà nước & SePay VietQR 24/7."
-                : "Thanh toán quốc tế được bảo vệ bởi Lemon Squeezy (Merchant of Record) với đầy đủ hóa đơn VAT/Sales Tax toàn cầu."}
+              {currentPpp.gateway === "sepay" ? t.pricing.sepaySecurityNote : t.pricing.lemonSecurityNote}
             </span>
           </div>
         </div>
@@ -372,9 +350,9 @@ export function PricingPage() {
             {t.pricing.decoyEffectDesc}
           </p>
           <div className="pt-1 flex items-center justify-between text-[11px] text-primary font-medium">
-            <span>Chiến lược định giá tâm lý</span>
+            <span>{t.pricing.decoyFooterLabel}</span>
             <Link href="/post/the-flywheel-effect" className="hover:underline flex items-center gap-1">
-              Xem mô hình liên quan <ArrowRight className="w-3 h-3" />
+              {t.pricing.decoyRelatedLink} <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
         </div>

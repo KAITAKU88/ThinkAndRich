@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSession } from "@/store/session";
+import { getTranslation } from "@/lib/i18n/translations";
 
 
 export function AuthDialog() {
@@ -21,6 +22,8 @@ export function AuthDialog() {
   const setAuthOpen = useSession((s) => s.setAuthOpen);
   const requestOtp = useSession((s) => s.requestOtp);
   const verifyOtp = useSession((s) => s.verifyOtp);
+  const language = useSession((s) => s.language);
+  const t = getTranslation(language);
 
   const [step, setStep] = useState<"EMAIL" | "OTP">("EMAIL");
   const [email, setEmail] = useState("");
@@ -49,7 +52,7 @@ export function AuthDialog() {
   async function handleSendOtp(e?: React.FormEvent) {
     if (e) e.preventDefault();
     if (!email || !email.includes("@")) {
-      toast.error("Vui lòng nhập địa chỉ email hợp lệ.");
+      toast.error(t.auth.invalidEmail);
       return;
     }
 
@@ -58,14 +61,14 @@ export function AuthDialog() {
     setLoading(false);
 
     if (!res.ok) {
-      toast.error(res.message || "Không gửi được mã OTP. Vui lòng thử lại.");
+      toast.error(res.message || t.auth.otpSendFailed);
       return;
     }
 
     setStep("OTP");
     setCountdown(60);
-    toast.success("Đã gửi mã xác thực OTP!", {
-      description: `Vui lòng kiểm tra hộp thư ${email}. Mã có hiệu lực trong 5 phút.`,
+    toast.success(t.auth.otpSentToastTitle, {
+      description: `${t.auth.otpSentToastDescPrefix} ${email}. ${t.auth.otpSentToastDescSuffix}`,
       duration: 8000,
     });
   }
@@ -73,7 +76,7 @@ export function AuthDialog() {
   async function handleVerifyOtp(e: React.FormEvent) {
     e.preventDefault();
     if (!otpCode || otpCode.length < 6) {
-      toast.error("Vui lòng nhập đủ 6 chữ số mã OTP.");
+      toast.error(t.auth.otpIncomplete);
       return;
     }
 
@@ -82,12 +85,12 @@ export function AuthDialog() {
     setLoading(false);
 
     if (result.ok) {
-      toast.success("Xác thực Email OTP thành công!", {
-        description: "Chào mừng bạn đến với Think & Rich. Toàn bộ nội dung đã được mở khóa.",
+      toast.success(t.auth.verifiedToastTitle, {
+        description: t.auth.verifiedToastDesc,
       });
       handleClose(false);
     } else {
-      toast.error(result.message || "Mã OTP không hợp lệ.");
+      toast.error(result.message || t.auth.otpInvalid);
     }
   }
 
@@ -103,25 +106,23 @@ export function AuthDialog() {
             )}
           </div>
           <DialogTitle className="text-center font-display text-2xl font-bold">
-            {step === "EMAIL"
-              ? "Đăng nhập Think & Rich"
-              : "Xác thực mã OTP"}
+            {step === "EMAIL" ? t.auth.title : t.auth.otpStepTitle}
           </DialogTitle>
           <DialogDescription className="text-center text-sm text-muted-foreground">
             {step === "EMAIL"
-              ? "Xác thực bảo mật qua Email OTP (không cần mật khẩu) để mở khóa toàn bộ mô hình tư duy & chiến lược kinh doanh."
-              : `Chúng tôi đã gửi mã xác thực 6 số đến email ${email}`}
+              ? t.auth.subtitle
+              : `${t.auth.otpStepSubtitlePrefix} ${email}`}
           </DialogDescription>
         </DialogHeader>
 
         {step === "EMAIL" ? (
           <form onSubmit={handleSendOtp} className="space-y-4 pt-2">
             <div className="space-y-2">
-              <Label htmlFor="auth-email">Địa chỉ Email của bạn</Label>
+              <Label htmlFor="auth-email">{t.auth.emailLabel}</Label>
               <Input
                 id="auth-email"
                 type="email"
-                placeholder="tenban@congty.com"
+                placeholder={t.auth.emailPlaceholder}
                 required
                 autoFocus
                 value={email}
@@ -130,7 +131,7 @@ export function AuthDialog() {
               />
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-                Mã OTP 6 chữ số sẽ được gửi tức thì để bạn xác nhận danh tính.
+                {t.auth.otpSecureHint}
               </p>
             </div>
 
@@ -140,10 +141,10 @@ export function AuthDialog() {
               disabled={loading}
             >
               {loading ? (
-                "Đang gửi mã..."
+                t.auth.sendingLabel
               ) : (
                 <>
-                  Nhận mã xác thực OTP <ArrowRight className="w-4 h-4 ml-1" />
+                  {t.auth.getOtpBtn} <ArrowRight className="w-4 h-4 ml-1" />
                 </>
               )}
             </Button>
@@ -151,12 +152,12 @@ export function AuthDialog() {
         ) : (
           <form onSubmit={handleVerifyOtp} className="space-y-4 pt-2">
             <div className="space-y-2">
-              <Label htmlFor="auth-otp">Mã xác thực OTP (6 chữ số)</Label>
+              <Label htmlFor="auth-otp">{t.auth.otpLabel}</Label>
               <Input
                 id="auth-otp"
                 type="text"
                 maxLength={6}
-                placeholder="123456"
+                placeholder={t.auth.otpPlaceholder}
                 required
                 autoFocus
                 className="text-center font-mono text-2xl tracking-[0.4em] h-12"
@@ -173,11 +174,10 @@ export function AuthDialog() {
               disabled={loading || otpCode.length < 6}
             >
               {loading ? (
-                "Đang xác thực..."
+                t.auth.verifyingLabel
               ) : (
                 <>
-                  <CheckCircle2 className="w-4 h-4 mr-1.5" /> Xác nhận & Mở khóa
-                  nội dung
+                  <CheckCircle2 className="w-4 h-4 mr-1.5" /> {t.auth.confirmUnlockBtn}
                 </>
               )}
             </Button>
@@ -188,18 +188,18 @@ export function AuthDialog() {
                 className="hover:text-foreground underline transition-colors"
                 onClick={() => setStep("EMAIL")}
               >
-                Đổi email khác
+                {t.auth.changeEmailBtn}
               </button>
 
               {countdown > 0 ? (
-                <span>Gửi lại mã sau {countdown}s</span>
+                <span>{t.auth.resendCountdownPrefix} {countdown}s</span>
               ) : (
                 <button
                   type="button"
                   className="text-primary font-medium hover:underline inline-flex items-center gap-1"
                   onClick={() => handleSendOtp()}
                 >
-                  <RefreshCw className="w-3 h-3" /> Gửi lại mã OTP
+                  <RefreshCw className="w-3 h-3" /> {t.auth.resend}
                 </button>
               )}
             </div>

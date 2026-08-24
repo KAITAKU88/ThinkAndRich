@@ -17,6 +17,7 @@ import type { Post } from "@/lib/types";
 import type { Slot } from "@/lib/algorithms/skyline-packer";
 import { useSession } from "@/store/session";
 import { cn, formatViews, shareContent } from "@/lib/utils";
+import { getTranslation } from "@/lib/i18n/translations";
 
 interface InteractiveSquareCardProps {
   post: Post;
@@ -46,6 +47,8 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
   const bookmarks = useSession((s) => s.bookmarks);
   const toggleBookmark = useSession((s) => s.toggleBookmark);
   const isSaved = bookmarks.includes(post.id);
+  const language = useSession((s) => s.language);
+  const t = getTranslation(language);
 
   const slotSize = slot?.size || (post.displaySize === "SQUARE_LG" ? 4 : post.displaySize === "SQUARE_MD" ? 3 : 2);
   const isLarge = slotSize >= 3;
@@ -115,7 +118,7 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
     e.stopPropagation();
     const res = await toggleBookmark(post.id);
     if (!res.ok && res.message) toast.error(res.message);
-    else if (res.ok) toast.success(isSaved ? "Đã bỏ khỏi Đọc sau" : "Đã lưu vào Đọc sau");
+    else if (res.ok) toast.success(isSaved ? t.detail.unsavedToast : t.detail.savedToast);
   }
 
   async function handleShareClick(e: React.MouseEvent) {
@@ -128,7 +131,7 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
       text: post.summarySnippet || post.shortDescription,
     });
     fetch(`/api/posts/${post.slug || post.id}/share`, { method: "POST" }).catch(() => {});
-    if (result === "copied") toast.success("Đã sao chép liên kết vào clipboard!");
+    if (result === "copied") toast.success(t.detail.linkCopiedToast);
   }
 
   const hoverScale = isLarge ? 1.008 : 1.02;
@@ -213,10 +216,10 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
               )}
               title={
                 post.pillar === "MENTAL_MODEL"
-                  ? "Mô hình Tư duy"
+                  ? t.pillars.mentalModel
                   : post.pillar === "BUSINESS_STRATEGY"
-                  ? "Chiến lược Kinh doanh"
-                  : "Ý tưởng Khởi nghiệp"
+                  ? t.pillars.businessStrategy
+                  : t.pillars.startupIdea
               }
             >
               {post.pillar === "MENTAL_MODEL" && <Brain className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
@@ -225,7 +228,7 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
             </div>
             {isNew && (
               <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[10px] font-bold uppercase tracking-wider">
-                Mới
+                {t.card.newBadge}
               </span>
             )}
           </div>
@@ -247,12 +250,12 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
               )}
               title={
                 post.accessLevel === "MEMBER_PRO"
-                  ? "Yêu cầu gói Hội viên PRO"
+                  ? t.card.accessProTooltip
                   : post.accessLevel === "MEMBER_PLUS"
-                  ? "Yêu cầu gói Hội viên PLUS"
+                  ? t.card.accessPlusTooltip
                   : post.accessLevel === "OPEN"
-                  ? "Đọc tự do, không cần đăng nhập"
-                  : "Cần đăng nhập, giới hạn 10 bài/ngày"
+                  ? t.card.accessOpenTooltip
+                  : t.card.accessFreeTooltip
               }
             >
               {post.accessLevel === "MEMBER_PRO"
@@ -267,8 +270,8 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
               type="button"
               onClick={handleShareClick}
               className="flex items-center justify-center rounded-full p-1.5 -m-1 transition-all active:scale-90 select-none text-muted-foreground hover:text-primary hover:bg-primary/10"
-              title="Chia sẻ"
-              aria-label="Chia sẻ"
+              title={t.detail.shareTooltip}
+              aria-label={t.detail.shareTooltip}
             >
               <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
@@ -287,8 +290,8 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
                     }
                   : undefined
               }
-              title={isSaved ? "Bỏ khỏi Đọc sau" : "Lưu vào Đọc sau"}
-              aria-label={isSaved ? "Bỏ khỏi Đọc sau" : "Lưu vào Đọc sau"}
+              title={isSaved ? t.detail.unsaveTooltip : t.detail.saveTooltip}
+              aria-label={isSaved ? t.detail.unsaveTooltip : t.detail.saveTooltip}
             >
               <Bookmark className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4", isSaved && "fill-current")} />
             </button>
@@ -343,7 +346,7 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
                 ? "text-rose-600 font-bold bg-rose-500/10"
                 : "hover:text-rose-600 hover:bg-rose-500/10 text-muted-foreground"
             )}
-            title="Thích bài viết này"
+            title={t.detail.likeTooltip}
           >
             <Heart
               className={cn(

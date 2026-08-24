@@ -44,6 +44,7 @@ function CheckoutContent() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [order, setOrder] = useState<{ id: string; amount: number; currency: string } | null>(null);
   const [orderError, setOrderError] = useState<string | null>(null);
+  const [lemonCheckoutUrl, setLemonCheckoutUrl] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const isPro = planId === "PRO";
@@ -53,24 +54,44 @@ function CheckoutContent() {
 
   // Real PENDING order, created server-side (amount/currency computed from
   // the user's country there too — never trust a client-submitted price).
-  // Only SePay (VN) has a real order lifecycle right now.
+  // For Lemon Squeezy this also opens a real hosted checkout session and
+  // returns its URL to redirect the user to. Switching the "simulate
+  // country" selector changes the gateway, so an existing order for the
+  // old country must be discarded to let this effect re-fire.
   useEffect(() => {
-    if (!user || ppp.gateway !== "sepay" || order) return;
+    setOrder(null);
+    setLemonCheckoutUrl(null);
+    setOrderError(null);
+  }, [countryCode]);
+
+  useEffect(() => {
+    if (!user || order) return;
     fetch(`/api/checkout?country=${countryCode}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tier: planId }),
     })
-      .then((res) => res.json() as Promise<{ ok: boolean; message?: string; orderId?: string; amount?: number; currency?: string }>)
+      .then(
+        (res) =>
+          res.json() as Promise<{
+            ok: boolean;
+            message?: string;
+            orderId?: string;
+            amount?: number;
+            currency?: string;
+            checkoutUrl?: string;
+          }>
+      )
       .then((data) => {
         if (data.ok && data.orderId) {
           setOrder({ id: data.orderId, amount: data.amount!, currency: data.currency! });
+          if (data.checkoutUrl) setLemonCheckoutUrl(data.checkoutUrl);
         } else {
-          setOrderError(data.message || "Không tạo được đơn hàng.");
+          setOrderError(data.message || t.checkout.genericOrderError);
         }
       })
-      .catch(() => setOrderError("Không thể kết nối tới máy chủ thanh toán."));
-  }, [user, ppp.gateway, countryCode, planId, order]);
+      .catch(() => setOrderError(t.checkout.genericConnError));
+  }, [user, countryCode, planId, order, t.checkout.genericOrderError, t.checkout.genericConnError]);
 
   // Poll for the webhook flipping the order to PAID — this page never
   // decides success itself (see src/app/api/webhooks/billing/route.ts).
@@ -82,15 +103,16 @@ function CheckoutContent() {
         setIsSuccess(true);
         setIsProcessing(false);
         if (pollRef.current) clearInterval(pollRef.current);
-        toast.success(`🎉 SePay: Đã xác thực thanh toán thành công ${planName}!`);
+        const gatewayLabel = ppp.gateway === "sepay" ? t.checkout.sepayGatewayLabel : t.checkout.lemonGatewayLabel;
+        toast.success(`🎉 ${gatewayLabel}: ${t.checkout.paymentConfirmedPrefix} ${planName}!`);
       }
     }, 4000);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [order, isSuccess, planName]);
+  }, [order, isSuccess, planName, ppp.gateway, t.checkout.sepayGatewayLabel, t.checkout.lemonGatewayLabel, t.checkout.paymentConfirmedPrefix]);
 
-  const memoCode = order ? order.id : "Đang tạo đơn hàng...";
+  const memoCode = order ? order.id : t.common.loading;
 
   // VietQR parameters for SePay
   const bankAccount = "0987654321";
@@ -112,11 +134,11 @@ function CheckoutContent() {
   function handleConfirmPayment() {
     if (!user) {
       setAuthOpen(true);
-      toast.info("Vui lòng xác thực Email OTP trước khi kích hoạt gói.");
+      toast.info(t.checkout.loginBeforeCheckout);
       return;
     }
     setIsProcessing(true);
-    toast.info("Đã ghi nhận — hệ thống đang xác nhận giao dịch chuyển khoản, thường mất vài phút.");
+    toast.info(t.checkout.confirmedWatchingNote);
   }
 
   if (isSuccess) {
@@ -136,17 +158,17 @@ function CheckoutContent() {
         </p>
         <div className="p-4 rounded-2xl bg-muted/50 border border-border/60 text-xs text-left space-y-1.5 max-w-sm mx-auto">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Cổng thanh toán:</span>
+            <span className="text-muted-foreground">{t.checkout.successGatewayLabel}</span>
             <span className="font-semibold text-foreground">
               {ppp.gateway === "sepay" ? "SePay (VietQR)" : "Lemon Squeezy (MoR)"}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Tiền tệ đã khóa:</span>
+            <span className="text-muted-foreground">{t.checkout.successCurrencyLabel}</span>
             <span className="font-semibold text-primary">{ppp.currency} ({planPriceFormatted})</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Quyền truy cập:</span>
+            <span className="text-muted-foreground">{t.checkout.successAccessLabel}</span>
             <span className="font-semibold text-emerald-600 dark:text-emerald-400">{planLimitText}</span>
           </div>
         </div>
@@ -220,13 +242,13 @@ function CheckoutContent() {
                 <span>{t.checkout.currencyLockedNotice}</span>
               </div>
               <div className="flex items-center justify-between p-2.5 rounded-xl bg-card border border-border">
-                <span>Khu vực IP nhận diện:</span>
+                <span>{t.checkout.regionDetectedLabel}</span>
                 <Badge variant="outline" className="font-bold">
                   {ppp.flag} {ppp.countryName} ({ppp.currency})
                 </Badge>
               </div>
               <div className="flex items-center justify-between p-2.5 rounded-xl bg-card border border-border">
-                <span>Cổng thanh toán tự động:</span>
+                <span>{t.checkout.gatewayAutoLabel}</span>
                 <Badge
                   className={
                     ppp.gateway === "sepay"
@@ -234,15 +256,13 @@ function CheckoutContent() {
                       : "bg-blue-600 text-white font-bold"
                   }
                 >
-                  {ppp.gateway === "sepay"
-                    ? "SePay (VietQR Nội địa)"
-                    : "Lemon Squeezy (Thẻ Quốc tế)"}
+                  {ppp.gateway === "sepay" ? t.checkout.sepayGatewayBadge : t.checkout.lemonGatewayBadge}
                 </Badge>
               </div>
             </div>
 
             <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Mô phỏng IP quốc gia khác:</span>
+              <span className="text-muted-foreground">{t.checkout.simulateCountryLabel}</span>
               <select
                 value={countryCode}
                 onChange={(e) => setCountryCode(e.target.value as CountryCode)}
@@ -261,7 +281,7 @@ function CheckoutContent() {
           <div className="flex items-center gap-2 p-3.5 rounded-2xl bg-primary/5 border border-primary/20 text-xs text-muted-foreground">
             <Lock className="w-4 h-4 text-primary shrink-0" />
             <span>
-              Theo tài liệu đặc tả PRD, tiền tệ thanh toán được khóa độc lập hoàn toàn với ngôn ngữ hiển thị.
+              {t.checkout.pppLockNotice}
             </span>
           </div>
         </div>
@@ -274,7 +294,7 @@ function CheckoutContent() {
               <div className="flex items-center justify-between">
                 <div>
                   <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-none text-[11px] font-semibold mb-1">
-                    Cổng Thanh Toán Nội Địa
+                    {t.checkout.sepayGatewayBadge}
                   </Badge>
                   <h3 className="font-display text-lg font-bold flex items-center gap-2">
                     <QrCode className="w-5 h-5 text-primary" />
@@ -355,11 +375,14 @@ function CheckoutContent() {
 
               {/* Action Button — the order is confirmed by the SePay
                   webhook polling above, not by this click; it just tells
-                  the user we're watching for their transfer. */}
+                  the user we're watching for their transfer. Stays
+                  clickable for a signed-out visitor (order is null then)
+                  so handleConfirmPayment's own auth check can open the
+                  login dialog instead of the button just sitting dead. */}
               <Button
                 size="lg"
                 className="w-full rounded-full font-semibold shadow-md bg-emerald-600 hover:bg-emerald-700 text-white"
-                disabled={isProcessing || !order}
+                disabled={isProcessing || (!!user && !order)}
                 onClick={handleConfirmPayment}
               >
                 {isProcessing ? (
@@ -372,20 +395,45 @@ function CheckoutContent() {
               </Button>
             </Card>
           ) : (
-            /* LEMON SQUEEZY GATEWAY (INTERNATIONAL) — not wired to a real
-               checkout-session API yet, so this shows an honest "not
-               available" state instead of collecting card details nothing
-               real processes. See migration plan: scoped to a follow-up. */
-            <Card className="rounded-3xl border-2 border-border shadow-lg bg-card p-6 space-y-4 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-muted mx-auto flex items-center justify-center">
-                <CreditCard className="w-6 h-6 text-muted-foreground" />
+            /* LEMON SQUEEZY GATEWAY (INTERNATIONAL) — creates a real order
+               row and a real hosted LS checkout session (see
+               src/app/api/checkout/route.ts); the webhook
+               (src/app/api/webhooks/billing/route.ts?gateway=lemonsqueezy)
+               flips the order to PAID the same way SePay's does, and this
+               page polls for that exactly like the SePay branch above. */
+            <Card className="rounded-3xl border-2 border-primary shadow-lg bg-card p-6 space-y-6 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-blue-600/10 mx-auto flex items-center justify-center">
+                <CreditCard className="w-6 h-6 text-blue-600" />
               </div>
-              <h3 className="font-display text-lg font-bold">
-                {t.checkout.lemonTitle}
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Cổng thanh toán quốc tế ({ppp.currency}) đang được hoàn thiện và chưa nhận thanh toán thật.
-                Vui lòng dùng SePay (VietQR) nếu bạn ở Việt Nam, hoặc quay lại sau.
+              <div>
+                <h3 className="font-display text-lg font-bold">{t.checkout.lemonTitle}</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t.checkout.lemonSubtitle}
+                </p>
+              </div>
+
+              {orderError && <p className="text-xs text-destructive">{orderError}</p>}
+
+              {!orderError && !lemonCheckoutUrl && (
+                <p className="text-xs text-muted-foreground flex items-center justify-center gap-2">
+                  <Sparkles className="w-3.5 h-3.5 animate-spin" /> {t.checkout.lemonInitializing}
+                </p>
+              )}
+
+              {lemonCheckoutUrl && (
+                <Button
+                  size="lg"
+                  className="w-full rounded-full font-semibold shadow-md bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={() => {
+                    window.location.href = lemonCheckoutUrl;
+                  }}
+                >
+                  {t.checkout.lemonContinueBtn} <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              )}
+
+              <p className="text-[11px] text-muted-foreground">
+                {t.checkout.lemonPostPaymentNote}
               </p>
             </Card>
           )}

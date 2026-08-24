@@ -5,13 +5,16 @@ import { Brain } from "lucide-react";
 
 import { useSession } from "@/store/session";
 import { getPppPricing } from "@/lib/geo-pricing";
+import { getTranslation } from "@/lib/i18n/translations";
 
 export function Footer() {
   const brand = useSession((s) => s.settings.brandName);
   const tagline = useSession((s) => s.settings.brandTagline);
   const countryCode = useSession((s) => s.countryCode);
+  const language = useSession((s) => s.language);
 
   const ppp = getPppPricing(countryCode);
+  const t = getTranslation(language);
 
   return (
     <footer className="border-t border-border bg-card/60 mt-auto py-8">
@@ -31,10 +34,10 @@ export function Footer() {
             FAQ
           </Link>
           <Link href="/terms" className="hover:text-foreground transition-colors">
-            Điều khoản
+            {t.footer.terms}
           </Link>
           <Link href="/privacy" className="hover:text-foreground transition-colors">
-            Bảo mật
+            {t.footer.privacy}
           </Link>
         </div>
 

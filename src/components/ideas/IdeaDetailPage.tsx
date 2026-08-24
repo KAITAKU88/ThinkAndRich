@@ -36,6 +36,7 @@ import { InteractiveSquareCard } from "@/components/ideas/InteractiveSquareCard"
 import { useSession } from "@/store/session";
 import { cn, formatViews, formatFormula } from "@/lib/utils";
 import { PILLARS_CONFIG } from "@/lib/data";
+import { getTranslation } from "@/lib/i18n/translations";
 import type { AccessCheckResult } from "@/lib/server/access-control";
 
 export function PostDetailPage() {
@@ -50,6 +51,8 @@ export function PostDetailPage() {
   const toggleReaction = useSession((s) => s.toggleReaction);
   const recordPostView = useSession((s) => s.recordPostView);
   const user = useSession((s) => s.user);
+  const language = useSession((s) => s.language);
+  const t = getTranslation(language);
 
   // Fetches the real post from the server, which is also the paywall
   // enforcement point: `access.allowed === false` means `post.fullContent`
@@ -125,17 +128,17 @@ export function PostDetailPage() {
     if (notFound) {
       return (
         <div className="container mx-auto max-w-3xl px-4 py-20 text-center space-y-4">
-          <h2 className="font-display text-2xl font-bold">Không tìm thấy hồ sơ</h2>
+          <h2 className="font-display text-2xl font-bold">{t.detail.notFoundTitle}</h2>
           <p className="text-muted-foreground text-sm">
-            Bài viết hoặc mô hình chiến lược này không tồn tại hoặc đã được cập nhật.
+            {t.detail.notFoundDesc}
           </p>
           <Button asChild className="rounded-full">
-            <Link href="/">Quay lại trang chủ Think & Rich</Link>
+            <Link href="/">{t.detail.backHomeBtn}</Link>
           </Button>
         </div>
       );
     }
-    return <div className="container mx-auto max-w-3xl px-4 py-20 text-center text-sm text-muted-foreground">Đang tải…</div>;
+    return <div className="container mx-auto max-w-3xl px-4 py-20 text-center text-sm text-muted-foreground">{t.detail.loadingLabel}</div>;
   }
 
   const pillarMeta = PILLARS_CONFIG[post.pillar] || PILLARS_CONFIG.MENTAL_MODEL;
@@ -159,7 +162,7 @@ export function PostDetailPage() {
   function copyShareLink() {
     navigator.clipboard.writeText(shareUrl);
     trackShare();
-    toast.success("Đã sao chép liên kết vào clipboard!");
+    toast.success(t.detail.linkCopiedToast);
   }
 
   function openShareWindow(url: string) {
@@ -192,7 +195,7 @@ export function PostDetailPage() {
             className="inline-flex items-center text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors group"
           >
             <ChevronLeft className="w-4 h-4 mr-0.5 transition-transform group-hover:-translate-x-1" />
-            Trang chủ
+            {t.nav.home}
           </Link>
 
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -207,13 +210,13 @@ export function PostDetailPage() {
 
             {(post.accessLevel === "MEMBER_PLUS" || post.accessLevel === "MEMBER_PRO") && (
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                <Lock className="w-2.5 h-2.5" /> {post.accessLevel === "MEMBER_PRO" ? "PRO ONLY" : "PLUS"}
+                <Lock className="w-2.5 h-2.5" /> {post.accessLevel === "MEMBER_PRO" ? t.detail.proOnlyBadge : "PLUS"}
               </span>
             )}
 
             {post.accessLevel === "OPEN" && (
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                <Globe2 className="w-2.5 h-2.5" /> ĐỌC TỰ DO
+                <Globe2 className="w-2.5 h-2.5" /> {t.detail.freeReadBadge}
               </span>
             )}
           </div>
@@ -233,7 +236,7 @@ export function PostDetailPage() {
           {post.academicFormula && (
             <div className="p-4 sm:p-5 rounded-2xl bg-secondary/80 border border-border space-y-1.5">
               <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-amber-500" /> Tiên đề học thuật / Công thức logic:
+                <Sparkles className="w-3 h-3 text-amber-500" /> {t.detail.formulaLabel}
               </span>
               <div className="font-mono text-sm sm:text-base md:text-lg text-foreground font-semibold academic-formula">
                 {formatFormula(post.academicFormula)}
@@ -245,7 +248,7 @@ export function PostDetailPage() {
           {post.keyTakeaways && post.keyTakeaways.length > 0 && (
             <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border space-y-2">
               <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                3 Luận điểm chiến lược cốt lõi:
+                {t.detail.takeawaysLabel}
               </span>
               <ul className="space-y-1.5 text-xs sm:text-sm text-foreground/90">
                 {post.keyTakeaways.map((item, idx) => (
@@ -266,16 +269,16 @@ export function PostDetailPage() {
               </div>
               <div>
                 <p className="font-semibold text-foreground">{post.author}</p>
-                <p className="text-[10px] text-muted-foreground">Think & Rich Academic Desk</p>
+                <p className="text-[10px] text-muted-foreground">{t.detail.authorDeskLabel}</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" /> {post.readingTimeMinutes || 5} phút đọc
+                <Clock className="w-3.5 h-3.5" /> {post.readingTimeMinutes || 5} {t.detail.minutesReadSuffix}
               </span>
               <span className="flex items-center gap-1">
-                <Eye className="w-3.5 h-3.5" /> {formatViews(post.views)} lượt tra cứu
+                <Eye className="w-3.5 h-3.5" /> {formatViews(post.views)} {t.detail.viewsSuffix}
               </span>
             </div>
           </div>
@@ -291,7 +294,7 @@ export function PostDetailPage() {
               />
             </div>
             <span className="text-[10px] font-mono text-muted-foreground mt-3 uppercase tracking-widest">
-              — Sơ đồ Khái niệm Vector (Schematic Model) —
+              {t.detail.schematicCaption}
             </span>
           </div>
         )}
@@ -330,7 +333,7 @@ export function PostDetailPage() {
         {post.tags && post.tags.length > 0 && hasAccess && (
           <div className="flex flex-wrap items-center gap-2 pt-8 mt-10 border-t border-border">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mr-1">
-              Nhãn từ khóa:
+              {t.detail.tagsLabel}
             </span>
             {post.tags.map((tag) => (
               <Badge key={tag} variant="secondary" className="rounded-full px-3 py-0.5 text-xs font-normal">
@@ -345,10 +348,10 @@ export function PostDetailPage() {
           <div className="mt-14 pt-8 border-t border-border space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-display text-lg sm:text-xl font-bold text-foreground">
-                Hồ sơ liên quan trong cùng Trụ cột
+                {t.detail.relatedInPillarTitle}
               </h3>
               <Link href="/explore" className="text-xs text-primary font-semibold hover:underline">
-                Xem tất cả &rarr;
+                {t.detail.viewAllLink} &rarr;
               </Link>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -371,7 +374,7 @@ export function PostDetailPage() {
               "p-2 rounded-full hover:bg-secondary transition-colors text-muted-foreground",
               userReaction === "like" && "text-primary bg-primary/10"
             )}
-            title="Tâm đắc"
+            title={t.detail.likeTooltip}
           >
             <ThumbsUp className={cn("w-4 h-4", userReaction === "like" && "fill-primary")} />
           </button>
@@ -381,7 +384,7 @@ export function PostDetailPage() {
             onClick={async () => {
               const res = await toggleBookmark(post.id);
               if (!res.ok && res.message) toast.error(res.message);
-              else toast.success(isSaved ? "Đã bỏ lưu" : "Đã lưu vào Tủ sách");
+              else toast.success(isSaved ? t.detail.unsavedToast : t.detail.savedToast);
             }}
             className={cn(
               "p-2 rounded-full hover:bg-secondary transition-colors",
@@ -395,7 +398,7 @@ export function PostDetailPage() {
                   }
                 : undefined
             }
-            title="Lưu vào Tủ sách"
+            title={isSaved ? t.detail.unsaveTooltip : t.detail.saveTooltip}
           >
             <Bookmark className={cn("w-4 h-4", isSaved && "fill-current")} />
           </button>
@@ -409,7 +412,7 @@ export function PostDetailPage() {
               );
             }}
             className="p-2 rounded-full hover:bg-secondary text-muted-foreground text-xs font-bold"
-            title="Đổi cỡ chữ"
+            title={t.detail.fontSizeTooltip}
           >
             <Type className="w-4 h-4" />
           </button>
@@ -424,7 +427,7 @@ export function PostDetailPage() {
               <button
                 type="button"
                 className="p-2 rounded-full hover:bg-secondary text-muted-foreground"
-                title="Chia sẻ"
+                title={t.detail.shareTooltip}
               >
                 <Share2 className="w-4 h-4" />
               </button>
@@ -434,28 +437,28 @@ export function PostDetailPage() {
                 <span className="flex items-center justify-center w-5 h-5 rounded-full bg-secondary text-foreground shrink-0">
                   <Link2 className="w-3 h-3" />
                 </span>
-                <span className="font-medium">Sao chép liên kết</span>
+                <span className="font-medium">{t.detail.copyLinkAction}</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => openShareWindow(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`)}
                 className="flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-xs cursor-pointer"
               >
                 <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#1877F2] text-white text-[11px] font-bold shrink-0">f</span>
-                <span className="font-medium">Chia sẻ lên Facebook</span>
+                <span className="font-medium">{t.detail.shareFacebookAction}</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => openShareWindow(`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(post.title)}`)}
                 className="flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-xs cursor-pointer"
               >
                 <span className="flex items-center justify-center w-5 h-5 rounded-full bg-foreground text-background text-[10px] font-bold shrink-0">X</span>
-                <span className="font-medium">Chia sẻ lên X</span>
+                <span className="font-medium">{t.detail.shareXAction}</span>
               </DropdownMenuItem>
               {typeof navigator !== "undefined" && !!navigator.share && (
                 <DropdownMenuItem onClick={shareViaDevice} className="flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-xs cursor-pointer">
                   <span className="flex items-center justify-center w-5 h-5 rounded-full bg-secondary text-foreground shrink-0">
                     <Smartphone className="w-3 h-3" />
                   </span>
-                  <span className="font-medium">Chia sẻ qua thiết bị (Zalo, Messenger...)</span>
+                  <span className="font-medium">{t.detail.shareDeviceAction}</span>
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>

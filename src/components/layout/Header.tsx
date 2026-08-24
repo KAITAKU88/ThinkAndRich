@@ -39,7 +39,7 @@ import { useSession } from "@/store/session";
 import { cn, formatFormula } from "@/lib/utils";
 import type { Post } from "@/lib/types";
 import { PILLARS_CONFIG } from "@/lib/data";
-import { SUPPORTED_LANGUAGES_LIST } from "@/lib/i18n/translations";
+import { SUPPORTED_LANGUAGES_LIST, getTranslation } from "@/lib/i18n/translations";
 
 export function Header() {
   const pathname = usePathname();
@@ -57,6 +57,7 @@ export function Header() {
   const settings = useSession((s) => s.settings);
   const language = useSession((s) => s.language);
   const setLanguage = useSession((s) => s.setLanguage);
+  const t = getTranslation(language);
 
   useEffect(() => {
     setMounted(true);
@@ -127,7 +128,7 @@ export function Header() {
                 {settings.brandName || "Think & Rich"}
               </span>
               <span className="text-[10px] sm:text-[11px] text-muted-foreground font-medium hidden sm:inline leading-tight mt-0.5">
-                Khai phóng tư duy. Đột phá chiến lược.
+                {t.common.tagline}
               </span>
             </div>
           </Link>
@@ -144,7 +145,7 @@ export function Header() {
               )}
             >
               <Home className="w-3.5 h-3.5" />
-              <span>Trang chủ</span>
+              <span>{t.nav.home}</span>
             </Link>
             <Link
               href="/explore"
@@ -156,7 +157,7 @@ export function Header() {
               )}
             >
               <Compass className="w-3.5 h-3.5" />
-              <span>Khám phá</span>
+              <span>{t.nav.explore}</span>
             </Link>
             <Link
               href="/pricing"
@@ -168,7 +169,7 @@ export function Header() {
               )}
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Bảng giá</span>
+              <span>{t.nav.pricing}</span>
             </Link>
             {user && (
               <Link
@@ -181,7 +182,7 @@ export function Header() {
                 )}
               >
                 <UserCircle className="w-3.5 h-3.5" />
-                <span>Khu vực cá nhân</span>
+                <span>{t.nav.account}</span>
               </Link>
             )}
           </nav>
@@ -194,8 +195,8 @@ export function Header() {
               size="icon"
               className="rounded-full h-8 w-8 sm:h-9 sm:w-9 text-muted-foreground hover:text-foreground hover:bg-secondary"
               onClick={() => setSearchOpen(true)}
-              title="Tìm kiếm (Ctrl+K)"
-              aria-label="Tìm kiếm"
+              title={t.nav.searchTooltip}
+              aria-label={t.nav.searchTooltip}
             >
               <Search className="w-4 h-4" />
             </Button>
@@ -206,8 +207,8 @@ export function Header() {
               size="icon"
               className="rounded-full h-8 w-8 sm:h-9 sm:w-9 text-muted-foreground hover:text-foreground hover:bg-secondary"
               onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-              title="Đổi giao diện Sáng / Tối"
-              aria-label="Đổi giao diện Sáng / Tối"
+              title={t.nav.themeToggle}
+              aria-label={t.nav.themeToggle}
             >
               {mounted && resolvedTheme === "dark" ? (
                 <Sun className="w-4 h-4 text-amber-400" />
@@ -225,15 +226,15 @@ export function Header() {
                   variant="ghost"
                   size="icon"
                   className="rounded-full h-8 w-8 sm:h-9 sm:w-9 text-muted-foreground hover:text-foreground hover:bg-secondary"
-                  title="Chọn ngôn ngữ"
-                  aria-label="Chọn ngôn ngữ"
+                  title={t.nav.selectLanguage}
+                  aria-label={t.nav.selectLanguage}
                 >
                   <Globe className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 rounded-2xl p-1.5 shadow-2xl border-border/80">
                 <DropdownMenuLabel className="text-[11px] text-muted-foreground font-semibold px-2 py-1">
-                  Ngôn ngữ (14 quốc gia)
+                  {t.nav.languageListLabel}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <div className="max-h-72 overflow-y-auto space-y-0.5 pr-1">
@@ -269,7 +270,7 @@ export function Header() {
                 onClick={() => setAuthOpen(true)}
               >
                 <Sparkles className="w-3.5 h-3.5 mr-1" />
-                <span>Đăng nhập</span>
+                <span>{t.nav.login}</span>
               </Button>
             )}
           </div>
@@ -280,7 +281,7 @@ export function Header() {
       <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
         <DialogContent className="sm:max-w-xl p-0 gap-0 overflow-hidden rounded-3xl border border-border shadow-2xl">
           <DialogHeader className="sr-only">
-            <DialogTitle>Tìm kiếm mô hình tri thức</DialogTitle>
+            <DialogTitle>{t.search.dialogTitle}</DialogTitle>
           </DialogHeader>
 
           {/* Search Input Bar */}
@@ -289,7 +290,7 @@ export function Header() {
             <Input
               ref={inputRef}
               type="search"
-              placeholder="Tìm kiếm công thức, mô hình tư duy, chiến lược..."
+              placeholder={t.search.placeholder}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="flex-1 border-none bg-transparent shadow-none focus-visible:ring-0 text-sm md:text-base px-0 h-9"
@@ -313,11 +314,11 @@ export function Header() {
           <div className="max-h-[60vh] overflow-y-auto p-2">
             {query.trim().length === 0 ? (
               <div className="p-6 text-center text-xs text-muted-foreground">
-                <p>Nhập từ khóa để tra cứu trong 3 trụ cột tri thức...</p>
+                <p>{t.search.emptyPrompt}</p>
                 <div className="flex items-center justify-center gap-2 mt-3 text-[11px]">
-                  <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 font-medium">🔴 Tư duy</span>
-                  <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 font-medium">🟡 Chiến lược</span>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">🟢 Khởi nghiệp</span>
+                  <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 font-medium">🔴 {t.pillars.mentalModel}</span>
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 font-medium">🟡 {t.pillars.businessStrategy}</span>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">🟢 {t.pillars.startupIdea}</span>
                 </div>
               </div>
             ) : searchResults.length > 0 ? (
@@ -358,7 +359,7 @@ export function Header() {
               </div>
             ) : (
               <div className="p-8 text-center text-xs text-muted-foreground">
-                Không tìm thấy hồ sơ nào khớp với &quot;{query}&quot;.
+                {t.search.noResultsPrefix} &quot;{query}&quot;.
               </div>
             )}
           </div>
@@ -366,13 +367,13 @@ export function Header() {
           {/* Footer of modal */}
           {query.trim().length > 0 && searchResults.length > 0 && (
             <div className="p-2.5 bg-muted/40 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-              <span>Tìm thấy {searchResults.length} kết quả</span>
+              <span>{t.search.resultsFoundPrefix} {searchResults.length} {t.search.resultsFoundSuffix}</span>
               <button
                 type="button"
                 onClick={handleSearchSubmit}
                 className="text-primary hover:underline font-medium flex items-center gap-1 text-xs"
               >
-                Xem toàn bộ trang Khám phá &rarr;
+                {t.search.viewAllInExplore} &rarr;
               </button>
             </div>
           )}

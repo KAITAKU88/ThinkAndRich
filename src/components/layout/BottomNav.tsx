@@ -21,21 +21,21 @@ export function BottomNav() {
   const navItems = [
     {
       id: "home",
-      label: "Trang chủ",
+      label: t.nav.home,
       path: "/",
       icon: Home,
       exact: true,
     },
     {
       id: "explore",
-      label: t.nav.explore || "Khám phá",
+      label: t.nav.explore,
       path: "/explore",
       icon: Compass,
       exact: false,
     },
     {
       id: "bookmarks",
-      label: "Tủ sách",
+      label: t.nav.bookmarksShort,
       path: "/profile",
       icon: Bookmark,
       badge: bookmarks.length > 0 ? bookmarks.length : undefined,
@@ -43,7 +43,7 @@ export function BottomNav() {
     },
     {
       id: "pricing",
-      label: "Gói Hội viên",
+      label: t.nav.pricing,
       path: "/pricing",
       icon: Sparkles,
       highlight: true,
@@ -51,7 +51,7 @@ export function BottomNav() {
     },
     {
       id: "profile",
-      label: user ? user.name.split(" ")[0] : "Đăng nhập",
+      label: user ? user.name.split(" ")[0] : t.nav.login,
       path: user ? "/profile" : "#login",
       icon: User,
       action: !user ? () => setAuthOpen(true) : undefined,

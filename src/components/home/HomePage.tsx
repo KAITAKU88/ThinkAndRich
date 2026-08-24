@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { useSession } from "@/store/session";
 import { usePosts } from "@/lib/hooks/use-posts";
 import { cn, formatFormula } from "@/lib/utils";
+import { getTranslation } from "@/lib/i18n/translations";
 import type { Post, PillarType } from "@/lib/types";
 
 const PILLAR_ORDER: PillarType[] = ["MENTAL_MODEL", "BUSINESS_STRATEGY", "STARTUP_IDEA"];
@@ -58,6 +59,8 @@ export function HomePage() {
 function HeroSection({ posts }: { posts: Post[] }) {
   const user = useSession((s) => s.user);
   const setAuthOpen = useSession((s) => s.setAuthOpen);
+  const language = useSession((s) => s.language);
+  const t = getTranslation(language);
 
   const heroPosts = useMemo(() => {
     return PILLAR_ORDER.map((pillar) =>
@@ -73,20 +76,18 @@ function HeroSection({ posts }: { posts: Post[] }) {
       <div className="container mx-auto max-w-[1400px] px-4 sm:px-6 pt-14 sm:pt-20 pb-16 sm:pb-24 grid lg:grid-cols-[1.1fr_1fr] gap-12 lg:gap-10 items-center">
         <div className="max-w-xl">
           <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-primary mb-4">
-            <Sparkles className="w-3.5 h-3.5" /> Không phải một feed tin tức
+            <Sparkles className="w-3.5 h-3.5" /> {t.home.notNewsFeedBadge}
           </span>
           <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-foreground leading-[1.08]">
-            Một thư viện thẻ tri thức — để tra cứu, không phải để lướt.
+            {t.home.heroTitle}
           </h1>
           <p className="mt-5 text-base sm:text-lg text-muted-foreground leading-relaxed">
-            Think &amp; Rich đóng gói tư duy chiến lược thành từng hồ sơ tra cứu: công thức học
-            thuật, sơ đồ vector, luận điểm cốt lõi — xếp theo 3 trụ cột, như một tủ thẻ mục lục
-            thư viện.
+            {t.home.heroSubtitle}
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Button asChild size="lg" className="rounded-full px-6 font-semibold">
               <Link href="/explore">
-                Khám phá thư viện <ArrowRight className="w-4 h-4 ml-1" />
+                {t.home.exploreLibraryBtn} <ArrowRight className="w-4 h-4 ml-1" />
               </Link>
             </Button>
             {!user && (
@@ -96,7 +97,7 @@ function HeroSection({ posts }: { posts: Post[] }) {
                 className="rounded-full px-6 font-semibold"
                 onClick={() => setAuthOpen(true)}
               >
-                Đăng nhập miễn phí
+                {t.home.loginFreeBtn}
               </Button>
             )}
           </div>
@@ -132,6 +133,8 @@ function HeroSection({ posts }: { posts: Post[] }) {
 // 3 PILLARS — parallel categories, not a sequence, so no 01/02/03 markers.
 // ─────────────────────────────────────────────────────────────────────────
 function PillarsSection({ posts }: { posts: Post[] }) {
+  const language = useSession((s) => s.language);
+  const t = getTranslation(language);
   const pillarCounts = useMemo(() => {
     return {
       MENTAL_MODEL: posts.filter((p) => p.pillar === "MENTAL_MODEL").length,
@@ -145,13 +148,13 @@ function PillarsSection({ posts }: { posts: Post[] }) {
       <div className="container mx-auto max-w-[1400px] px-4 sm:px-6 py-14 sm:py-20">
         <div className="max-w-xl mb-10">
           <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
-            3 trụ cột tri thức
+            {t.home.pillarsEyebrow}
           </span>
           <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-2">
-            Ba ngăn tủ, một hệ quy chiếu chiến lược
+            {t.home.pillarsTitle}
           </h2>
           <p className="text-sm sm:text-base text-muted-foreground mt-2">
-            Mỗi hồ sơ thuộc đúng một trụ cột — không có mục &quot;khác&quot;, không có nội dung lạc chủ đề.
+            {t.home.pillarsSubtitle}
           </p>
         </div>
 
@@ -174,9 +177,9 @@ function PillarsSection({ posts }: { posts: Post[] }) {
                 <h3 className="font-display text-xl font-bold text-foreground mb-1.5">{meta.titleVi}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed flex-1">{meta.taglineVi}</p>
                 <div className="mt-5 pt-4 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-muted-foreground">
-                  <span className="font-mono tabular-nums">{pillarCounts[pillar]} hồ sơ</span>
+                  <span className="font-mono tabular-nums">{pillarCounts[pillar]} {t.home.profileCountSuffix}</span>
                   <span className="inline-flex items-center gap-1 text-primary group-hover:gap-1.5 transition-all">
-                    Xem trụ cột <ArrowRight className="w-3.5 h-3.5" />
+                    {t.home.viewPillarBtn} <ArrowRight className="w-3.5 h-3.5" />
                   </span>
                 </div>
               </Link>
@@ -193,6 +196,8 @@ function PillarsSection({ posts }: { posts: Post[] }) {
 // real post instead of described in the abstract.
 // ─────────────────────────────────────────────────────────────────────────
 function FormatShowcaseSection({ posts }: { posts: Post[] }) {
+  const language = useSession((s) => s.language);
+  const t = getTranslation(language);
   const post = useMemo(() => {
     return (
       posts.find((p) => p.academicFormula && p.keyTakeaways && p.keyTakeaways.length > 0) ||
@@ -207,10 +212,10 @@ function FormatShowcaseSection({ posts }: { posts: Post[] }) {
       <div className="container mx-auto max-w-[1400px] px-4 sm:px-6 py-14 sm:py-20 grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
         <div className="order-2 lg:order-1">
           <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
-            Định dạng hồ sơ
+            {t.home.formatEyebrow}
           </span>
           <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-2 mb-5">
-            Không phải một bài blog dài — mà là một hồ sơ tra cứu
+            {t.home.formatTitle}
           </h2>
           <ul className="space-y-4 text-sm sm:text-base text-foreground/90">
             <li className="flex items-start gap-3">
@@ -218,8 +223,7 @@ function FormatShowcaseSection({ posts }: { posts: Post[] }) {
                 <Sparkles className="w-3 h-3" />
               </span>
               <span>
-                <strong className="font-semibold">Công thức học thuật</strong> — mô hình rút gọn
-                thành một biểu thức logic, không diễn giải dài dòng.
+                <strong className="font-semibold">{t.home.formatFormulaTitle}</strong> — {t.home.formatFormulaDesc}
               </span>
             </li>
             <li className="flex items-start gap-3">
@@ -227,8 +231,7 @@ function FormatShowcaseSection({ posts }: { posts: Post[] }) {
                 <LineChart className="w-3 h-3" />
               </span>
               <span>
-                <strong className="font-semibold">Sơ đồ vector</strong> — minh hoạ trực quan cấu
-                trúc mô hình, không phải ảnh chụp màn hình.
+                <strong className="font-semibold">{t.home.formatSchematicTitle}</strong> — {t.home.formatSchematicDesc}
               </span>
             </li>
             <li className="flex items-start gap-3">
@@ -236,8 +239,7 @@ function FormatShowcaseSection({ posts }: { posts: Post[] }) {
                 <CheckCircle2 className="w-3 h-3" />
               </span>
               <span>
-                <strong className="font-semibold">3 luận điểm cốt lõi</strong> — thứ áp dụng được
-                ngay, đặt lên đầu thay vì chôn ở cuối bài.
+                <strong className="font-semibold">{t.home.formatTakeawaysTitle}</strong> — {t.home.formatTakeawaysDesc}
               </span>
             </li>
           </ul>
@@ -253,7 +255,7 @@ function FormatShowcaseSection({ posts }: { posts: Post[] }) {
           {post.academicFormula && (
             <div className="p-3.5 rounded-2xl bg-secondary/80 border border-border mb-3">
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1 mb-1">
-                <Sparkles className="w-3 h-3 text-amber-500" /> Công thức
+                <Sparkles className="w-3 h-3 text-amber-500" /> {t.home.formatCardFormulaLabel}
               </span>
               <div className="font-mono text-sm text-foreground font-semibold academic-formula">
                 {formatFormula(post.academicFormula)}
@@ -281,12 +283,14 @@ function FormatShowcaseSection({ posts }: { posts: Post[] }) {
 // gradient hero-stat treatment.
 // ─────────────────────────────────────────────────────────────────────────
 function StatsStrip({ posts }: { posts: Post[] }) {
+  const language = useSession((s) => s.language);
+  const t = getTranslation(language);
   const publishedCount = posts.length;
 
   const stats = [
-    { label: "hồ sơ tri thức", value: publishedCount },
-    { label: "trụ cột nội dung", value: 3 },
-    { label: "ngôn ngữ giao diện", value: 14 },
+    { label: t.home.statsPostsLabel, value: publishedCount },
+    { label: t.home.statsPillarsLabel, value: 3 },
+    { label: t.home.statsLanguagesLabel, value: 14 },
   ];
 
   return (
@@ -305,7 +309,7 @@ function StatsStrip({ posts }: { posts: Post[] }) {
           </div>
           <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
             <Globe className="w-4 h-4 text-primary" />
-            <span>Giá quy đổi PPP theo khu vực · SePay &amp; Lemon Squeezy</span>
+            <span>{t.home.statsPppNote}</span>
           </div>
         </div>
       </div>
@@ -318,18 +322,20 @@ function StatsStrip({ posts }: { posts: Post[] }) {
 // stays on /pricing.
 // ─────────────────────────────────────────────────────────────────────────
 function PricingTeaserSection() {
+  const language = useSession((s) => s.language);
+  const t = getTranslation(language);
   return (
     <section className="border-b border-border/70 bg-secondary/30">
       <div className="container mx-auto max-w-[1400px] px-4 sm:px-6 py-14 sm:py-20">
         <div className="max-w-xl mb-10">
           <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
-            Gói thành viên
+            {t.home.pricingTeaserEyebrow}
           </span>
           <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-2">
-            Đọc theo tốc độ bạn cần
+            {t.home.pricingTeaserTitle}
           </h2>
           <p className="text-sm sm:text-base text-muted-foreground mt-2">
-            Giá hiển thị theo VND — tự động quy đổi PPP nếu bạn ở khu vực khác.
+            {t.home.pricingTeaserSubtitle}
           </p>
         </div>
 
@@ -367,7 +373,7 @@ function PricingTeaserSection() {
                 ))}
               </ul>
               <Button asChild variant={plan.isPopular ? "default" : "outline"} className="rounded-full font-semibold">
-                <Link href="/pricing">Xem chi tiết</Link>
+                <Link href="/pricing">{t.home.viewDetailsBtn}</Link>
               </Button>
             </div>
           ))}
@@ -383,20 +389,22 @@ function PricingTeaserSection() {
 function FinalCtaSection() {
   const user = useSession((s) => s.user);
   const setAuthOpen = useSession((s) => s.setAuthOpen);
+  const language = useSession((s) => s.language);
+  const t = getTranslation(language);
 
   return (
     <section>
       <div className="container mx-auto max-w-[1400px] px-4 sm:px-6 py-16 sm:py-24 text-center">
         <h2 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground max-w-2xl mx-auto leading-tight">
-          Bắt đầu tra cứu — không cần đọc lướt.
+          {t.home.finalCtaTitle}
         </h2>
         <p className="text-sm sm:text-base text-muted-foreground mt-3 max-w-md mx-auto">
-          10 hồ sơ miễn phí mỗi ngày, không cần thẻ thanh toán.
+          {t.home.finalCtaSubtitle}
         </p>
         <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
           <Button asChild size="lg" className="rounded-full px-7 font-semibold">
             <Link href="/explore">
-              Khám phá thư viện <ArrowRight className="w-4 h-4 ml-1" />
+              {t.home.exploreLibraryBtn} <ArrowRight className="w-4 h-4 ml-1" />
             </Link>
           </Button>
           {!user && (
@@ -406,7 +414,7 @@ function FinalCtaSection() {
               className="rounded-full px-7 font-semibold"
               onClick={() => setAuthOpen(true)}
             >
-              Đăng nhập miễn phí
+              {t.home.loginFreeBtn}
             </Button>
           )}
         </div>

@@ -40,6 +40,7 @@ import {
 import { useSession } from "@/store/session";
 import { usePosts } from "@/lib/hooks/use-posts";
 import { cn } from "@/lib/utils";
+import { getTranslation, type TranslationDictionary } from "@/lib/i18n/translations";
 
 type PillarFilter = "ALL" | PillarType;
 type AccessFilter = "ALL" | "OPEN" | "FREE" | "PLUS" | "PRO";
@@ -58,40 +59,48 @@ const ACCESS_LEVEL_MAP: Record<Exclude<AccessFilter, "ALL">, Post["accessLevel"]
 // The noun in "Có N ..." tracks which trụ cột is selected, so the count
 // reads as "25 chiến lược kinh doanh" rather than a generic "25 hồ sơ" once
 // the list is already known to be one specific pillar.
-const RESULT_NOUN: Record<PillarFilter, string> = {
-  ALL: "thẻ tri thức",
-  MENTAL_MODEL: "mô hình tư duy",
-  BUSINESS_STRATEGY: "chiến lược kinh doanh",
-  STARTUP_IDEA: "ý tưởng khởi nghiệp",
-};
+function resultNoun(t: TranslationDictionary, pillar: PillarFilter): string {
+  switch (pillar) {
+    case "MENTAL_MODEL":
+      return t.explore.resultNounMental;
+    case "BUSINESS_STRATEGY":
+      return t.explore.resultNounStrategy;
+    case "STARTUP_IDEA":
+      return t.explore.resultNounStartup;
+    default:
+      return t.explore.resultNounAll;
+  }
+}
 
 // Same rose/amber/emerald each pillar already wears everywhere else (card
 // icon chips, dropdown list icons) — the trigger and the selected row
 // borrow it too, instead of the dropdown staying neutral while its own
 // open list is the colorful part.
-const PILLAR_STYLE: Record<
+function pillarStyle(t: TranslationDictionary): Record<
   PillarType,
   { icon: typeof Brain; label: string; trigger: string; row: string }
-> = {
-  MENTAL_MODEL: {
-    icon: Brain,
-    label: "Mô hình Tư duy",
-    trigger: "border-rose-500/40 bg-rose-500/10 text-rose-700 hover:bg-rose-500/15 dark:text-rose-400",
-    row: "bg-rose-500/10 text-rose-700 dark:text-rose-400 font-semibold",
-  },
-  BUSINESS_STRATEGY: {
-    icon: Compass,
-    label: "Chiến lược",
-    trigger: "border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/15 dark:text-amber-400",
-    row: "bg-amber-500/10 text-amber-700 dark:text-amber-400 font-semibold",
-  },
-  STARTUP_IDEA: {
-    icon: Lightbulb,
-    label: "Khởi nghiệp",
-    trigger: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-400",
-    row: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-semibold",
-  },
-};
+> {
+  return {
+    MENTAL_MODEL: {
+      icon: Brain,
+      label: t.pillars.mentalModel,
+      trigger: "border-rose-500/40 bg-rose-500/10 text-rose-700 hover:bg-rose-500/15 dark:text-rose-400",
+      row: "bg-rose-500/10 text-rose-700 dark:text-rose-400 font-semibold",
+    },
+    BUSINESS_STRATEGY: {
+      icon: Compass,
+      label: t.pillars.businessStrategy,
+      trigger: "border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/15 dark:text-amber-400",
+      row: "bg-amber-500/10 text-amber-700 dark:text-amber-400 font-semibold",
+    },
+    STARTUP_IDEA: {
+      icon: Lightbulb,
+      label: t.pillars.startupIdea,
+      trigger: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-400",
+      row: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-semibold",
+    },
+  };
+}
 
 // Same accent the FREE/PLUS/PRO badges already wear on cards — pulled
 // from the --tier-plus / --tier-pro tokens in globals.css so the dropdown
@@ -123,6 +132,9 @@ function ExploreContent() {
   const isPostRead = useSession((s) => s.isPostRead);
   const getTodayReadCount = useSession((s) => s.getTodayReadCount);
   const getDailyLimit = useSession((s) => s.getDailyLimit);
+  const language = useSession((s) => s.language);
+  const t = getTranslation(language);
+  const PILLAR_STYLE = pillarStyle(t);
 
   const [pillarFilter, setPillarFilter] = useState<PillarFilter>(initialPillar);
   const [accessFilter, setAccessFilter] = useState<AccessFilter>("ALL");
@@ -340,7 +352,7 @@ function ExploreContent() {
         disabled={currentPage <= 1}
         onClick={() => setPage((p) => Math.max(1, p - 1))}
       >
-        Trước
+        {t.explore.prevBtn}
       </Button>
       <span className="text-xs text-muted-foreground font-mono px-2">
         {currentPage} / {totalPages}
@@ -352,7 +364,7 @@ function ExploreContent() {
         disabled={currentPage >= totalPages}
         onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
       >
-        Sau
+        {t.explore.nextBtn}
       </Button>
     </div>
   );
@@ -371,7 +383,7 @@ function ExploreContent() {
         }}
       >
         <DropdownMenuRadioItem value="ALL" className={cn(pillarFilter === "ALL" && "bg-secondary font-semibold")}>
-          Tất cả
+          {t.explore.allLabel}
         </DropdownMenuRadioItem>
         <DropdownMenuRadioItem
           value="MENTAL_MODEL"
@@ -379,7 +391,7 @@ function ExploreContent() {
         >
           <div className="flex items-center gap-2">
             <Brain className="w-3.5 h-3.5 text-rose-500" />
-            Mô hình Tư duy
+            {t.pillars.mentalModel}
           </div>
         </DropdownMenuRadioItem>
         <DropdownMenuRadioItem
@@ -388,7 +400,7 @@ function ExploreContent() {
         >
           <div className="flex items-center gap-2">
             <Compass className="w-3.5 h-3.5 text-amber-500" />
-            Chiến lược
+            {t.pillars.businessStrategy}
           </div>
         </DropdownMenuRadioItem>
         <DropdownMenuRadioItem
@@ -397,7 +409,7 @@ function ExploreContent() {
         >
           <div className="flex items-center gap-2">
             <Lightbulb className="w-3.5 h-3.5 text-emerald-500" />
-            Khởi nghiệp
+            {t.pillars.startupIdea}
           </div>
         </DropdownMenuRadioItem>
       </DropdownMenuRadioGroup>
@@ -414,7 +426,7 @@ function ExploreContent() {
         }}
       >
         <DropdownMenuRadioItem value="ALL" className={cn(accessFilter === "ALL" && "bg-secondary font-semibold")}>
-          Tất cả
+          {t.explore.allLabel}
         </DropdownMenuRadioItem>
         <DropdownMenuRadioItem
           value="OPEN"
@@ -465,19 +477,19 @@ function ExploreContent() {
           setPage(1);
         }}
       >
-        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Theo ngày xuất bản</DropdownMenuLabel>
-        <DropdownMenuRadioItem value="DATE_DESC">Mới nhất → Cũ nhất</DropdownMenuRadioItem>
-        <DropdownMenuRadioItem value="DATE_ASC">Cũ nhất → Mới nhất</DropdownMenuRadioItem>
+        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t.explore.sortByDate}</DropdownMenuLabel>
+        <DropdownMenuRadioItem value="DATE_DESC">{t.explore.sortNewestFirst}</DropdownMenuRadioItem>
+        <DropdownMenuRadioItem value="DATE_ASC">{t.explore.sortOldestFirst}</DropdownMenuRadioItem>
 
         <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Theo lượt xem</DropdownMenuLabel>
-        <DropdownMenuRadioItem value="VIEWS_DESC">Cao → Thấp</DropdownMenuRadioItem>
-        <DropdownMenuRadioItem value="VIEWS_ASC">Thấp → Cao</DropdownMenuRadioItem>
+        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t.explore.sortByViews}</DropdownMenuLabel>
+        <DropdownMenuRadioItem value="VIEWS_DESC">{t.explore.sortHighToLow}</DropdownMenuRadioItem>
+        <DropdownMenuRadioItem value="VIEWS_ASC">{t.explore.sortLowToHigh}</DropdownMenuRadioItem>
 
         <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Theo lượt thích</DropdownMenuLabel>
-        <DropdownMenuRadioItem value="LIKES_DESC">Cao → Thấp</DropdownMenuRadioItem>
-        <DropdownMenuRadioItem value="LIKES_ASC">Thấp → Cao</DropdownMenuRadioItem>
+        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t.explore.sortByLikes}</DropdownMenuLabel>
+        <DropdownMenuRadioItem value="LIKES_DESC">{t.explore.sortHighToLow}</DropdownMenuRadioItem>
+        <DropdownMenuRadioItem value="LIKES_ASC">{t.explore.sortLowToHigh}</DropdownMenuRadioItem>
       </DropdownMenuRadioGroup>
     );
   }
@@ -492,13 +504,13 @@ function ExploreContent() {
         }}
       >
         <DropdownMenuRadioItem value="ALL" className={cn(readStatusFilter === "ALL" && "bg-secondary font-semibold")}>
-          Tất cả
+          {t.explore.allLabel}
         </DropdownMenuRadioItem>
         <DropdownMenuRadioItem value="UNREAD" className={cn(readStatusFilter === "UNREAD" && "bg-secondary font-semibold")}>
-          Chưa đọc
+          {t.filter.unread}
         </DropdownMenuRadioItem>
         <DropdownMenuRadioItem value="READ" className={cn(readStatusFilter === "READ" && "bg-secondary font-semibold")}>
-          Đã đọc
+          {t.filter.read}
         </DropdownMenuRadioItem>
       </DropdownMenuRadioGroup>
     );
@@ -534,7 +546,7 @@ function ExploreContent() {
 
   const resultCount = (
     <span className="text-xs text-muted-foreground">
-      Có <strong className="text-foreground">{filteredPosts.length}</strong> {RESULT_NOUN[pillarFilter]}
+      {t.explore.resultPrefix} <strong className="text-foreground">{filteredPosts.length}</strong> {resultNoun(t, pillarFilter)}
     </span>
   );
 
@@ -546,7 +558,7 @@ function ExploreContent() {
         setPage(1);
       }}
       className="inline-flex items-center gap-1.5 pl-2.5 pr-2 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-medium"
-      title="Xóa từ khóa tìm kiếm"
+      title={t.search.clearKeywordTooltip}
     >
       <Search className="w-3 h-3" />
       &quot;{searchQuery.trim()}&quot;
@@ -560,7 +572,7 @@ function ExploreContent() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-border mb-4 sm:mb-6">
         <div>
           <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-            Mô hình tư duy, Chiến lược kinh doanh, Ý tưởng khởi nghiệp
+            {t.explore.pageTitle}
           </h1>
         </div>
 
@@ -571,9 +583,11 @@ function ExploreContent() {
             </div>
             <div>
               <div className="flex items-center gap-1.5 font-semibold text-foreground">
-                <span>Hôm nay:</span>
+                <span>{t.explore.todayLabel}</span>
                 <span className="text-primary font-bold">
-                  {isLimitInfinite ? `${todayReadCount} bài (Không giới hạn)` : `${todayReadCount}/${dailyLimit} bài`}
+                  {isLimitInfinite
+                    ? `${todayReadCount} ${t.explore.todayCountSuffix} ${t.explore.todayUnlimited}`
+                    : `${todayReadCount}/${dailyLimit} ${t.explore.todayCountSuffix}`}
                 </span>
                 {user.tier === "PRO" && (
                   <Badge className="bg-amber-500 text-white text-[9px] px-1 py-0 border-none font-bold">PRO</Badge>
@@ -605,7 +619,7 @@ function ExploreContent() {
                     return <ActiveIcon className="w-3.5 h-3.5" />;
                   })()
                 )}
-                {pillarFilter === "ALL" ? "Tất cả" : PILLAR_STYLE[pillarFilter].label}
+                {pillarFilter === "ALL" ? t.explore.allLabel : PILLAR_STYLE[pillarFilter].label}
                 <ChevronDown className={cn("w-3 h-3 ml-1", pillarFilter === "ALL" ? "text-muted-foreground" : "opacity-70")} />
               </Button>
             </DropdownMenuTrigger>
@@ -627,7 +641,7 @@ function ExploreContent() {
                 onChange={(e) => setHideSavedPosts(e.target.checked)}
                 className="w-3.5 h-3.5 rounded text-primary accent-primary cursor-pointer"
               />
-              <span>Ẩn đã lưu ({bookmarks.length})</span>
+              <span>{t.explore.hideSavedPrefix} ({bookmarks.length})</span>
             </label>
           )}
 
@@ -646,12 +660,12 @@ function ExploreContent() {
                     : undefined
                 }
               >
-                {accessFilter === "ALL" ? "Tất cả gói" : `Gói: ${accessFilter}`}
+                {accessFilter === "ALL" ? t.explore.accessAllPlans : `${t.explore.accessPlanPrefix} ${accessFilter}`}
                 <ChevronDown className={cn("w-3 h-3", accessFilter === "ALL" || accessFilter === "FREE" ? "text-muted-foreground" : "opacity-70")} />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-32">
-              <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Quyền truy cập</DropdownMenuLabel>
+              <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t.explore.accessLevelLabel}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {accessItems()}
             </DropdownMenuContent>
@@ -661,7 +675,7 @@ function ExploreContent() {
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="h-8 gap-2 rounded-full text-xs font-semibold shadow-sm">
                 <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground" />
-                Sắp xếp
+                {t.explore.sortBtn}
                 <ChevronDown className="w-3 h-3 text-muted-foreground ml-1" />
               </Button>
             </DropdownMenuTrigger>
@@ -675,7 +689,7 @@ function ExploreContent() {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="h-8 gap-2 rounded-full text-xs font-semibold shadow-sm">
                   <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground" />
-                  {readStatusFilter === "ALL" ? "Trạng thái đọc" : readStatusFilter === "UNREAD" ? "Chưa đọc" : "Đã đọc"}
+                  {readStatusFilter === "ALL" ? t.explore.readStatusBtn : readStatusFilter === "UNREAD" ? t.filter.unread : t.filter.read}
                   <ChevronDown className="w-3 h-3 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
@@ -696,12 +710,12 @@ function ExploreContent() {
                   )}
                 >
                   <Hash className={cn("w-3.5 h-3.5", !selectedTag && "text-muted-foreground")} />
-                  {selectedTag || "Thẻ chủ đề"}
+                  {selectedTag || t.explore.tagFilterLabel}
                   <ChevronDown className={cn("w-3 h-3", !selectedTag && "text-muted-foreground")} />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">
-                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Chọn thẻ chủ đề</DropdownMenuLabel>
+                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t.explore.chooseTagLabel}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {tagChips()}
               </DropdownMenuContent>
@@ -714,7 +728,7 @@ function ExploreContent() {
               onClick={resetAllFilters}
               className="text-primary hover:underline font-medium text-[11px]"
             >
-              Xóa bộ lọc
+              {t.explore.clearFiltersBtn}
             </button>
           )}
         </div>
@@ -732,16 +746,16 @@ function ExploreContent() {
               className="h-8 gap-1.5 rounded-full text-xs font-semibold shadow-sm relative"
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
-              Bộ Lọc
+              {t.explore.filterBtn}
               {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-72 max-h-[75vh] overflow-y-auto">
-            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Trụ cột</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t.explore.pillarSectionLabel}</DropdownMenuLabel>
             {pillarItems()}
 
             <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Gói</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t.explore.accessLevelLabel}</DropdownMenuLabel>
             {accessItems()}
 
             <DropdownMenuSeparator />
@@ -750,7 +764,7 @@ function ExploreContent() {
             {user && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Trạng thái đọc</DropdownMenuLabel>
+                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t.explore.readStatusBtn}</DropdownMenuLabel>
                 {readStatusItems()}
               </>
             )}
@@ -758,7 +772,7 @@ function ExploreContent() {
             {allTags.length > 0 && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Thẻ chủ đề</DropdownMenuLabel>
+                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t.explore.tagFilterLabel}</DropdownMenuLabel>
                 {tagChips()}
               </>
             )}
@@ -773,7 +787,7 @@ function ExploreContent() {
                     onChange={(e) => setHideSavedPosts(e.target.checked)}
                     className="w-3.5 h-3.5 rounded text-primary accent-primary cursor-pointer"
                   />
-                  <span>Ẩn đã lưu ({bookmarks.length})</span>
+                  <span>{t.explore.hideSavedPrefix} ({bookmarks.length})</span>
                 </label>
               </>
             )}
@@ -786,7 +800,7 @@ function ExploreContent() {
                   onClick={resetAllFilters}
                   className="w-full flex items-center justify-center gap-1 py-1.5 text-xs text-primary font-medium"
                 >
-                  <RotateCcw className="w-3 h-3" /> Xóa bộ lọc
+                  <RotateCcw className="w-3 h-3" /> {t.explore.clearFiltersBtn}
                 </button>
               </>
             )}
@@ -804,10 +818,10 @@ function ExploreContent() {
       ) : (
         <div className="text-center py-20 bg-card rounded-3xl border border-dashed border-border p-8 max-w-md mx-auto">
           <Brain className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-          <h3 className="font-display font-semibold text-base mb-1">Không tìm thấy kết quả phù hợp</h3>
-          <p className="text-xs text-muted-foreground mb-4">Hãy thử điều chỉnh lại bộ lọc hoặc từ khóa tìm kiếm.</p>
+          <h3 className="font-display font-semibold text-base mb-1">{t.explore.emptyTitle}</h3>
+          <p className="text-xs text-muted-foreground mb-4">{t.explore.emptyDesc}</p>
           <Button size="sm" className="rounded-full text-xs" onClick={resetAllFilters}>
-            <RotateCcw className="w-3.5 h-3.5 mr-1" /> Đặt lại bộ lọc
+            <RotateCcw className="w-3.5 h-3.5 mr-1" /> {t.explore.resetFiltersBtn}
           </Button>
         </div>
       )}
@@ -820,7 +834,7 @@ export function ExplorePage() {
     <Suspense
       fallback={
         <div className="container mx-auto max-w-7xl px-4 py-16 text-center text-muted-foreground text-sm">
-          Đang tải thư viện...
+          {getTranslation().explore.loadingLibrary}
         </div>
       }
     >
