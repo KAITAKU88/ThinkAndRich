@@ -27,6 +27,9 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
     if (!user && (bookmarks.length > 0 || Object.keys(userReactions).length > 0)) {
       useSession.setState({ bookmarks: [], userReactions: {} });
     }
+    // The real session cookie (Sprint B2 /api/auth/*) is authoritative —
+    // repopulates `user` on reload, or clears a stale localStorage one.
+    useSession.getState().restoreSession();
   }, []);
 
   return (

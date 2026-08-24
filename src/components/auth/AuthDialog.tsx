@@ -13,7 +13,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { useSession } from "@/store/session";
 
 
@@ -22,12 +21,10 @@ export function AuthDialog() {
   const setAuthOpen = useSession((s) => s.setAuthOpen);
   const requestOtp = useSession((s) => s.requestOtp);
   const verifyOtp = useSession((s) => s.verifyOtp);
-  const quickAdminLogin = useSession((s) => s.quickAdminLogin);
 
   const [step, setStep] = useState<"EMAIL" | "OTP">("EMAIL");
   const [email, setEmail] = useState("");
   const [otpCode, setOtpCode] = useState("");
-  const [generatedOtp, setGeneratedOtp] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(60);
 
@@ -45,7 +42,6 @@ export function AuthDialog() {
       setTimeout(() => {
         setStep("EMAIL");
         setOtpCode("");
-        setGeneratedOtp(null);
       }, 300);
     }
   }
@@ -58,15 +54,18 @@ export function AuthDialog() {
     }
 
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 400));
-    const res = requestOtp(email);
-    setGeneratedOtp(res.code);
-    setStep("OTP");
-    setCountdown(60);
+    const res = await requestOtp(email);
     setLoading(false);
 
-    toast.success(`Mã xác thực OTP đã được tạo: ${res.code}`, {
-      description: "Có hiệu lực trong 5 phút. Vui lòng nhập mã để hoàn tất đăng nhập.",
+    if (!res.ok) {
+      toast.error(res.message || "Không gửi được mã OTP. Vui lòng thử lại.");
+      return;
+    }
+
+    setStep("OTP");
+    setCountdown(60);
+    toast.success("Đã gửi mã xác thực OTP!", {
+      description: `Vui lòng kiểm tra hộp thư ${email}. Mã có hiệu lực trong 5 phút.`,
       duration: 8000,
     });
   }
@@ -79,8 +78,7 @@ export function AuthDialog() {
     }
 
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 400));
-    const result = verifyOtp(email, otpCode);
+    const result = await verifyOtp(email, otpCode);
     setLoading(false);
 
     if (result.ok) {
@@ -149,53 +147,9 @@ export function AuthDialog() {
                 </>
               )}
             </Button>
-
-            <div className="relative my-4">
-              <Separator />
-              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs uppercase tracking-wider text-muted-foreground">
-                Thử nghiệm nhanh
-              </span>
-            </div>
-
-            <div className="space-y-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full rounded-full border-dashed"
-                onClick={() => {
-                  quickAdminLogin();
-                  toast.success("Đã đăng nhập nhanh với quyền Quản trị (Admin)!");
-                  handleClose(false);
-                }}
-              >
-                ⚡ Đăng nhập nhanh quyền Quản trị (Admin)
-              </Button>
-            </div>
           </form>
         ) : (
           <form onSubmit={handleVerifyOtp} className="space-y-4 pt-2">
-            {generatedOtp && (
-              <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-center">
-                <p className="text-xs text-muted-foreground mb-1">
-                  Mã OTP mô phỏng (Demo / Test):
-                </p>
-                <div className="flex items-center justify-center gap-2">
-                  <span className="font-mono text-xl font-bold tracking-widest text-primary">
-                    {generatedOtp}
-                  </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs px-2 text-primary"
-                    onClick={() => setOtpCode(generatedOtp)}
-                  >
-                    Tự động điền
-                  </Button>
-                </div>
-              </div>
-            )}
-
             <div className="space-y-2">
               <Label htmlFor="auth-otp">Mã xác thực OTP (6 chữ số)</Label>
               <Input

@@ -86,7 +86,6 @@ export function AdminPage() {
   const posts = useSession((s) => s.posts);
   const readLogs = useSession((s) => s.readLogs);
   const setAuthOpen = useSession((s) => s.setAuthOpen);
-  const quickAdminLogin = useSession((s) => s.quickAdminLogin);
   const createPost = useSession((s) => s.createPost);
   const updatePost = useSession((s) => s.updatePost);
   const deletePost = useSession((s) => s.deletePost);
@@ -313,16 +312,6 @@ export function AdminPage() {
         </p>
         <div className="space-y-2 pt-2">
           <Button
-            className="w-full rounded-full"
-            onClick={() => {
-              quickAdminLogin();
-              toast.success("Đã đăng nhập với tư cách Quản trị viên (Admin)!");
-            }}
-          >
-            ⚡ Đăng nhập nhanh Admin (admin@thinkandrich.com)
-          </Button>
-          <Button
-            variant="outline"
             className="w-full rounded-full"
             onClick={() => setAuthOpen(true)}
           >

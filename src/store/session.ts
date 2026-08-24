@@ -20,20 +20,32 @@ import {
   SEED_READ_LOGS,
 } from "@/lib/data";
 
-interface OtpState {
+// Shape returned by the real /api/auth/* routes (src/db/schema.ts users
+// table via Drizzle) — maps it onto the SessionUser the rest of the app
+// already reads.
+interface ApiUser {
+  id: string;
   email: string;
-  code: string;
-  expiresAt: number;
+  name: string;
+  role: string;
+  tier: string;
+  countryCode: string | null;
+  preferredLang: string | null;
+  dailyReadsDate: string | null;
+  dailyReadsCount: number;
 }
 
-// Rebuilds the postId -> reaction map the UI reads from a user record's
-// separate likedPosts/dislikedPosts lists, used to restore a returning
-// account's own reactions at login time.
-function reactionsFromUser(u: UserRecord): Record<string, "like" | "dislike"> {
-  const reactions: Record<string, "like" | "dislike"> = {};
-  for (const id of u.likedPosts || []) reactions[id] = "like";
-  for (const id of u.dislikedPosts || []) reactions[id] = "dislike";
-  return reactions;
+function mapApiUser(u: ApiUser): SessionUser {
+  return {
+    id: u.id,
+    email: u.email,
+    name: u.name,
+    role: u.role as SessionUser["role"],
+    tier: u.tier as SessionUser["tier"],
+    countryCode: u.countryCode ?? undefined,
+    preferredLang: u.preferredLang ?? undefined,
+    dailyReads: u.dailyReadsDate ? { date: u.dailyReadsDate, count: u.dailyReadsCount } : undefined,
+  };
 }
 
 export type ReadStatusFilter = "ALL" | "UNREAD" | "READ";
@@ -55,7 +67,6 @@ interface SessionState {
   userReactions: Record<string, "like" | "dislike">; // postId -> reaction
   settings: AppSettings;
   authOpen: boolean;
-  activeOtp: OtpState | null;
 
   // Localization & Multi-currency (PPP)
   language: SupportedLanguage;
@@ -78,15 +89,11 @@ interface SessionState {
   getTodayReadCount: () => number;
   getDailyLimit: () => number; // 10 for FREE, 15 for PLUS, Infinity for MEMBER
 
-  // OTP Auth Flow
-  requestOtp: (email: string) => { code: string; expiresAt: number };
-  verifyOtp: (
-    email: string,
-    code: string,
-    opts?: { asAdmin?: boolean }
-  ) => { ok: boolean; message?: string };
-  quickAdminLogin: () => void;
-  logout: () => void;
+  // OTP Auth Flow — backed by the real /api/auth/* routes
+  requestOtp: (email: string) => Promise<{ ok: boolean; message?: string }>;
+  verifyOtp: (email: string, code: string) => Promise<{ ok: boolean; message?: string }>;
+  restoreSession: () => Promise<void>;
+  logout: () => Promise<void>;
 
   // Post Interactions & Metrics
   recordPostView: (postId: string) => void;
@@ -139,7 +146,6 @@ export const useSession = create<SessionState>()(
       userReactions: {},
       settings: DEFAULT_SETTINGS,
       authOpen: false,
-      activeOtp: null,
       hideSavedPosts: true,
 
       // Localization & Multi-currency (PPP)
@@ -277,136 +283,64 @@ export const useSession = create<SessionState>()(
         return { allowed: true };
       },
 
-      requestOtp: (email: string) => {
-        const cleanEmail = email.trim().toLowerCase();
-        // Generate random 6-digit code
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
-        const otpState: OtpState = { email: cleanEmail, code, expiresAt };
-        set({ activeOtp: otpState });
-        return { code, expiresAt };
+      requestOtp: async (email: string) => {
+        const res = await fetch("/api/auth/request-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim().toLowerCase() }),
+        });
+        const data = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: string };
+        if (!res.ok || !data.ok) {
+          return { ok: false, message: data.message || "Không gửi được mã OTP." };
+        }
+        return { ok: true };
       },
 
-      verifyOtp: (email: string, inputCode: string, opts) => {
-        const { activeOtp, users } = get();
-        const cleanEmail = email.trim().toLowerCase();
-
-        // Check if OTP matches or if it's admin shortcut
-        const isAdmin =
-          opts?.asAdmin ||
-          cleanEmail.includes("admin") ||
-          cleanEmail === "admin@thinkandrich.com";
-
-        const isValidCode =
-          (activeOtp &&
-            activeOtp.email === cleanEmail &&
-            activeOtp.code === inputCode.trim() &&
-            Date.now() <= activeOtp.expiresAt) ||
-          inputCode.trim() === "123456" || // Convenient universal test code
-          (activeOtp && activeOtp.code === inputCode.trim());
-
-        if (!isValidCode && !isAdmin) {
-          return { ok: false, message: "Mã OTP không chính xác hoặc đã hết hạn." };
-        }
-
-        // Find or create user record
-        let existingUser = users.find((u) => u.email.toLowerCase() === cleanEmail);
-        const namePart = cleanEmail.split("@")[0] || "Độc giả";
-        const formattedName =
-          namePart.charAt(0).toUpperCase() + namePart.slice(1);
-
-        if (!existingUser) {
-          existingUser = {
-            id: `user-${Date.now()}`,
-            email: cleanEmail,
-            name: formattedName,
-            role: isAdmin ? "ADMIN" : "USER",
-            tier: isAdmin ? "PRO" : "FREE",
-            createdAt: new Date().toISOString(),
-            lastLoginAt: new Date().toISOString(),
-            dailyReads: { date: getTodayString(), count: 0 },
-            readPosts: [],
-            bookmarkedPosts: [],
-            likedPosts: [],
-            dislikedPosts: [],
-          };
-          set({ users: [existingUser, ...users] });
-        } else {
-          // Update lastLoginAt
-          const updatedUsers = users.map((u) =>
-            u.id === existingUser?.id
-              ? {
-                  ...u,
-                  role: isAdmin ? "ADMIN" : u.role,
-                  tier: u.tier || (isAdmin ? "PRO" : "FREE"),
-                  lastLoginAt: new Date().toISOString(),
-                }
-              : u
-          );
-          set({ users: updatedUsers });
-        }
-
-        const sessionUser: SessionUser = {
-          id: existingUser.id,
-          email: existingUser.email,
-          name: existingUser.name,
-          role: isAdmin ? "ADMIN" : existingUser.role,
-          tier: existingUser.tier || (isAdmin ? "PRO" : "FREE"),
+      verifyOtp: async (email: string, code: string) => {
+        const res = await fetch("/api/auth/verify-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim().toLowerCase(), code: code.trim() }),
+        });
+        const data = (await res.json().catch(() => ({}))) as {
+          ok?: boolean;
+          message?: string;
+          user?: ApiUser;
         };
+        if (!res.ok || !data.ok || !data.user) {
+          return { ok: false, message: data.message || "Mã OTP không chính xác hoặc đã hết hạn." };
+        }
 
         set({
-          user: sessionUser,
+          user: mapApiUser(data.user),
           authOpen: false,
-          activeOtp: null,
-          // Restore this account's own saved/liked posts instead of
-          // leaving whatever the previous session left behind.
-          bookmarks: existingUser.bookmarkedPosts || [],
-          userReactions: reactionsFromUser(existingUser),
+          // No per-account bookmark/reaction backend yet — never carry
+          // over whatever the previous identity on this browser had.
+          bookmarks: [],
+          userReactions: {},
         });
 
         return { ok: true };
       },
 
-      quickAdminLogin: () => {
-        const { users } = get();
-        const adminEmail = "admin@thinkandrich.com";
-        let adminUser = users.find((u) => u.email === adminEmail);
-        if (!adminUser) {
-          adminUser = {
-            id: "admin-1",
-            email: adminEmail,
-            name: "Admin Think & Rich",
-            role: "ADMIN",
-            tier: "PRO",
-            createdAt: new Date().toISOString(),
-            lastLoginAt: new Date().toISOString(),
-            readPosts: [],
-            bookmarkedPosts: [],
-            likedPosts: [],
-            dislikedPosts: [],
-          };
-          set({ users: [adminUser, ...users] });
+      restoreSession: async () => {
+        const res = await fetch("/api/auth/me");
+        if (!res.ok) {
+          set({ user: null });
+          return;
         }
-        set({
-          user: {
-            id: adminUser.id,
-            email: adminUser.email,
-            name: adminUser.name,
-            role: "ADMIN",
-            tier: "PRO",
-          },
-          authOpen: false,
-          bookmarks: adminUser.bookmarkedPosts || [],
-          userReactions: reactionsFromUser(adminUser),
-        });
+        const data = (await res.json().catch(() => ({}))) as { ok?: boolean; user?: ApiUser };
+        set({ user: data.ok && data.user ? mapApiUser(data.user) : null });
       },
-
 
       // bookmarks/userReactions are a per-user overlay on top of shared
       // session state (not scoped by user id), so they must be cleared on
       // logout — otherwise an anonymous viewer (or the next account on this
       // browser) would see the previous account's saved/liked posts.
-      logout: () => set({ user: null, bookmarks: [], userReactions: {} }),
+      logout: async () => {
+        await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+        set({ user: null, bookmarks: [], userReactions: {} });
+      },
 
       recordPostView: (postId: string) => {
         const { posts, user, users, readLogs } = get();
