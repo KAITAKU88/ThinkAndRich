@@ -242,7 +242,15 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
                   ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
                   : "bg-secondary/80 text-muted-foreground border-border/70 font-medium"
               )}
-              title={post.accessLevel === "OPEN" ? "Đọc tự do, không cần đăng nhập" : undefined}
+              title={
+                post.accessLevel === "MEMBER_PRO"
+                  ? "Yêu cầu gói Hội viên PRO"
+                  : post.accessLevel === "MEMBER_PLUS"
+                  ? "Yêu cầu gói Hội viên PLUS"
+                  : post.accessLevel === "OPEN"
+                  ? "Đọc tự do, không cần đăng nhập"
+                  : "Cần đăng nhập, giới hạn 10 bài/ngày"
+              }
             >
               {post.accessLevel === "MEMBER_PRO"
                 ? "PRO"
