@@ -61,6 +61,14 @@ export interface Post {
   createdAt: string;
   updatedAt: string;
 
+  // Which language the fields above are actually in, and whether that's a
+  // real translation or the Vietnamese original shown as a fallback — set
+  // by resolvePostForLanguage() (src/lib/server/post-translation.ts).
+  // Optional: absent means "vi, not language-resolved" (e.g. admin routes
+  // that always want the canonical row).
+  contentLanguage?: SupportedLanguage;
+  isTranslated?: boolean;
+
   // Additional & Backward compatibility fields
   shortDescription?: string;
   readTime?: string;

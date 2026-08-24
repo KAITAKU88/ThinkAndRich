@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, primaryKey, index, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 // Mirrors Post in src/lib/types.ts. key_takeaways/tags are JSON-encoded
 // text (SQLite has no native array type).
@@ -139,5 +139,42 @@ export const orders = sqliteTable(
   (table) => [
     index("orders_gateway_reference_idx").on(table.gatewayReference),
     index("orders_user_id_idx").on(table.userId),
+  ]
+);
+
+// Per-language content for a post. The `posts` row above stays the
+// canonical Vietnamese source (this is a Vietnamese-first product — see
+// project overview) and is also the fallback shown whenever a post has no
+// row here for the requested language yet, or that row's own `status` is
+// still DRAFT. Shared/taxonomy fields (pillar, category, displaySize,
+// accessLevel, engagement counters, schematicSvg) intentionally stay only
+// on `posts` — they don't vary by language, and splitting engagement
+// counters per-language would make a single post's stats meaningless
+// without summing across rows. `academicFormula`/`keyTakeaways`/`tags` are
+// nullable so a translation can go live before every field is filled in;
+// unset ones fall back to the vi original's value (see
+// src/lib/server/post-translation.ts).
+export const postTranslations = sqliteTable(
+  "post_translations",
+  {
+    id: text("id").primaryKey(),
+    postId: text("post_id")
+      .notNull()
+      .references(() => posts.id, { onDelete: "cascade" }),
+    language: text("language").notNull(), // SupportedLanguage, excluding "vi" (that's the posts row itself)
+    title: text("title").notNull(),
+    summarySnippet: text("summary_snippet").notNull(),
+    fullContent: text("full_content").notNull(),
+    academicFormula: text("academic_formula"),
+    keyTakeaways: text("key_takeaways"), // JSON array
+    tags: text("tags"), // JSON array — falls back to posts.tags when null
+    status: text("status", { enum: ["DRAFT", "PUBLISHED"] }).notNull().default("DRAFT"),
+    translatedBy: text("translated_by"), // admin user id/email, for audit — nullable
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("post_translations_post_language_idx").on(table.postId, table.language),
+    index("post_translations_language_idx").on(table.language),
   ]
 );
