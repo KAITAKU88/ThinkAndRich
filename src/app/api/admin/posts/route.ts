@@ -2,9 +2,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { drizzle } from "drizzle-orm/d1";
 import { and, desc, eq, like, or, sql } from "drizzle-orm";
 import { posts, bookmarks } from "@/db/schema";
-import { rowToPost, postToInsertRow } from "@/lib/server/post-row";
+import { rowToPost } from "@/lib/server/post-row";
+import { createPost, type CreatePostInput } from "@/lib/server/create-post";
 import { requireAdmin } from "@/lib/api-auth";
-import { slugify } from "@/lib/utils";
 import type { Post } from "@/lib/types";
 
 // Full CRUD for the admin Posts table — unlike the public /api/posts, this
@@ -55,43 +55,10 @@ export async function POST(request: NextRequest) {
   }
 
   const db = drizzle(ctx.env.DB);
-  const now = new Date().toISOString();
-  const baseSlug = slugify(body.title) || `bai-viet-${Date.now()}`;
-
-  let slug = baseSlug;
-  let suffix = 1;
-  while (await db.select({ id: posts.id }).from(posts).where(eq(posts.slug, slug)).get()) {
-    slug = `${baseSlug}-${++suffix}`;
-  }
-
-  const id = slug;
-  const newPost: Post = {
-    id,
-    slug,
-    title: body.title,
-    pillar: body.pillar || "MENTAL_MODEL",
-    category: body.category || "Mô hình Tư duy",
-    displaySize: body.displaySize || "SQUARE_SM",
-    summarySnippet: body.summarySnippet,
-    fullContent: body.fullContent || "<p></p>",
-    accessLevel: body.accessLevel || "FREE",
-    readingTimeMinutes: body.readingTimeMinutes ?? 3,
-    // Always DRAFT unless the caller explicitly asked to publish (the
-    // "Xuất bản" button sends status:"PUBLISHED" on a brand-new post) —
-    // matches the create/edit form's own default-to-Draft behavior.
-    status: body.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT",
-    views: 0,
-    clicks: 0,
-    shares: 0,
-    likes: 0,
-    dislikes: 0,
-    author: body.author || "Think & Rich",
-    tags: body.tags ?? [],
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  await db.insert(posts).values(postToInsertRow(newPost));
+  // status:"PUBLISHED" only takes effect when the caller explicitly asks
+  // for it (the admin form's "Xuất bản" button) — createPost defaults to
+  // DRAFT for anything else, including the MCP authoring tools.
+  const newPost = await createPost(db, body as CreatePostInput);
 
   return NextResponse.json({ ok: true, post: newPost });
 }
