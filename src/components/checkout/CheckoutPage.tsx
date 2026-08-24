@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -9,14 +9,12 @@ import {
   QrCode,
   Copy,
   Check,
-  ShieldCheck,
   Sparkles,
   ArrowRight,
   Flame,
   CreditCard,
   Lock,
   Globe2,
-  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { MembershipTier, CountryCode } from "@/lib/types";
@@ -24,8 +22,6 @@ import type { MembershipTier, CountryCode } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useSession } from "@/store/session";
 import { getTranslation } from "@/lib/i18n/translations";
 import { getPppPricing, COUNTRIES_LIST } from "@/lib/geo-pricing";
@@ -36,7 +32,6 @@ function CheckoutContent() {
 
   const user = useSession((s) => s.user);
   const setAuthOpen = useSession((s) => s.setAuthOpen);
-  const upgradeTier = useSession((s) => s.upgradeTier);
   const language = useSession((s) => s.language);
   const countryCode = useSession((s) => s.countryCode);
   const setCountryCode = useSession((s) => s.setCountryCode);
@@ -47,30 +42,65 @@ function CheckoutContent() {
   const [copied, setCopied] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-
-  // Lemon Squeezy form state
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardExpiry, setCardExpiry] = useState("");
-  const [cardCvc, setCardCvc] = useState("");
-  const [cardName, setCardName] = useState(user?.name || "");
+  const [order, setOrder] = useState<{ id: string; amount: number; currency: string } | null>(null);
+  const [orderError, setOrderError] = useState<string | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const isPro = planId === "PRO";
   const planName = isPro ? t.pricing.plans.proName : t.pricing.plans.plusName;
   const planLimitText = isPro ? t.pricing.plans.proLimit : t.pricing.plans.plusLimit;
   const planPriceFormatted = isPro ? ppp.plans.PRO.formatted : ppp.plans.PLUS.formatted;
-  const planNumericPrice = isPro ? ppp.plans.PRO.price : ppp.plans.PLUS.price;
 
-  const memoCode = user
-    ? `TR ${user.email.split("@")[0].toUpperCase()}`
-    : "TR HOIVIEN";
+  // Real PENDING order, created server-side (amount/currency computed from
+  // the user's country there too — never trust a client-submitted price).
+  // Only SePay (VN) has a real order lifecycle right now.
+  useEffect(() => {
+    if (!user || ppp.gateway !== "sepay" || order) return;
+    fetch(`/api/checkout?country=${countryCode}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tier: planId }),
+    })
+      .then((res) => res.json() as Promise<{ ok: boolean; message?: string; orderId?: string; amount?: number; currency?: string }>)
+      .then((data) => {
+        if (data.ok && data.orderId) {
+          setOrder({ id: data.orderId, amount: data.amount!, currency: data.currency! });
+        } else {
+          setOrderError(data.message || "Không tạo được đơn hàng.");
+        }
+      })
+      .catch(() => setOrderError("Không thể kết nối tới máy chủ thanh toán."));
+  }, [user, ppp.gateway, countryCode, planId, order]);
+
+  // Poll for the webhook flipping the order to PAID — this page never
+  // decides success itself (see src/app/api/webhooks/billing/route.ts).
+  useEffect(() => {
+    if (!order || isSuccess) return;
+    pollRef.current = setInterval(async () => {
+      const res = await fetch(`/api/orders/${order.id}`).then((r) => r.json() as Promise<{ ok: boolean; order?: { status: string } }>);
+      if (res.ok && res.order?.status === "PAID") {
+        setIsSuccess(true);
+        setIsProcessing(false);
+        if (pollRef.current) clearInterval(pollRef.current);
+        toast.success(`🎉 SePay: Đã xác thực thanh toán thành công ${planName}!`);
+      }
+    }, 4000);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [order, isSuccess, planName]);
+
+  const memoCode = order ? order.id : "Đang tạo đơn hàng...";
 
   // VietQR parameters for SePay
   const bankAccount = "0987654321";
   const bankName = "MBBank (Ngân hàng Quân Đội)";
   const accountHolder = "THINK AND RICH CO LTD";
-  const vietQrUrl = `https://img.vietqr.io/image/MB-${bankAccount}-compact2.png?amount=${planNumericPrice}&addInfo=${encodeURIComponent(
-    memoCode
-  )}&accountName=${encodeURIComponent(accountHolder)}`;
+  const vietQrUrl = order
+    ? `https://img.vietqr.io/image/MB-${bankAccount}-compact2.png?amount=${order.amount}&addInfo=${encodeURIComponent(
+        memoCode
+      )}&accountName=${encodeURIComponent(accountHolder)}`
+    : "";
 
   function handleCopy(text: string, key: string) {
     navigator.clipboard.writeText(text);
@@ -79,24 +109,14 @@ function CheckoutContent() {
     setTimeout(() => setCopied(null), 2000);
   }
 
-  function handleConfirmPayment(gatewayUsed: "sepay" | "lemonsqueezy") {
+  function handleConfirmPayment() {
     if (!user) {
       setAuthOpen(true);
       toast.info("Vui lòng xác thực Email OTP trước khi kích hoạt gói.");
       return;
     }
-
     setIsProcessing(true);
-    setTimeout(() => {
-      upgradeTier(planId);
-      setIsProcessing(false);
-      setIsSuccess(true);
-      toast.success(
-        gatewayUsed === "sepay"
-          ? `🎉 SePay: Đã xác thực thanh toán thành công ${planName}!`
-          : `🎉 Lemon Squeezy: Payment verified! Activated ${planName} (${ppp.currency}).`
-      );
-    }, 1500);
+    toast.info("Đã ghi nhận — hệ thống đang xác nhận giao dịch chuyển khoản, thường mất vài phút.");
   }
 
   if (isSuccess) {
@@ -329,12 +349,18 @@ function CheckoutContent() {
                 </div>
               </div>
 
-              {/* Action Button */}
+              {orderError && (
+                <p className="text-xs text-destructive text-center">{orderError}</p>
+              )}
+
+              {/* Action Button — the order is confirmed by the SePay
+                  webhook polling above, not by this click; it just tells
+                  the user we're watching for their transfer. */}
               <Button
                 size="lg"
                 className="w-full rounded-full font-semibold shadow-md bg-emerald-600 hover:bg-emerald-700 text-white"
-                disabled={isProcessing}
-                onClick={() => handleConfirmPayment("sepay")}
+                disabled={isProcessing || !order}
+                onClick={handleConfirmPayment}
               >
                 {isProcessing ? (
                   <span className="flex items-center gap-2">
@@ -346,121 +372,21 @@ function CheckoutContent() {
               </Button>
             </Card>
           ) : (
-            /* LEMON SQUEEZY GATEWAY (INTERNATIONAL USD/EUR/JPY/KRW/TWD/CNY) */
-            <Card className="rounded-3xl border-2 border-primary shadow-lg bg-card p-6 space-y-6">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <Badge className="bg-blue-500/15 text-blue-600 dark:text-blue-400 border-none text-[11px] font-semibold">
-                    Global Merchant of Record
-                  </Badge>
-                  <Badge variant="outline" className="font-bold text-xs">
-                    {ppp.currency} ({ppp.currencySymbol})
-                  </Badge>
-                </div>
-                <h3 className="font-display text-lg font-bold flex items-center gap-2">
-                  <CreditCard className="w-5 h-5 text-primary" />
-                  {t.checkout.lemonTitle}
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {t.checkout.lemonDesc}
-                </p>
+            /* LEMON SQUEEZY GATEWAY (INTERNATIONAL) — not wired to a real
+               checkout-session API yet, so this shows an honest "not
+               available" state instead of collecting card details nothing
+               real processes. See migration plan: scoped to a follow-up. */
+            <Card className="rounded-3xl border-2 border-border shadow-lg bg-card p-6 space-y-4 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-muted mx-auto flex items-center justify-center">
+                <CreditCard className="w-6 h-6 text-muted-foreground" />
               </div>
-
-              {/* Lemon Squeezy Card Form Inputs */}
-              <div className="space-y-3.5">
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold text-foreground">
-                    {t.checkout.cardNumber}
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      type="text"
-                      placeholder="4242 •••• •••• 4242"
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value)}
-                      className="rounded-xl h-10 text-xs font-mono pr-10"
-                    />
-                    <CreditCard className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div className="space-y-1">
-                    <Label className="text-xs font-semibold text-foreground">
-                      {t.checkout.expiry}
-                    </Label>
-                    <Input
-                      type="text"
-                      placeholder="12/28"
-                      value={cardExpiry}
-                      onChange={(e) => setCardExpiry(e.target.value)}
-                      className="rounded-xl h-10 text-xs font-mono"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs font-semibold text-foreground">
-                      {t.checkout.cvc}
-                    </Label>
-                    <Input
-                      type="text"
-                      placeholder="CVC"
-                      value={cardCvc}
-                      onChange={(e) => setCardCvc(e.target.value)}
-                      className="rounded-xl h-10 text-xs font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold text-foreground">
-                    {t.checkout.nameOnCard}
-                  </Label>
-                  <Input
-                    type="text"
-                    placeholder="ALEXANDER NGUYEN"
-                    value={cardName}
-                    onChange={(e) => setCardName(e.target.value)}
-                    className="rounded-xl h-10 text-xs uppercase"
-                  />
-                </div>
-              </div>
-
-              {/* Tax Compliance Notice */}
-              <div className="flex items-start gap-2 p-2.5 rounded-xl bg-muted/60 border border-border text-[11px] text-muted-foreground leading-relaxed">
-                <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                <span>{t.checkout.taxIncluded}</span>
-              </div>
-
-              {/* Payment Buttons */}
-              <div className="space-y-2 pt-1">
-                <Button
-                  size="lg"
-                  className="w-full rounded-full font-semibold shadow-md bg-primary hover:bg-primary/90 text-primary-foreground"
-                  disabled={isProcessing}
-                  onClick={() => handleConfirmPayment("lemonsqueezy")}
-                >
-                  {isProcessing ? (
-                    <span className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 animate-spin" /> {t.checkout.processing}
-                    </span>
-                  ) : (
-                    <span>
-                      {t.checkout.payWithCard} ({planPriceFormatted}) &rarr;
-                    </span>
-                  )}
-                </Button>
-
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="w-full rounded-full font-semibold border-border hover:bg-muted"
-                  disabled={isProcessing}
-                  onClick={() => handleConfirmPayment("lemonsqueezy")}
-                >
-                  <Wallet className="w-4 h-4 mr-2" />
-                  {t.checkout.payWithApplePay}
-                </Button>
-              </div>
+              <h3 className="font-display text-lg font-bold">
+                {t.checkout.lemonTitle}
+              </h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Cổng thanh toán quốc tế ({ppp.currency}) đang được hoàn thiện và chưa nhận thanh toán thật.
+                Vui lòng dùng SePay (VietQR) nếu bạn ở Việt Nam, hoặc quay lại sau.
+              </p>
             </Card>
           )}
         </div>

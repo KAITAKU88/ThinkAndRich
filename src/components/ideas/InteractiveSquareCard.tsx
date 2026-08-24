@@ -40,7 +40,6 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
   const [isHovered, setIsHovered] = useState(false);
   const [glarePosition, setGlarePosition] = useState({ x: 50, y: 50 });
 
-  const user = useSession((s) => s.user);
   const toggleReaction = useSession((s) => s.toggleReaction);
   const userReactions = useSession((s) => s.userReactions);
   const isLiked = userReactions[post.id] === "like";
@@ -105,16 +104,16 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
     setTitleShiftY(0);
   }
 
-  function handleLikeClick(e: React.MouseEvent) {
+  async function handleLikeClick(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    toggleReaction(post.id, "like");
+    await toggleReaction(post.id, "like");
   }
 
-  function handleBookmarkClick(e: React.MouseEvent) {
+  async function handleBookmarkClick(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    const res = toggleBookmark(post.id);
+    const res = await toggleBookmark(post.id);
     if (!res.ok && res.message) toast.error(res.message);
     else if (res.ok) toast.success(isSaved ? "Đã bỏ khỏi Đọc sau" : "Đã lưu vào Đọc sau");
   }
@@ -128,6 +127,7 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
       title: post.title,
       text: post.summarySnippet || post.shortDescription,
     });
+    fetch(`/api/posts/${post.slug || post.id}/share`, { method: "POST" }).catch(() => {});
     if (result === "copied") toast.success("Đã sao chép liên kết vào clipboard!");
   }
 
@@ -165,6 +165,9 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
     >
       <Link
         href={`/post/${post.slug || post.id}`}
+        onClick={() => {
+          fetch(`/api/posts/${post.slug || post.id}/click`, { method: "POST" }).catch(() => {});
+        }}
         style={{
           transform: isHovered
             ? `rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(${hoverScale}, ${hoverScale}, ${hoverScale})`

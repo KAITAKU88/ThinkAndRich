@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import {
   ChevronLeft,
   Eye,
   ThumbsUp,
-  ThumbsDown,
   Bookmark,
   Share2,
   Link2,
@@ -37,27 +36,67 @@ import { InteractiveSquareCard } from "@/components/ideas/InteractiveSquareCard"
 import { useSession } from "@/store/session";
 import { cn, formatViews, formatFormula } from "@/lib/utils";
 import { PILLARS_CONFIG } from "@/lib/data";
+import type { AccessCheckResult } from "@/lib/server/access-control";
 
 export function PostDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const id = String(params.id ?? "");
   const [fontSize, setFontSize] = useState<"normal" | "large" | "xlarge">("normal");
   const [readProgress, setReadProgress] = useState(0);
 
-  const posts = useSession((s) => s.posts);
   const bookmarks = useSession((s) => s.bookmarks);
   const userReactions = useSession((s) => s.userReactions);
   const toggleBookmark = useSession((s) => s.toggleBookmark);
   const toggleReaction = useSession((s) => s.toggleReaction);
   const recordPostView = useSession((s) => s.recordPostView);
-  const canAccessPost = useSession((s) => s.canAccessPost);
   const user = useSession((s) => s.user);
 
-  // Synchronously find post without triggering extra re-renders
-  const post = useMemo(() => {
-    return posts.find((p) => p.id === id || p.slug === id) || null;
-  }, [posts, id]);
+  // Fetches the real post from the server, which is also the paywall
+  // enforcement point: `access.allowed === false` means `post.fullContent`
+  // is already a truncated ~30% teaser, not the full body — see
+  // src/app/api/posts/[slug]/route.ts.
+  const [post, setPost] = useState<Post | null>(null);
+  const [access, setAccess] = useState<AccessCheckResult>({ allowed: true });
+  const [notFound, setNotFound] = useState(false);
+  const [recommendedPosts, setRecommendedPosts] = useState<Post[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setNotFound(false);
+    fetch(`/api/posts/${id}`)
+      .then((res) => res.json() as Promise<{ ok: boolean; post?: Post; access?: AccessCheckResult }>)
+      .then((data) => {
+        if (cancelled) return;
+        if (data.ok && data.post && data.access) {
+          setPost(data.post);
+          setAccess(data.access);
+        } else {
+          setNotFound(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setNotFound(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, user?.id]);
+
+  useEffect(() => {
+    if (!post) return;
+    let cancelled = false;
+    fetch(`/api/posts?pillar=${post.pillar}&pageSize=3`)
+      .then((res) => res.json() as Promise<{ ok: boolean; posts?: Post[] }>)
+      .then((data) => {
+        if (!cancelled && data.ok && data.posts) {
+          setRecommendedPosts(data.posts.filter((p) => p.id !== post.id).slice(0, 2));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [post]);
 
   // Record view exactly once per post ID
   const recordedPostIdRef = useRef<string | null>(null);
@@ -66,6 +105,7 @@ export function PostDetailPage() {
       recordedPostIdRef.current = post.id;
       recordPostView(post.id);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-record when the post identity changes, not on every refetched field
   }, [post?.id, recordPostView]);
 
   // Scroll reading progress listener
@@ -82,23 +122,25 @@ export function PostDetailPage() {
   }, []);
 
   if (!post) {
-    return (
-      <div className="container mx-auto max-w-3xl px-4 py-20 text-center space-y-4">
-        <h2 className="font-display text-2xl font-bold">Không tìm thấy hồ sơ</h2>
-        <p className="text-muted-foreground text-sm">
-          Bài viết hoặc mô hình chiến lược này không tồn tại hoặc đã được cập nhật.
-        </p>
-        <Button asChild className="rounded-full">
-          <Link href="/">Quay lại trang chủ Think & Rich</Link>
-        </Button>
-      </div>
-    );
+    if (notFound) {
+      return (
+        <div className="container mx-auto max-w-3xl px-4 py-20 text-center space-y-4">
+          <h2 className="font-display text-2xl font-bold">Không tìm thấy hồ sơ</h2>
+          <p className="text-muted-foreground text-sm">
+            Bài viết hoặc mô hình chiến lược này không tồn tại hoặc đã được cập nhật.
+          </p>
+          <Button asChild className="rounded-full">
+            <Link href="/">Quay lại trang chủ Think & Rich</Link>
+          </Button>
+        </div>
+      );
+    }
+    return <div className="container mx-auto max-w-3xl px-4 py-20 text-center text-sm text-muted-foreground">Đang tải…</div>;
   }
 
   const pillarMeta = PILLARS_CONFIG[post.pillar] || PILLARS_CONFIG.MENTAL_MODEL;
   const isSaved = bookmarks.includes(post.id);
   const userReaction = userReactions[post.id];
-  const access = canAccessPost(post);
   const hasAccess = access.allowed;
 
   const PillarIcon =
@@ -108,25 +150,27 @@ export function PostDetailPage() {
       ? Compass
       : Lightbulb;
 
-  // Next recommended posts in same pillar
-  const recommendedPosts = posts
-    .filter((p) => p.id !== post.id && p.pillar === post.pillar)
-    .slice(0, 2);
-
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+
+  function trackShare() {
+    fetch(`/api/posts/${post!.slug}/share`, { method: "POST" }).catch(() => {});
+  }
 
   function copyShareLink() {
     navigator.clipboard.writeText(shareUrl);
+    trackShare();
     toast.success("Đã sao chép liên kết vào clipboard!");
   }
 
   function openShareWindow(url: string) {
+    trackShare();
     window.open(url, "_blank", "noopener,noreferrer,width=600,height=520");
   }
 
   async function shareViaDevice() {
     try {
       await navigator.share({ title: post!.title, text: post!.summarySnippet, url: shareUrl });
+      trackShare();
     } catch {
       // User cancelled the native share sheet — nothing to do.
     }
@@ -261,12 +305,17 @@ export function PostDetailPage() {
             <div dangerouslySetInnerHTML={{ __html: post.fullContent }} />
           ) : (
             <div className="relative">
-              {/* Sliced 30% Teaser preview */}
+              {/* Server already truncated fullContent to a ~30% teaser
+                  (src/app/api/posts/[slug]/route.ts) — the rest was never
+                  sent to the browser, so this just fades it out visually
+                  rather than hiding content that's already absent. */}
               <div
-                className="opacity-30 select-none pointer-events-none max-h-[180px] overflow-hidden filter blur-[3px]"
+                className="relative max-h-[220px] overflow-hidden pointer-events-none select-none"
                 aria-hidden="true"
-                dangerouslySetInnerHTML={{ __html: post.fullContent }}
-              />
+              >
+                <div dangerouslySetInnerHTML={{ __html: post.fullContent }} />
+                <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background to-transparent" />
+              </div>
 
               <PaywallCTA
                 reason={access.reason}
@@ -314,8 +363,8 @@ export function PostDetailPage() {
         <div className="fixed bottom-16 sm:bottom-6 left-1/2 -translate-x-1/2 bg-card/95 backdrop-blur-md border border-border/80 rounded-full shadow-2xl px-4 sm:px-5 py-2 flex items-center gap-2 sm:gap-3 z-40">
           <button
             type="button"
-            onClick={() => {
-              const res = toggleReaction(post.id, "like");
+            onClick={async () => {
+              const res = await toggleReaction(post.id, "like");
               if (!res.ok && res.message) toast.error(res.message);
             }}
             className={cn(
@@ -329,8 +378,8 @@ export function PostDetailPage() {
 
           <button
             type="button"
-            onClick={() => {
-              const res = toggleBookmark(post.id);
+            onClick={async () => {
+              const res = await toggleBookmark(post.id);
               if (!res.ok && res.message) toast.error(res.message);
               else toast.success(isSaved ? "Đã bỏ lưu" : "Đã lưu vào Tủ sách");
             }}

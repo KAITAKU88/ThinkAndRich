@@ -1,21 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Bookmark,
   User,
-  LogOut,
   Clock,
   ExternalLink,
   ShieldCheck,
   Sparkles,
-  Flame,
   Brain,
   Compass,
   Lightbulb,
-  CheckCircle2,
-  BookOpen,
   Heart,
   MonitorSmartphone,
   Info
@@ -26,7 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DynamicSquareCard } from "@/components/ideas/DynamicSquareCard";
 import { useSession } from "@/store/session";
 import { timeAgo, cn } from "@/lib/utils";
-import type { PillarType } from "@/lib/types";
+import type { PillarType, Post, ReadLog } from "@/lib/types";
 import { PILLARS_CONFIG } from "@/lib/data";
 
 type ProfileTab = "saved" | "history" | "favorites" | "account";
@@ -37,40 +33,52 @@ export function ProfilePage() {
   const [favPillar, setFavPillar] = useState<"ALL" | PillarType>("ALL");
 
   const user = useSession((s) => s.user);
-  const posts = useSession((s) => s.posts);
   const bookmarks = useSession((s) => s.bookmarks);
-  const readLogs = useSession((s) => s.readLogs);
   const userReactions = useSession((s) => s.userReactions);
   const setAuthOpen = useSession((s) => s.setAuthOpen);
   const logout = useSession((s) => s.logout);
   const todayReads = useSession((s) => s.getTodayReadCount)();
   const dailyLimit = useSession((s) => s.getDailyLimit)();
 
-  // Filter bookmarked posts
+  // Real per-user data — fetched from D1-backed routes instead of read out
+  // of a mock array. bookmarks/userReactions (store cache, ids only) still
+  // drive the tab-header counts so those numbers update instantly on
+  // toggle without waiting on a refetch.
+  const [allSavedPosts, setAllSavedPosts] = useState<Post[]>([]);
+  const [allFavoritePosts, setAllFavoritePosts] = useState<Post[]>([]);
+  const [userHistory, setUserHistory] = useState<ReadLog[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    fetch("/api/bookmarks")
+      .then((res) => res.json() as Promise<{ ok: boolean; posts?: Post[] }>)
+      .then((data) => {
+        if (data.ok && data.posts) setAllSavedPosts(data.posts);
+      })
+      .catch(() => {});
+    fetch("/api/reactions/me?expand=post&type=like")
+      .then((res) => res.json() as Promise<{ ok: boolean; posts?: Post[] }>)
+      .then((data) => {
+        if (data.ok && data.posts) setAllFavoritePosts(data.posts);
+      })
+      .catch(() => {});
+    fetch("/api/read-logs/me")
+      .then((res) => res.json() as Promise<{ ok: boolean; readLogs?: ReadLog[] }>)
+      .then((data) => {
+        if (data.ok && data.readLogs) setUserHistory(data.readLogs);
+      })
+      .catch(() => {});
+  }, [user, bookmarks.length, userReactions]);
+
   const savedPosts = useMemo(() => {
-    let list = posts.filter((p) => bookmarks.includes(p.id));
-    if (savedPillar !== "ALL") {
-      list = list.filter((p) => p.pillar === savedPillar);
-    }
-    return list;
-  }, [posts, bookmarks, savedPillar]);
+    if (savedPillar === "ALL") return allSavedPosts;
+    return allSavedPosts.filter((p) => p.pillar === savedPillar);
+  }, [allSavedPosts, savedPillar]);
 
-  // Filter favorite posts
   const favoritePosts = useMemo(() => {
-    let list = posts.filter((p) => userReactions[p.id] === "like");
-    if (favPillar !== "ALL") {
-      list = list.filter((p) => p.pillar === favPillar);
-    }
-    return list;
-  }, [posts, userReactions, favPillar]);
-
-  // Filter user's reading history
-  const userHistory = useMemo(() => {
-    if (!user) return [];
-    return readLogs.filter(
-      (log) => log.userId === user.id || log.userEmail === user.email
-    );
-  }, [readLogs, user]);
+    if (favPillar === "ALL") return allFavoritePosts;
+    return allFavoritePosts.filter((p) => p.pillar === favPillar);
+  }, [allFavoritePosts, favPillar]);
 
   // MOCK DEVICES
   const devices = [
@@ -392,7 +400,7 @@ export function ProfilePage() {
                 <p className="text-xs text-muted-foreground uppercase font-medium">Bảo mật</p>
                 <p className="text-xs text-foreground flex items-center gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  Xác thực Passwordless OTP qua Resend Engine
+                  Xác thực Passwordless OTP qua Cloudflare Email
                 </p>
               </div>
               <div className="pt-4 border-t border-border flex items-center gap-3">

@@ -1,56 +1,70 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { drizzle } from "drizzle-orm/d1";
+import { eq } from "drizzle-orm";
+import { orders, users } from "@/db/schema";
 
+// SePay-only for now (see checkout route + migration plan — Lemon Squeezy
+// needs a real checkout-session API integration this repo doesn't have).
+// SePay's webhook carries a shared-secret `Authorization` header; without
+// checking it, anyone who finds this URL could forge a "payment received"
+// call and upgrade any account's tier for free.
 export async function POST(request: NextRequest) {
-  try {
-    const gateway = request.nextUrl.searchParams.get("gateway") || "sepay";
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const body = (await request.json()) as any;
+  const { env } = getCloudflareContext();
+  const gateway = request.nextUrl.searchParams.get("gateway") || "sepay";
 
-    if (gateway === "sepay") {
-      // Process SePay VietQR webhook payload
-      const { transactionDate, accountNumber, amountIn, transactionContent, referenceCode } = body;
-      console.log("[Webhook SePay] Received bank transfer:", {
-        accountNumber,
-        amountIn,
-        transactionContent,
-        referenceCode,
-        transactionDate,
-      });
-
-      return NextResponse.json({
-        ok: true,
-        gateway: "sepay",
-        message: "SePay transaction processed and user membership tier upgraded successfully.",
-      });
-    }
-
-    if (gateway === "lemonsqueezy") {
-      // Process Lemon Squeezy webhook payload
-      const eventName = request.headers.get("x-event-name") || body?.meta?.event_name;
-      const customData = body?.data?.attributes?.custom_data || {};
-      const userEmail = body?.data?.attributes?.user_email || customData?.user_email;
-      const currency = body?.data?.attributes?.currency;
-
-      console.log("[Webhook Lemon Squeezy] Received event:", {
-        eventName,
-        userEmail,
-        currency,
-      });
-
-      return NextResponse.json({
-        ok: true,
-        gateway: "lemonsqueezy",
-        message: "Lemon Squeezy subscription event processed and user tier upgraded.",
-      });
-    }
-
-    return NextResponse.json({ ok: false, message: "Unsupported gateway" }, { status: 400 });
-  } catch (error: unknown) {
-    const errMessage = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json(
-      { ok: false, error: errMessage },
-      { status: 500 }
-    );
+  if (gateway !== "sepay") {
+    return NextResponse.json({ ok: false, message: "Chỉ hỗ trợ SePay ở thời điểm hiện tại." }, { status: 400 });
   }
-}
 
+  const auth = request.headers.get("authorization") || "";
+  const expected = `Apikey ${env.SEPAY_WEBHOOK_SECRET}`;
+  if (auth !== expected) {
+    return NextResponse.json({ ok: false, message: "Unauthorized webhook." }, { status: 401 });
+  }
+
+  const body = (await request.json().catch(() => null)) as {
+    transactionDate?: string;
+    accountNumber?: string;
+    amountIn?: number;
+    transactionContent?: string;
+    referenceCode?: string;
+  } | null;
+
+  if (!body) {
+    return NextResponse.json({ ok: false, message: "Payload không hợp lệ." }, { status: 400 });
+  }
+
+  // The internal order id was embedded in the VietQR `addInfo` string at
+  // checkout-creation time (src/components/checkout/CheckoutPage.tsx), so
+  // it comes back in `transactionContent` for reconciliation.
+  const content = body.transactionContent || "";
+  const match = content.match(/ord_[a-zA-Z0-9-]+/);
+  const orderId = match?.[0];
+  if (!orderId) {
+    return NextResponse.json({ ok: false, message: "Không tìm thấy mã đơn hàng trong nội dung chuyển khoản." }, { status: 400 });
+  }
+
+  const db = drizzle(env.DB);
+  const order = await db.select().from(orders).where(eq(orders.id, orderId)).get();
+  if (!order) {
+    return NextResponse.json({ ok: false, message: "Đơn hàng không tồn tại." }, { status: 404 });
+  }
+  if (order.status !== "PENDING") {
+    return NextResponse.json({ ok: true, message: "Đơn hàng đã được xử lý trước đó." });
+  }
+  if (typeof body.amountIn === "number" && body.amountIn < order.amount) {
+    return NextResponse.json({ ok: false, message: "Số tiền chuyển khoản không khớp." }, { status: 400 });
+  }
+
+  const now = new Date().toISOString();
+  await db.batch([
+    db
+      .update(orders)
+      .set({ status: "PAID", paidAt: now, rawPayload: JSON.stringify(body) })
+      .where(eq(orders.id, orderId)),
+    db.update(users).set({ tier: order.tier }).where(eq(users.id, order.userId)),
+  ]);
+
+  return NextResponse.json({ ok: true, gateway: "sepay", message: "Đã xác nhận thanh toán và nâng cấp gói." });
+}

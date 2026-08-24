@@ -52,6 +52,8 @@ export interface Post {
   readingTimeMinutes: number;
   status: PostStatus;
   views: number;
+  clicks: number;
+  shares: number;
   likes: number;
   dislikes: number;
   author: string;

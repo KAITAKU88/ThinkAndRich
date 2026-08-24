@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Brain,
   Moon,
@@ -15,7 +15,6 @@ import {
   Compass,
   Home,
   ArrowRight,
-  Command,
   Globe,
   Check
 } from "lucide-react";
@@ -38,6 +37,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useSession } from "@/store/session";
 import { cn, formatFormula } from "@/lib/utils";
+import type { Post } from "@/lib/types";
 import { PILLARS_CONFIG } from "@/lib/data";
 import { SUPPORTED_LANGUAGES_LIST } from "@/lib/i18n/translations";
 
@@ -53,7 +53,6 @@ export function Header() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const user = useSession((s) => s.user);
-  const posts = useSession((s) => s.posts);
   const setAuthOpen = useSession((s) => s.setAuthOpen);
   const settings = useSession((s) => s.settings);
   const language = useSession((s) => s.language);
@@ -81,22 +80,25 @@ export function Header() {
     }
   }, [searchOpen]);
 
-  // Filter posts for live search popup
-  const searchResults = useMemo(() => {
-    if (!query.trim()) return [];
-    const q = query.toLowerCase();
-    return posts
-      .filter(
-        (p) =>
-          p.status === "PUBLISHED" &&
-          (p.title.toLowerCase().includes(q) ||
-            p.summarySnippet?.toLowerCase().includes(q) ||
-            p.category.toLowerCase().includes(q) ||
-            p.academicFormula?.toLowerCase().includes(q) ||
-            p.tags?.some((t) => t.toLowerCase().includes(q)))
-      )
-      .slice(0, 6);
-  }, [query, posts]);
+  // Live search popup, against the real D1-backed listing API — debounced
+  // so we're not firing a request on every keystroke.
+  const [searchResults, setSearchResults] = useState<Post[]>([]);
+  useEffect(() => {
+    const q = query.trim();
+    if (!q) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(() => {
+      fetch(`/api/posts?q=${encodeURIComponent(q)}&pageSize=6`)
+        .then((res) => res.json() as Promise<{ ok: boolean; posts?: Post[] }>)
+        .then((data) => {
+          if (data.ok && data.posts) setSearchResults(data.posts);
+        })
+        .catch(() => {});
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [query]);
 
   function handleSearchSubmit(e: React.FormEvent) {
     e.preventDefault();

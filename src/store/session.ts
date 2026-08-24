@@ -4,21 +4,13 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type {
   AppSettings,
-  MembershipTier,
-  Post,
-  ReadLog,
   SessionUser,
-  UserRecord,
   CountryCode,
   SupportedLanguage,
 } from "@/lib/types";
 
-import {
-  DEFAULT_SETTINGS,
-  SEED_POSTS,
-  SEED_USERS,
-  SEED_READ_LOGS,
-} from "@/lib/data";
+import { DEFAULT_SETTINGS } from "@/lib/data";
+import { dailyReadLimit } from "@/lib/utils";
 
 // Shape returned by the real /api/auth/* routes (src/db/schema.ts users
 // table via Drizzle) — maps it onto the SessionUser the rest of the app
@@ -50,21 +42,18 @@ function mapApiUser(u: ApiUser): SessionUser {
 
 export type ReadStatusFilter = "ALL" | "UNREAD" | "READ";
 
-export interface AccessCheckResult {
-  allowed: boolean;
-  reason?: "AUTH_REQUIRED" | "PRO_REQUIRED" | "DAILY_LIMIT_REACHED";
-  limit?: number;
-  currentReads?: number;
-  tier?: MembershipTier;
-}
-
 interface SessionState {
   user: SessionUser | null;
-  users: UserRecord[];
-  posts: Post[];
-  readLogs: ReadLog[];
+
+  // Per-session read-through cache, hydrated from real D1-backed routes on
+  // login/restore — NOT the source of truth (the server is). Lets cards
+  // show "is this saved/liked/read" without a fetch per card.
   bookmarks: string[];
   userReactions: Record<string, "like" | "dislike">; // postId -> reaction
+  readPostIds: string[];
+  todayReadCount: number;
+  dailyLimit: number;
+
   settings: AppSettings;
   authOpen: boolean;
 
@@ -82,12 +71,9 @@ interface SessionState {
   // UI state
   setAuthOpen: (open: boolean) => void;
 
-
-  // Tier & Access Control
-  upgradeTier: (tier: MembershipTier) => void;
-  canAccessPost: (post: Post) => AccessCheckResult;
+  isPostRead: (postId: string) => boolean;
   getTodayReadCount: () => number;
-  getDailyLimit: () => number; // 10 for FREE, 15 for PLUS, Infinity for MEMBER
+  getDailyLimit: () => number;
 
   // OTP Auth Flow — backed by the real /api/auth/* routes
   requestOtp: (email: string) => Promise<{ ok: boolean; message?: string }>;
@@ -95,55 +81,36 @@ interface SessionState {
   restoreSession: () => Promise<void>;
   logout: () => Promise<void>;
 
-  // Post Interactions & Metrics
-  recordPostView: (postId: string) => void;
-  toggleReaction: (postId: string, type: "like" | "dislike") => { ok: boolean; message?: string };
-  toggleBookmark: (postId: string) => { ok: boolean; message?: string };
+  // Refreshes bookmarks/reactions/read-state from the server — called
+  // after login/restore, and after any action that changes them.
+  refreshUserState: () => Promise<void>;
 
-  // Admin Operations
-  createPost: (
-    post: Omit<
-      Post,
-      "id" | "slug" | "createdAt" | "updatedAt" | "views" | "likes" | "dislikes"
-    >
-  ) => Post;
-  updatePost: (id: string, updates: Partial<Post>) => Post | null;
-  deletePost: (id: string) => void;
+  // Post Interactions & Metrics — real D1 writes now (src/app/api/posts/[slug]/*)
+  recordPostView: (postId: string) => Promise<void>;
+  toggleReaction: (postId: string, type: "like" | "dislike") => Promise<{ ok: boolean; message?: string }>;
+  toggleBookmark: (postId: string) => Promise<{ ok: boolean; message?: string }>;
+
   updateSettings: (partial: Partial<AppSettings>) => void;
-
-  // Reader / Analytics Queries
-  getPostReaders: (postId: string) => ReadLog[];
-  getUserReadHistory: (userId: string) => ReadLog[];
-  isPostRead: (postId: string) => boolean;
 }
 
-function getTodayString(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-
-function slugify(text: string): string {
-  return text
-    .toString()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[đĐ]/g, "d")
-    .replace(/[^a-z0-9 -]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .trim();
+async function postJson<T>(url: string, body?: unknown): Promise<T> {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  return res.json() as Promise<T>;
 }
 
 export const useSession = create<SessionState>()(
   persist(
     (set, get) => ({
       user: null,
-      users: SEED_USERS,
-      posts: SEED_POSTS,
-      readLogs: SEED_READ_LOGS,
       bookmarks: [],
       userReactions: {},
+      readPostIds: [],
+      todayReadCount: 0,
+      dailyLimit: 10,
       settings: DEFAULT_SETTINGS,
       authOpen: false,
       hideSavedPosts: true,
@@ -183,105 +150,9 @@ export const useSession = create<SessionState>()(
       setHideSavedPosts: (hide) => set({ hideSavedPosts: hide }),
       setAuthOpen: (open) => set({ authOpen: open }),
 
-
-      upgradeTier: (tier: MembershipTier) => {
-        const { user, users } = get();
-        if (!user) return;
-        const updatedUser: SessionUser = { ...user, tier };
-        const updatedUsers = users.map((u) =>
-          u.id === user.id ? { ...u, tier } : u
-        );
-        set({ user: updatedUser, users: updatedUsers });
-      },
-
-      getDailyLimit: () => {
-        const { user } = get();
-        if (!user || user.role === "ADMIN" || user.tier === "PRO") return Infinity;
-        if (user.tier === "PLUS") return 25;
-        return 10;
-      },
-
-      getTodayReadCount: () => {
-        const { user, readLogs } = get();
-        if (!user) return 0;
-        const todayStr = getTodayString();
-        // Count distinct posts read today by this user
-        const todayPosts = new Set(
-          readLogs
-            .filter(
-              (log) =>
-                log.userId === user.id &&
-                log.readAt.slice(0, 10) === todayStr
-            )
-            .map((l) => l.postId)
-        );
-        return todayPosts.size;
-      },
-
-      canAccessPost: (post: Post): AccessCheckResult => {
-        // Open-tier content is readable by anyone, logged in or not — it
-        // exists specifically so Google can index it and so anonymous
-        // readers hit a login wall only when they click through to a
-        // cross-linked Free/Plus/Pro piece, not on the entry article itself.
-        if (post.accessLevel === "OPEN") {
-          return { allowed: true };
-        }
-
-        const { user } = get();
-        if (!user) {
-          return { allowed: false, reason: "AUTH_REQUIRED" };
-        }
-
-        if (user.role === "ADMIN" || user.tier === "PRO") {
-          return { allowed: true };
-        }
-
-        const tier = user.tier || "FREE";
-        const todayReads = get().getTodayReadCount();
-        const level = post.accessLevel || (post.isPro || post.isMemberOnly ? "MEMBER_PLUS" : "FREE");
-
-        if (tier === "FREE") {
-          if (level === "MEMBER_PLUS" || level === "MEMBER_PRO") {
-            return {
-              allowed: false,
-              reason: "PRO_REQUIRED",
-              tier: "FREE",
-            };
-          }
-          if (todayReads >= 10 && !get().isPostRead(post.id)) {
-            return {
-              allowed: false,
-              reason: "DAILY_LIMIT_REACHED",
-              limit: 10,
-              currentReads: todayReads,
-              tier: "FREE",
-            };
-          }
-          return { allowed: true };
-        }
-
-        if (tier === "PLUS") {
-          if (level === "MEMBER_PRO") {
-            return {
-              allowed: false,
-              reason: "PRO_REQUIRED",
-              tier: "PLUS",
-            };
-          }
-          if (todayReads >= 25 && !get().isPostRead(post.id)) {
-            return {
-              allowed: false,
-              reason: "DAILY_LIMIT_REACHED",
-              limit: 25,
-              currentReads: todayReads,
-              tier: "PLUS",
-            };
-          }
-          return { allowed: true };
-        }
-
-        return { allowed: true };
-      },
+      isPostRead: (postId: string) => get().readPostIds.includes(postId),
+      getTodayReadCount: () => get().todayReadCount,
+      getDailyLimit: () => get().dailyLimit,
 
       requestOtp: async (email: string) => {
         const res = await fetch("/api/auth/request-otp", {
@@ -311,263 +182,123 @@ export const useSession = create<SessionState>()(
           return { ok: false, message: data.message || "Mã OTP không chính xác hoặc đã hết hạn." };
         }
 
-        set({
-          user: mapApiUser(data.user),
-          authOpen: false,
-          // No per-account bookmark/reaction backend yet — never carry
-          // over whatever the previous identity on this browser had.
-          bookmarks: [],
-          userReactions: {},
-        });
-
+        set({ user: mapApiUser(data.user), authOpen: false });
+        await get().refreshUserState();
         return { ok: true };
       },
 
       restoreSession: async () => {
         const res = await fetch("/api/auth/me");
         if (!res.ok) {
-          set({ user: null });
+          set({ user: null, bookmarks: [], userReactions: {}, readPostIds: [], todayReadCount: 0, dailyLimit: 10 });
           return;
         }
         const data = (await res.json().catch(() => ({}))) as { ok?: boolean; user?: ApiUser };
-        set({ user: data.ok && data.user ? mapApiUser(data.user) : null });
+        if (data.ok && data.user) {
+          set({ user: mapApiUser(data.user) });
+          await get().refreshUserState();
+        } else {
+          set({ user: null, bookmarks: [], userReactions: {}, readPostIds: [], todayReadCount: 0, dailyLimit: 10 });
+        }
       },
 
-      // bookmarks/userReactions are a per-user overlay on top of shared
-      // session state (not scoped by user id), so they must be cleared on
-      // logout — otherwise an anonymous viewer (or the next account on this
-      // browser) would see the previous account's saved/liked posts.
       logout: async () => {
         await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
-        set({ user: null, bookmarks: [], userReactions: {} });
+        set({ user: null, bookmarks: [], userReactions: {}, readPostIds: [], todayReadCount: 0, dailyLimit: 10 });
       },
 
-      recordPostView: (postId: string) => {
-        const { posts, user, users, readLogs } = get();
-        const targetPost = posts.find((p) => p.id === postId);
-        if (!targetPost) return;
+      refreshUserState: async () => {
+        const user = get().user;
+        if (!user) return;
 
-        // Increment post views
-        const updatedPosts = posts.map((p) =>
-          p.id === postId ? { ...p, views: p.views + 1 } : p
-        );
+        set({ dailyLimit: dailyReadLimit(user) });
 
-        // If user is logged in, record read event
-        if (user) {
-          const now = new Date().toISOString();
-          const today = getTodayString();
-          const newLog: ReadLog = {
-            id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-            userId: user.id,
-            userEmail: user.email,
-            userName: user.name,
-            postId: targetPost.id,
-            postTitle: targetPost.title,
-            pillar: targetPost.pillar,
-            postCategory: targetPost.category,
-            readAt: now,
-            reaction: get().userReactions[postId] || "none",
-          };
+        const [bookmarksRes, reactionsRes, readLogsRes] = await Promise.allSettled([
+          fetch("/api/bookmarks").then((r) => r.json() as Promise<{ ok: boolean; posts?: { id: string }[] }>),
+          fetch("/api/reactions/me").then(
+            (r) => r.json() as Promise<{ ok: boolean; reactions?: Record<string, "like" | "dislike"> }>
+          ),
+          fetch("/api/read-logs/me").then(
+            (r) => r.json() as Promise<{ ok: boolean; readLogs?: { postId: string; readAt: string }[] }>
+          ),
+        ]);
 
-          const updatedUsers = users.map((u) => {
-            if (u.id === user.id) {
-              const reads = u.readPosts.includes(postId)
-                ? u.readPosts
-                : [...u.readPosts, postId];
-              const dailyCount =
-                u.dailyReads?.date === today
-                  ? u.dailyReads.count + 1
-                  : 1;
-              return {
-                ...u,
-                readPosts: reads,
-                dailyReads: { date: today, count: dailyCount },
-              };
-            }
-            return u;
-          });
-
+        if (bookmarksRes.status === "fulfilled" && bookmarksRes.value.ok && bookmarksRes.value.posts) {
+          set({ bookmarks: bookmarksRes.value.posts.map((p) => p.id) });
+        }
+        if (reactionsRes.status === "fulfilled" && reactionsRes.value.ok && reactionsRes.value.reactions) {
+          set({ userReactions: reactionsRes.value.reactions });
+        }
+        if (readLogsRes.status === "fulfilled" && readLogsRes.value.ok && readLogsRes.value.readLogs) {
+          const logs = readLogsRes.value.readLogs;
+          const today = new Date().toISOString().slice(0, 10);
+          const todayPostIds = new Set(
+            logs.filter((l) => l.readAt.slice(0, 10) === today).map((l) => l.postId)
+          );
           set({
-            posts: updatedPosts,
-            users: updatedUsers,
-            readLogs: [newLog, ...readLogs],
+            readPostIds: Array.from(new Set(logs.map((l) => l.postId))),
+            todayReadCount: todayPostIds.size,
           });
-        } else {
-          set({ posts: updatedPosts });
         }
       },
 
-      toggleReaction: (postId: string, type: "like" | "dislike") => {
-        const { user, posts, userReactions, users } = get();
-        if (!user) {
-          set({ authOpen: true });
-          return {
-            ok: false,
-            message: "Vui lòng xác thực Email OTP để đánh giá bài viết.",
-          };
+      recordPostView: async (postId: string) => {
+        const res = await fetch(`/api/posts/${postId}/view`, { method: "POST" }).then(
+          (r) => r.json() as Promise<{ ok: boolean }>
+        ).catch(() => ({ ok: false }));
+        if (res.ok && get().user) {
+          set((state) => ({
+            readPostIds: state.readPostIds.includes(postId) ? state.readPostIds : [...state.readPostIds, postId],
+          }));
+          await get().refreshUserState();
         }
-
-        const currentReaction = userReactions[postId];
-        let newLikeDelta = 0;
-        let newDislikeDelta = 0;
-        let nextReaction: "like" | "dislike" | undefined;
-
-        if (currentReaction === type) {
-          // Cancel reaction
-          if (type === "like") newLikeDelta = -1;
-          if (type === "dislike") newDislikeDelta = -1;
-          nextReaction = undefined;
-        } else if (currentReaction) {
-          // Switch reaction
-          if (type === "like") {
-            newLikeDelta = 1;
-            newDislikeDelta = -1;
-          } else {
-            newLikeDelta = -1;
-            newDislikeDelta = 1;
-          }
-          nextReaction = type;
-        } else {
-          // New reaction
-          if (type === "like") newLikeDelta = 1;
-          if (type === "dislike") newDislikeDelta = 1;
-          nextReaction = type;
-        }
-
-        const nextReactions = { ...userReactions };
-        if (nextReaction) {
-          nextReactions[postId] = nextReaction;
-        } else {
-          delete nextReactions[postId];
-        }
-
-        const updatedPosts = posts.map((p) => {
-          if (p.id === postId) {
-            return {
-              ...p,
-              likes: Math.max(0, p.likes + newLikeDelta),
-              dislikes: Math.max(0, p.dislikes + newDislikeDelta),
-            };
-          }
-          return p;
-        });
-
-        // Update user's likedPosts / dislikedPosts
-        const updatedUsers = users.map((u) => {
-          if (u.id === user.id) {
-            const liked = u.likedPosts.filter((id) => id !== postId);
-            const disliked = u.dislikedPosts.filter((id) => id !== postId);
-            if (nextReaction === "like") liked.push(postId);
-            if (nextReaction === "dislike") disliked.push(postId);
-            return { ...u, likedPosts: liked, dislikedPosts: disliked };
-          }
-          return u;
-        });
-
-
-        set({
-          posts: updatedPosts,
-          userReactions: nextReactions,
-          users: updatedUsers,
-        });
-
-        return { ok: true };
       },
 
-      toggleBookmark: (postId: string) => {
-        const { user, bookmarks, users } = get();
-        if (!user) {
+      toggleReaction: async (postId: string, type: "like" | "dislike") => {
+        if (!get().user) {
           set({ authOpen: true });
-          return {
-            ok: false,
-            message: "Vui lòng xác thực Email OTP để lưu bài viết.",
-          };
+          return { ok: false, message: "Vui lòng xác thực Email OTP để đánh giá bài viết." };
         }
-
-        const isSaved = bookmarks.includes(postId);
-        const nextBookmarks = isSaved
-          ? bookmarks.filter((id) => id !== postId)
-          : [...bookmarks, postId];
-
-        const updatedUsers = users.map((u) =>
-          u.id === user.id ? { ...u, bookmarkedPosts: nextBookmarks } : u
+        const data = await postJson<{ ok: boolean; message?: string; reaction?: "like" | "dislike" | null }>(
+          `/api/posts/${postId}/react`,
+          { type }
         );
+        if (!data.ok) return { ok: false, message: data.message };
 
-        set({ bookmarks: nextBookmarks, users: updatedUsers });
+        set((state) => {
+          const next = { ...state.userReactions };
+          if (data.reaction) next[postId] = data.reaction;
+          else delete next[postId];
+          return { userReactions: next };
+        });
         return { ok: true };
       },
 
-      createPost: (newPostData) => {
-        const { posts } = get();
-        const id =
-          slugify(newPostData.title) || `post-${Date.now().toString()}`;
-        const now = new Date().toISOString();
+      toggleBookmark: async (postId: string) => {
+        if (!get().user) {
+          set({ authOpen: true });
+          return { ok: false, message: "Vui lòng xác thực Email OTP để lưu bài viết." };
+        }
+        const data = await postJson<{ ok: boolean; message?: string; bookmarked?: boolean }>(
+          `/api/posts/${postId}/bookmark`
+        );
+        if (!data.ok) return { ok: false, message: data.message };
 
-        const newPost: Post = {
-          ...newPostData,
-          id,
-          slug: id,
-          views: 0,
-          likes: 0,
-          dislikes: 0,
-          createdAt: now,
-          updatedAt: now,
-        };
-
-        set({ posts: [newPost, ...posts] });
-        return newPost;
-      },
-
-      updatePost: (id: string, updates: Partial<Post>) => {
-        const { posts } = get();
-        let updatedItem: Post | null = null;
-
-        const updatedPosts = posts.map((p) => {
-          if (p.id === id) {
-            updatedItem = {
-              ...p,
-              ...updates,
-              updatedAt: new Date().toISOString(),
-            };
-            return updatedItem;
-          }
-          return p;
-        });
-
-        set({ posts: updatedPosts });
-        return updatedItem;
-      },
-
-      deletePost: (id: string) => {
-        const { posts } = get();
-        set({ posts: posts.filter((p) => p.id !== id) });
+        set((state) => ({
+          bookmarks: data.bookmarked
+            ? [...state.bookmarks, postId]
+            : state.bookmarks.filter((id) => id !== postId),
+        }));
+        return { ok: true };
       },
 
       updateSettings: (partial) => {
         set({ settings: { ...get().settings, ...partial } });
       },
-
-      getPostReaders: (postId: string) => {
-        const { readLogs } = get();
-        return readLogs.filter((log) => log.postId === postId);
-      },
-
-      getUserReadHistory: (userId: string) => {
-        const { readLogs } = get();
-        return readLogs.filter((log) => log.userId === userId);
-      },
-
-      isPostRead: (postId: string) => {
-        const { user, readLogs, users } = get();
-        if (!user) return false;
-        const userRec = users.find((u) => u.id === user.id);
-        if (userRec && userRec.readPosts.includes(postId)) return true;
-        return readLogs.some((l) => l.userId === user.id && l.postId === postId);
-      },
     }),
     {
       name: "think-and-rich-storage-v2",
-      version: 2,
+      version: 3,
       // Server-render and the client's first render both need to see the
       // same (default, non-persisted) state — persist would otherwise
       // read localStorage synchronously while the client store is being
@@ -576,11 +307,11 @@ export const useSession = create<SessionState>()(
       skipHydration: true,
       partialize: (state) => ({
         user: state.user,
-        users: state.users,
-        posts: state.posts,
-        readLogs: state.readLogs,
         bookmarks: state.bookmarks,
         userReactions: state.userReactions,
+        readPostIds: state.readPostIds,
+        todayReadCount: state.todayReadCount,
+        dailyLimit: state.dailyLimit,
         settings: state.settings,
         hideSavedPosts: state.hideSavedPosts,
       }),

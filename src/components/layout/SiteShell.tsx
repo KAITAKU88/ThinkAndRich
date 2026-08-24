@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { Toaster } from "sonner";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -9,6 +10,13 @@ import { AuthDialog } from "@/components/auth/AuthDialog";
 import { useSession } from "@/store/session";
 
 export function SiteShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  // The admin console (src/app/admin/**) is a separate full-width tool
+  // with its own layout/sidebar/login — it must not carry the public
+  // site's header, footer, bottom nav, or the anonymous-visitor auth
+  // dialog. restoreSession() below still needs to run there too, since
+  // AdminLayout's own auth relies on `useSession().user` being populated.
+  const isAdmin = pathname?.startsWith("/admin");
   // The store persists to localStorage, which the server can't see —
   // useSession is configured with skipHydration so both the server and
   // the client's first render use the same untouched default state, then
@@ -31,6 +39,15 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
     // repopulates `user` on reload, or clears a stale localStorage one.
     useSession.getState().restoreSession();
   }, []);
+
+  if (isAdmin) {
+    return (
+      <>
+        {children}
+        <Toaster richColors position="top-center" />
+      </>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col pb-16 sm:pb-0">

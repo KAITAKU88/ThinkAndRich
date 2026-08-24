@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, primaryKey, index } from "drizzle-orm/sqlite-core";
 
 // Mirrors Post in src/lib/types.ts. key_takeaways/tags are JSON-encoded
 // text (SQLite has no native array type).
@@ -20,6 +20,8 @@ export const posts = sqliteTable("posts", {
   readingTimeMinutes: integer("reading_time_minutes").notNull(),
   status: text("status").notNull(),
   views: integer("views").notNull().default(0),
+  clicks: integer("clicks").notNull().default(0),
+  shares: integer("shares").notNull().default(0),
   likes: integer("likes").notNull().default(0),
   dislikes: integer("dislikes").notNull().default(0),
   author: text("author").notNull(),
@@ -92,3 +94,50 @@ export const readLogs = sqliteTable("read_logs", {
   readAt: text("read_at").notNull(),
   reaction: text("reaction"),
 });
+
+// Attribution log for the "shares" counter on posts. userId is nullable
+// because a share can be fired by an anonymous visitor; posts.shares is
+// the fast denormalized total, this table only exists so the admin Users
+// table can show a per-user share count via COUNT(...) WHERE userId = X.
+export const shareLogs = sqliteTable(
+  "share_logs",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+    postId: text("post_id")
+      .notNull()
+      .references(() => posts.id, { onDelete: "cascade" }),
+    sharedAt: text("shared_at").notNull(),
+  },
+  (table) => [index("share_logs_user_id_idx").on(table.userId)]
+);
+
+// Real order/payment lifecycle backing the admin Revenue tab and the
+// SePay/Lemon Squeezy webhook (src/app/api/webhooks/billing/route.ts).
+// amount is stored as the plain display integer in `currency` (VND has no
+// subunits; USD would be cents) — always read amount together with
+// currency, never assume a fixed subunit scale across rows.
+export const orders = sqliteTable(
+  "orders",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    gateway: text("gateway", { enum: ["sepay", "lemonsqueezy"] }).notNull(),
+    tier: text("tier", { enum: ["PLUS", "PRO"] }).notNull(),
+    amount: integer("amount").notNull(),
+    currency: text("currency").notNull(),
+    status: text("status", { enum: ["PENDING", "PAID", "FAILED", "CANCELED"] })
+      .notNull()
+      .default("PENDING"),
+    gatewayReference: text("gateway_reference"),
+    rawPayload: text("raw_payload"),
+    createdAt: text("created_at").notNull(),
+    paidAt: text("paid_at"),
+  },
+  (table) => [
+    index("orders_gateway_reference_idx").on(table.gatewayReference),
+    index("orders_user_id_idx").on(table.userId),
+  ]
+);

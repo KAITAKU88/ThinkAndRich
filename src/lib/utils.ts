@@ -96,6 +96,29 @@ export async function shareContent(payload: {
   return "copied";
 }
 
+export function slugify(text: string): string {
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(new RegExp("[\\u0300-\\u036f]", "g"), "")
+    .replace(/[đĐ]/g, "d")
+    .replace(/[^a-z0-9 -]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .trim();
+}
+
+// FREE = 10 reads/day, PLUS = 25, PRO/ADMIN = unlimited. Pure/sync on
+// purpose so both the client store (optimistic UI) and the server access
+// -control module (src/lib/server/access-control.ts, real enforcement)
+// import the exact same numbers instead of drifting.
+export function dailyReadLimit(user: { role: string; tier: string } | null): number {
+  if (!user || user.role === "ADMIN" || user.tier === "PRO") return Infinity;
+  if (user.tier === "PLUS") return 25;
+  return 10;
+}
+
 export function timeAgo(isoDate: string): string {
   const diff = Date.now() - new Date(isoDate).getTime();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));

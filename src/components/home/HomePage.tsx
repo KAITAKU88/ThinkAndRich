@@ -16,6 +16,7 @@ import { PILLARS_CONFIG, PRICING_PLANS } from "@/lib/data";
 import { InteractiveSquareCard } from "@/components/ideas/InteractiveSquareCard";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/store/session";
+import { usePosts } from "@/lib/hooks/use-posts";
 import { cn, formatFormula } from "@/lib/utils";
 import type { Post, PillarType } from "@/lib/types";
 
@@ -37,12 +38,13 @@ const PILLAR_ACCENT_VAR: Record<PillarType, string> = {
 };
 
 export function HomePage() {
+  const { posts } = usePosts({ pageSize: 200 });
   return (
     <div>
-      <HeroSection />
-      <PillarsSection />
-      <FormatShowcaseSection />
-      <StatsStrip />
+      <HeroSection posts={posts} />
+      <PillarsSection posts={posts} />
+      <FormatShowcaseSection posts={posts} />
+      <StatsStrip posts={posts} />
       <PricingTeaserSection />
       <FinalCtaSection />
     </div>
@@ -53,15 +55,13 @@ export function HomePage() {
 // HERO — the thesis: an actual fanned catalog of real index cards, pulled
 // straight from the store (one top post per pillar), not a mockup graphic.
 // ─────────────────────────────────────────────────────────────────────────
-function HeroSection() {
-  const posts = useSession((s) => s.posts);
+function HeroSection({ posts }: { posts: Post[] }) {
   const user = useSession((s) => s.user);
   const setAuthOpen = useSession((s) => s.setAuthOpen);
 
   const heroPosts = useMemo(() => {
-    const published = posts.filter((p) => p.status === "PUBLISHED");
     return PILLAR_ORDER.map((pillar) =>
-      published.filter((p) => p.pillar === pillar).sort((a, b) => b.views - a.views)[0]
+      posts.filter((p) => p.pillar === pillar).sort((a, b) => b.views - a.views)[0]
     ).filter((p): p is Post => Boolean(p));
   }, [posts]);
 
@@ -131,15 +131,12 @@ function HeroSection() {
 // ─────────────────────────────────────────────────────────────────────────
 // 3 PILLARS — parallel categories, not a sequence, so no 01/02/03 markers.
 // ─────────────────────────────────────────────────────────────────────────
-function PillarsSection() {
-  const posts = useSession((s) => s.posts);
-
+function PillarsSection({ posts }: { posts: Post[] }) {
   const pillarCounts = useMemo(() => {
-    const published = posts.filter((p) => p.status === "PUBLISHED");
     return {
-      MENTAL_MODEL: published.filter((p) => p.pillar === "MENTAL_MODEL").length,
-      BUSINESS_STRATEGY: published.filter((p) => p.pillar === "BUSINESS_STRATEGY").length,
-      STARTUP_IDEA: published.filter((p) => p.pillar === "STARTUP_IDEA").length,
+      MENTAL_MODEL: posts.filter((p) => p.pillar === "MENTAL_MODEL").length,
+      BUSINESS_STRATEGY: posts.filter((p) => p.pillar === "BUSINESS_STRATEGY").length,
+      STARTUP_IDEA: posts.filter((p) => p.pillar === "STARTUP_IDEA").length,
     } as Record<PillarType, number>;
   }, [posts]);
 
@@ -195,14 +192,11 @@ function PillarsSection() {
 // FORMAT SHOWCASE — what a "hồ sơ" actually contains, mocked up with one
 // real post instead of described in the abstract.
 // ─────────────────────────────────────────────────────────────────────────
-function FormatShowcaseSection() {
-  const posts = useSession((s) => s.posts);
-
+function FormatShowcaseSection({ posts }: { posts: Post[] }) {
   const post = useMemo(() => {
-    const published = posts.filter((p) => p.status === "PUBLISHED");
     return (
-      published.find((p) => p.academicFormula && p.keyTakeaways && p.keyTakeaways.length > 0) ||
-      published[0]
+      posts.find((p) => p.academicFormula && p.keyTakeaways && p.keyTakeaways.length > 0) ||
+      posts[0]
     );
   }, [posts]);
 
@@ -286,9 +280,8 @@ function FormatShowcaseSection() {
 // STATS — quiet, mono-set numbers pulled live from the store. No oversized
 // gradient hero-stat treatment.
 // ─────────────────────────────────────────────────────────────────────────
-function StatsStrip() {
-  const posts = useSession((s) => s.posts);
-  const publishedCount = useMemo(() => posts.filter((p) => p.status === "PUBLISHED").length, [posts]);
+function StatsStrip({ posts }: { posts: Post[] }) {
+  const publishedCount = posts.length;
 
   const stats = [
     { label: "hồ sơ tri thức", value: publishedCount },

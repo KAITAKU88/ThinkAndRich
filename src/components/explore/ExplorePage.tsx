@@ -38,6 +38,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useSession } from "@/store/session";
+import { usePosts } from "@/lib/hooks/use-posts";
 import { cn } from "@/lib/utils";
 
 type PillarFilter = "ALL" | PillarType;
@@ -114,7 +115,7 @@ function ExploreContent() {
   const initialQ = searchParams.get("q") || "";
   const initialPillar = (searchParams.get("pillar") as PillarFilter) || "ALL";
 
-  const posts = useSession((s) => s.posts);
+  const { posts } = usePosts({ pageSize: 200 });
   const user = useSession((s) => s.user);
   const bookmarks = useSession((s) => s.bookmarks);
   const hideSavedPosts = useSession((s) => s.hideSavedPosts);
