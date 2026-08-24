@@ -19,6 +19,14 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
   // the affected subtree — visible as a flash/jump on load.
   useEffect(() => {
     useSession.persist.rehydrate();
+    // Self-heal browsers that persisted bookmarks/reactions from before
+    // logout was fixed to clear them — without this, an anonymous visitor
+    // on this browser would keep seeing whatever the last logged-out
+    // session had saved/liked.
+    const { user, bookmarks, userReactions } = useSession.getState();
+    if (!user && (bookmarks.length > 0 || Object.keys(userReactions).length > 0)) {
+      useSession.setState({ bookmarks: [], userReactions: {} });
+    }
   }, []);
 
   return (

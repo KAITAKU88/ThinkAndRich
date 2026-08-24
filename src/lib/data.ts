@@ -234,7 +234,7 @@ export const SEED_POSTS: Post[] = [
         <li><strong>Tạo dựng giải pháp mới</strong>: Ghép nối lại từ nền móng mà không phụ thuộc quy trình cũ.</li>
       </ol>
     `,
-    accessLevel: "FREE",
+    accessLevel: "OPEN",
     readingTimeMinutes: 6,
     status: "PUBLISHED",
     views: 4520,
@@ -399,7 +399,7 @@ export const SEED_POSTS: Post[] = [
       <h2>2. Bản phác thảo khăn ăn của Jeff Bezos</h2>
       <p>Năm 2001, Bezos mô tả bánh đà Amazon: Trải nghiệm người dùng tốt thu hút Traffic -> Traffic thu hút người bán bên thứ 3 -> Tăng danh mục sản phẩm -> Tối ưu hóa quy mô và chi phí vận hành -> Giảm giá bán -> Cải thiện trải nghiệm người dùng!</p>
     `,
-    accessLevel: "FREE",
+    accessLevel: "OPEN",
     readingTimeMinutes: 6,
     status: "PUBLISHED",
     views: 5210,
@@ -563,7 +563,7 @@ export const SEED_POSTS: Post[] = [
       <h2>3. Lộ trình Go-to-Market (GTM)</h2>
       <p>Tập trung tiếp cận các công ty công nghệ B2B chuẩn bị gọi vốn Series A/B cần hoàn tất hồ sơ Due Diligence pháp lý.</p>
     `,
-    accessLevel: "FREE",
+    accessLevel: "OPEN",
     readingTimeMinutes: 7,
     status: "PUBLISHED",
     views: 4890,
@@ -799,7 +799,7 @@ const dummyPosts: Post[] = Array.from({ length: 50 }).map((_, i): Post => {
   const titleBase = dummyTitles[titleCategory * 4 + (i % 4)] || dummyTitles[i % dummyTitles.length];
   const pillar: PillarType = i % 2 === 0 ? "MENTAL_MODEL" : "BUSINESS_STRATEGY";
   const accessLevel: ContentAccessLevel =
-    i % 4 === 0 ? "MEMBER_PRO" : i % 3 === 0 ? "MEMBER_PLUS" : "FREE";
+    i % 5 === 0 ? "OPEN" : i % 4 === 0 ? "MEMBER_PRO" : i % 3 === 0 ? "MEMBER_PLUS" : "FREE";
   const rand = seededRandom(1000 + i);
 
   return {

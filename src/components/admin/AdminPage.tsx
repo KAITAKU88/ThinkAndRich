@@ -224,7 +224,7 @@ export function AdminPage() {
         tags,
         status,
         accessLevel,
-        isPro: accessLevel !== "FREE",
+        isPro: accessLevel === "MEMBER_PLUS" || accessLevel === "MEMBER_PRO",
         fullContent: html,
       });
       toast.success("Đã cập nhật bài viết thành công!");
@@ -248,7 +248,7 @@ export function AdminPage() {
         tags,
         status,
         accessLevel,
-        isPro: accessLevel !== "FREE",
+        isPro: accessLevel === "MEMBER_PLUS" || accessLevel === "MEMBER_PRO",
         fullContent: html,
       });
       toast.success("Đã tạo và xuất bản bài viết mới thành công!");
@@ -1055,7 +1055,8 @@ export function AdminPage() {
                           value={accessLevel}
                           onChange={(e) => setAccessLevel(e.target.value as ContentAccessLevel)}
                         >
-                          <option value="FREE">Miễn phí (FREE - 10 bài/ngày)</option>
+                          <option value="OPEN">Đọc tự do (OPEN - không cần đăng nhập)</option>
+                          <option value="FREE">Miễn phí (FREE - 10 bài/ngày, cần đăng nhập)</option>
                           <option value="MEMBER_PLUS">Hội viên PLUS (25 bài/ngày)</option>
                           <option value="MEMBER_PRO">Hội viên PRO (Không giới hạn)</option>
                         </select>

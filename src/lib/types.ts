@@ -7,7 +7,7 @@ export type PillarType = "MENTAL_MODEL" | "BUSINESS_STRATEGY" | "STARTUP_IDEA";
 
 export type CardDisplaySize = "SQUARE_SM" | "SQUARE_MD" | "SQUARE_LG";
 
-export type ContentAccessLevel = "FREE" | "MEMBER_PLUS" | "MEMBER_PRO";
+export type ContentAccessLevel = "OPEN" | "FREE" | "MEMBER_PLUS" | "MEMBER_PRO";
 
 export type PostCategory =
   | "Mô hình Tư duy"

@@ -41,13 +41,14 @@ import { useSession } from "@/store/session";
 import { cn } from "@/lib/utils";
 
 type PillarFilter = "ALL" | PillarType;
-type AccessFilter = "ALL" | "FREE" | "PLUS" | "PRO";
+type AccessFilter = "ALL" | "OPEN" | "FREE" | "PLUS" | "PRO";
 type SortOption = "DATE_DESC" | "DATE_ASC" | "VIEWS_DESC" | "VIEWS_ASC" | "LIKES_DESC" | "LIKES_ASC";
 type ReadStatusFilter = "ALL" | "UNREAD" | "READ";
 
 // Post.accessLevel stores "MEMBER_PLUS"/"MEMBER_PRO"; the filter UI speaks
 // the shorter "PLUS"/"PRO" people actually recognize from the pricing page.
 const ACCESS_LEVEL_MAP: Record<Exclude<AccessFilter, "ALL">, Post["accessLevel"]> = {
+  OPEN: "OPEN",
   FREE: "FREE",
   PLUS: "MEMBER_PLUS",
   PRO: "MEMBER_PRO",
@@ -413,6 +414,17 @@ function ExploreContent() {
       >
         <DropdownMenuRadioItem value="ALL" className={cn(accessFilter === "ALL" && "bg-secondary font-semibold")}>
           Tất cả
+        </DropdownMenuRadioItem>
+        <DropdownMenuRadioItem
+          value="OPEN"
+          className={cn(accessFilter === "OPEN" && "font-semibold")}
+          style={
+            accessFilter === "OPEN"
+              ? { backgroundColor: "color-mix(in oklab, var(--pillar-jade) 12%, var(--card))", color: "var(--pillar-jade)" }
+              : undefined
+          }
+        >
+          Open
         </DropdownMenuRadioItem>
         <DropdownMenuRadioItem value="FREE" className={cn(accessFilter === "FREE" && "bg-secondary font-semibold")}>
           Free

@@ -10,12 +10,13 @@ import {
   Lightbulb,
   Clock,
   Bookmark,
+  Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { Post } from "@/lib/types";
 import type { Slot } from "@/lib/algorithms/skyline-packer";
 import { useSession } from "@/store/session";
-import { cn, formatViews } from "@/lib/utils";
+import { cn, formatViews, shareContent } from "@/lib/utils";
 
 interface InteractiveSquareCardProps {
   post: Post;
@@ -116,6 +117,18 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
     const res = toggleBookmark(post.id);
     if (!res.ok && res.message) toast.error(res.message);
     else if (res.ok) toast.success(isSaved ? "Đã bỏ khỏi Đọc sau" : "Đã lưu vào Đọc sau");
+  }
+
+  async function handleShareClick(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = `${window.location.origin}/post/${post.slug || post.id}`;
+    const result = await shareContent({
+      url,
+      title: post.title,
+      text: post.summarySnippet || post.shortDescription,
+    });
+    if (result === "copied") toast.success("Đã sao chép liên kết vào clipboard!");
   }
 
   const hoverScale = isLarge ? 1.008 : 1.02;
@@ -225,20 +238,44 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
                   ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30"
                   : post.accessLevel === "MEMBER_PLUS"
                   ? "bg-blue-600/15 text-blue-700 dark:text-blue-300 border-blue-500/30"
+                  : post.accessLevel === "OPEN"
+                  ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
                   : "bg-secondary/80 text-muted-foreground border-border/70 font-medium"
               )}
+              title={post.accessLevel === "OPEN" ? "Đọc tự do, không cần đăng nhập" : undefined}
             >
-              {post.accessLevel === "MEMBER_PRO" ? "PRO" : post.accessLevel === "MEMBER_PLUS" ? "PLUS" : "FREE"}
+              {post.accessLevel === "MEMBER_PRO"
+                ? "PRO"
+                : post.accessLevel === "MEMBER_PLUS"
+                ? "PLUS"
+                : post.accessLevel === "OPEN"
+                ? "OPEN"
+                : "FREE"}
             </span>
+            <button
+              type="button"
+              onClick={handleShareClick}
+              className="flex items-center justify-center rounded-full p-1.5 -m-1 transition-all active:scale-90 select-none text-muted-foreground hover:text-primary hover:bg-primary/10"
+              title="Chia sẻ"
+              aria-label="Chia sẻ"
+            >
+              <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </button>
             <button
               type="button"
               onClick={handleBookmarkClick}
               className={cn(
                 "flex items-center justify-center rounded-full p-1.5 -m-1 transition-all active:scale-90 select-none",
-                isSaved
-                  ? "text-primary bg-primary/10"
-                  : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+                !isSaved && "text-muted-foreground hover:text-primary hover:bg-primary/10"
               )}
+              style={
+                isSaved
+                  ? {
+                      color: "var(--pillar-jade)",
+                      backgroundColor: "color-mix(in oklab, var(--pillar-jade) 15%, transparent)",
+                    }
+                  : undefined
+              }
               title={isSaved ? "Bỏ khỏi Đọc sau" : "Lưu vào Đọc sau"}
               aria-label={isSaved ? "Bỏ khỏi Đọc sau" : "Lưu vào Đọc sau"}
             >

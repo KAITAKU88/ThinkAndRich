@@ -15,6 +15,7 @@ import {
   Clock,
   User,
   Lock,
+  Globe2,
   Brain,
   Compass,
   Lightbulb,
@@ -160,9 +161,15 @@ export function PostDetailPage() {
               <span>{pillarMeta.titleVi}</span>
             </span>
 
-            {post.accessLevel !== "FREE" && (
+            {(post.accessLevel === "MEMBER_PLUS" || post.accessLevel === "MEMBER_PRO") && (
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                 <Lock className="w-2.5 h-2.5" /> {post.accessLevel === "MEMBER_PRO" ? "PRO ONLY" : "PLUS"}
+              </span>
+            )}
+
+            {post.accessLevel === "OPEN" && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                <Globe2 className="w-2.5 h-2.5" /> ĐỌC TỰ DO
               </span>
             )}
           </div>
@@ -328,9 +335,17 @@ export function PostDetailPage() {
               else toast.success(isSaved ? "Đã bỏ lưu" : "Đã lưu vào Tủ sách");
             }}
             className={cn(
-              "p-2 rounded-full hover:bg-secondary transition-colors text-muted-foreground",
-              isSaved && "text-primary bg-primary/10"
+              "p-2 rounded-full hover:bg-secondary transition-colors",
+              !isSaved && "text-muted-foreground"
             )}
+            style={
+              isSaved
+                ? {
+                    color: "var(--pillar-jade)",
+                    backgroundColor: "color-mix(in oklab, var(--pillar-jade) 15%, transparent)",
+                  }
+                : undefined
+            }
             title="Lưu vào Tủ sách"
           >
             <Bookmark className={cn("w-4 h-4", isSaved && "fill-current")} />

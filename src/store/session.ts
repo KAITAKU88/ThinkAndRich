@@ -26,6 +26,16 @@ interface OtpState {
   expiresAt: number;
 }
 
+// Rebuilds the postId -> reaction map the UI reads from a user record's
+// separate likedPosts/dislikedPosts lists, used to restore a returning
+// account's own reactions at login time.
+function reactionsFromUser(u: UserRecord): Record<string, "like" | "dislike"> {
+  const reactions: Record<string, "like" | "dislike"> = {};
+  for (const id of u.likedPosts || []) reactions[id] = "like";
+  for (const id of u.dislikedPosts || []) reactions[id] = "dislike";
+  return reactions;
+}
+
 export type ReadStatusFilter = "ALL" | "UNREAD" | "READ";
 
 export interface AccessCheckResult {
@@ -126,10 +136,7 @@ export const useSession = create<SessionState>()(
       posts: SEED_POSTS,
       readLogs: SEED_READ_LOGS,
       bookmarks: [],
-      userReactions: {
-        "first-principles-thinking": "like",
-        "the-flywheel-effect": "like",
-      },
+      userReactions: {},
       settings: DEFAULT_SETTINGS,
       authOpen: false,
       activeOtp: null,
@@ -203,6 +210,14 @@ export const useSession = create<SessionState>()(
       },
 
       canAccessPost: (post: Post): AccessCheckResult => {
+        // Open-tier content is readable by anyone, logged in or not — it
+        // exists specifically so Google can index it and so anonymous
+        // readers hit a login wall only when they click through to a
+        // cross-linked Free/Plus/Pro piece, not on the entry article itself.
+        if (post.accessLevel === "OPEN") {
+          return { allowed: true };
+        }
+
         const { user } = get();
         if (!user) {
           return { allowed: false, reason: "AUTH_REQUIRED" };
@@ -340,6 +355,10 @@ export const useSession = create<SessionState>()(
           user: sessionUser,
           authOpen: false,
           activeOtp: null,
+          // Restore this account's own saved/liked posts instead of
+          // leaving whatever the previous session left behind.
+          bookmarks: existingUser.bookmarkedPosts || [],
+          userReactions: reactionsFromUser(existingUser),
         });
 
         return { ok: true };
@@ -374,11 +393,17 @@ export const useSession = create<SessionState>()(
             tier: "PRO",
           },
           authOpen: false,
+          bookmarks: adminUser.bookmarkedPosts || [],
+          userReactions: reactionsFromUser(adminUser),
         });
       },
 
 
-      logout: () => set({ user: null }),
+      // bookmarks/userReactions are a per-user overlay on top of shared
+      // session state (not scoped by user id), so they must be cleared on
+      // logout — otherwise an anonymous viewer (or the next account on this
+      // browser) would see the previous account's saved/liked posts.
+      logout: () => set({ user: null, bookmarks: [], userReactions: {} }),
 
       recordPostView: (postId: string) => {
         const { posts, user, users, readLogs } = get();
@@ -513,7 +538,7 @@ export const useSession = create<SessionState>()(
       },
 
       toggleBookmark: (postId: string) => {
-        const { user, bookmarks } = get();
+        const { user, bookmarks, users } = get();
         if (!user) {
           set({ authOpen: true });
           return {
@@ -527,7 +552,11 @@ export const useSession = create<SessionState>()(
           ? bookmarks.filter((id) => id !== postId)
           : [...bookmarks, postId];
 
-        set({ bookmarks: nextBookmarks });
+        const updatedUsers = users.map((u) =>
+          u.id === user.id ? { ...u, bookmarkedPosts: nextBookmarks } : u
+        );
+
+        set({ bookmarks: nextBookmarks, users: updatedUsers });
         return { ok: true };
       },
 

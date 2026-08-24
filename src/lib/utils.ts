@@ -72,6 +72,30 @@ export function formatFormula(raw: string): string {
   return out.replace(/\s+/g, " ").trim();
 }
 
+/**
+ * Card-level share: one tap, no picker. Native share sheet where it exists
+ * (mobile — lets the user pick Zalo/Messenger/FB/etc. themselves); otherwise
+ * silently copies the link, since desktop has no OS share sheet to fall
+ * back to. The richer explicit picker (copy/FB/X) lives on the article
+ * detail page where there's room for it.
+ */
+export async function shareContent(payload: {
+  url: string;
+  title: string;
+  text?: string;
+}): Promise<"shared" | "copied" | "cancelled"> {
+  if (typeof navigator !== "undefined" && navigator.share) {
+    try {
+      await navigator.share(payload);
+      return "shared";
+    } catch {
+      return "cancelled";
+    }
+  }
+  await navigator.clipboard.writeText(payload.url);
+  return "copied";
+}
+
 export function timeAgo(isoDate: string): string {
   const diff = Date.now() - new Date(isoDate).getTime();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
