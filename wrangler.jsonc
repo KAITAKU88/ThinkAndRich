@@ -21,5 +21,16 @@
 			"binding": "ATTACHMENTS",
 			"bucket_name": "thinkandrich-attachments"
 		}
+	],
+	"kv_namespaces": [
+		{
+			"binding": "OTP_KV",
+			"id": "2ac73e7382474375ab589471ffca88d6"
+		}
+	],
+	"send_email": [
+		{
+			"name": "EMAIL"
+		}
 	]
 }
