@@ -1,0 +1,25 @@
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "thinkandrich",
+	"main": ".open-next/worker.js",
+	"compatibility_date": "2026-08-24",
+	"compatibility_flags": ["nodejs_compat"],
+	"assets": {
+		"directory": ".open-next/assets",
+		"binding": "ASSETS"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "thinkandrich-db",
+			"database_id": "3ac5f167-a1d2-44e7-806b-0e40b13257dd",
+			"migrations_dir": "drizzle"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "ATTACHMENTS",
+			"bucket_name": "thinkandrich-attachments"
+		}
+	]
+}

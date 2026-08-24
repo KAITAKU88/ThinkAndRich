@@ -156,7 +156,10 @@ export const useSession = create<SessionState>()(
         try {
           const res = await fetch("/api/geo");
           if (res.ok) {
-            const data = await res.json();
+            const data = (await res.json()) as {
+              country_code?: CountryCode;
+              suggested_lang?: SupportedLanguage;
+            };
             if (data.country_code) {
               set({ countryCode: data.country_code });
               // If user hasn't manually set language, apply suggested lang

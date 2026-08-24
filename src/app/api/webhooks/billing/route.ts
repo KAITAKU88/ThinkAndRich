@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function POST(request: NextRequest) {
   try {
     const gateway = request.nextUrl.searchParams.get("gateway") || "sepay";
-    const body = await request.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body = (await request.json()) as any;
 
     if (gateway === "sepay") {
       // Process SePay VietQR webhook payload
