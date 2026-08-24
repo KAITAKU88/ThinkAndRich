@@ -17,9 +17,9 @@
 | **Sprint F4** | **Tủ Sách Tri Thức (Bookmarks) & Quota Gauge** | Quản lý bài đã lưu theo 3 trụ cột, Đồng hồ đo hạn mức đọc hàng ngày | 🟢 **HOÀN THÀNH** |
 | **Sprint F5** | **Giao Diện Thanh Toán PPP & VietQR Modal** | Bảng giá đa quốc gia, Khóa tiền tệ IP, Drawer quét mã VietQR SePay & Card | 🟢 **HOÀN THÀNH** |
 | **Sprint F6** | **Admin Dashboard & TipTap Editor Học Thuật** | Soạn thảo công thức, nhúng SVG, chọn kích thước thẻ vuông, Quản lý độc giả | 🟢 **HOÀN THÀNH** |
-| **Sprint B1** | **Backend Prisma ORM & Database Migration** | PostgreSQL Schema chuẩn, Migration, Prisma Seed 3 trụ cột | 🟡 Sẵn sàng |
-| **Sprint B2** | **Xác Thực Email OTP & Server-Side Paywall** | Resend API, JWT Http-only Cookies, Cắt 30% nội dung phía Server | ⚪ Chờ thực hiện |
-| **Sprint B3** | **Webhook Thanh Toán & Production Deployment** | SePay Webhook, Lemon Squeezy HMAC SHA-256, ISR Caching, Cloudflare WAF | ⚪ Chờ thực hiện |
+| **Sprint B1** | **Backend Database Migration (Cloudflare D1)** | D1 + Drizzle ORM Schema thực (posts/users/bookmarks/reactions/read_logs/share_logs/orders), R2 cho attachments, xoá toàn bộ Zustand mock data layer | 🟢 **HOÀN THÀNH** |
+| **Sprint B2** | **Xác Thực Email OTP & Server-Side Paywall** | Cloudflare Email Sending API, KV lưu OTP, JWT Http-only Cookies, Cắt 30% nội dung phía Server (`/api/posts/[slug]`) | 🟢 **HOÀN THÀNH** |
+| **Sprint B3** | **Webhook Thanh Toán & Production Deployment** | SePay Webhook (Apikey header + đối soát số tiền), Lemon Squeezy Checkout API + Webhook HMAC SHA-256, Admin Orders/Revenue | 🟡 **MỘT PHẦN** — ISR Caching & Cloudflare WAF chưa làm |
 
 ---
 
@@ -91,7 +91,24 @@
 
 ---
 
-## 🛠️ KẾ HOẠCH BƯỚC TIẾP THEO: BACKEND INTEGRATION (B1 -> B3)
-- **Sprint B1**: Cập nhật PostgreSQL Database qua Prisma ORM, Schema Migration, Prisma Seed 12 bài viết chuẩn 3 trụ cột.
-- **Sprint B2**: Xây dựng Resend Email OTP API Route, Session JWT Cookie Http-only & Server-side 30% Content Truncation.
-- **Sprint B3**: Xây dựng Webhooks thanh toán SePay (VietQR) / Lemon Squeezy (HMAC SHA-256), ISR Revalidation, Cloudflare WAF.
+## 🎯 CHI TIẾT SPRINT BACKEND ĐÃ TRIỂN KHAI (B1 → B3)
+
+### 🟢 SPRINT B1: Backend Database Migration (Cloudflare D1)
+- [x] Schema thực qua Drizzle ORM (`src/db/schema.ts`): `posts`, `users`, `bookmarks`, `reactions`, `read_logs`, `share_logs`, `orders`.
+- [x] Toàn bộ site đọc/ghi qua các route `/api/*` chạm D1 thật — không còn dữ liệu mock trong `src/lib/data.ts` phục vụ runtime.
+- [x] R2 bucket `ATTACHMENTS` cho ảnh/tệp đính kèm bài viết.
+- [x] Dựng lại Admin Console (đơn hàng thật, doanh thu thật, quản lý bài viết/độc giả trên D1).
+
+### 🟢 SPRINT B2: Xác Thực Email OTP & Server-Side Paywall
+- [x] `/api/auth/request-otp`, `/api/auth/verify-otp`, `/api/auth/me`, `/api/auth/logout` — OTP lưu ở KV (`OTP_KV`), gửi qua Cloudflare `send_email` binding.
+- [x] Session JWT (thư viện `jose`) ký bằng `JWT_SECRET`, cookie `tr_session` httpOnly/secure/sameSite=lax.
+- [x] Cắt nội dung 30% phía server tại `src/app/api/posts/[slug]/route.ts` (`checkPostAccess` + `truncateHtmlContent`) — client không bao giờ nhận full content nếu chưa đủ quyền.
+
+### 🟡 SPRINT B3: Webhook Thanh Toán & Production Deployment — một phần
+- [x] `/api/checkout` tạo đơn hàng `PENDING` thật trong D1, giá tính phía server theo PPP (không tin giá client gửi lên).
+- [x] SePay: `/api/webhooks/billing?gateway=sepay` xác thực header `Authorization: Apikey ...`, đối soát `transactionContent` chứa mã đơn hàng và số tiền, cập nhật `orders` + nâng tier `users`.
+- [x] Lemon Squeezy: `/api/checkout` gọi REST API tạo hosted checkout session thật (`src/lib/lemonsqueezy.ts`); `/api/webhooks/billing?gateway=lemonsqueezy` xác thực chữ ký HMAC-SHA256 header `X-Signature`, xử lý sự kiện `order_created` status `paid`.
+  - ⚠️ Cần cấu hình thật trước khi hoạt động: `LEMONSQUEEZY_API_KEY`, `LEMONSQUEEZY_STORE_ID`, `LEMONSQUEEZY_VARIANT_PLUS`, `LEMONSQUEEZY_VARIANT_PRO`, `LEMONSQUEEZY_WEBHOOK_SECRET` (xem chú thích trong `.dev.vars`, và `wrangler secret put` cho production). Thiếu cấu hình → API trả 503 thay vì giả vờ thành công.
+- [ ] **ISR Caching**: chưa cấu hình `revalidate`/`s-maxage` cho các route công khai (trang chủ, khám phá, bài viết) — hiện mọi request đều chạy động qua Worker.
+- [ ] **Cloudflare WAF**: cấu hình ở Cloudflare Dashboard (ngoài phạm vi repo), chưa thực hiện.
+- [ ] **Production Deployment**: `npm run deploy` chưa được chạy lên môi trường thật — mới test qua `npm run preview` cục bộ.

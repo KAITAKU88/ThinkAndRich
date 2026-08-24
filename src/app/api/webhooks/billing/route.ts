@@ -3,18 +3,21 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { drizzle } from "drizzle-orm/d1";
 import { eq } from "drizzle-orm";
 import { orders, users } from "@/db/schema";
+import { verifyLemonSqueezySignature, type LemonSqueezyWebhookPayload } from "@/lib/lemonsqueezy";
 
-// SePay-only for now (see checkout route + migration plan — Lemon Squeezy
-// needs a real checkout-session API integration this repo doesn't have).
-// SePay's webhook carries a shared-secret `Authorization` header; without
+// Both gateways carry a shared-secret proof (SePay: `Authorization` header,
+// Lemon Squeezy: HMAC-SHA256 `X-Signature` over the raw body) — without
 // checking it, anyone who finds this URL could forge a "payment received"
 // call and upgrade any account's tier for free.
 export async function POST(request: NextRequest) {
   const { env } = getCloudflareContext();
   const gateway = request.nextUrl.searchParams.get("gateway") || "sepay";
 
+  if (gateway === "lemonsqueezy") {
+    return handleLemonSqueezyWebhook(request, env);
+  }
   if (gateway !== "sepay") {
-    return NextResponse.json({ ok: false, message: "Chỉ hỗ trợ SePay ở thời điểm hiện tại." }, { status: 400 });
+    return NextResponse.json({ ok: false, message: "Cổng thanh toán không được hỗ trợ." }, { status: 400 });
   }
 
   const auth = request.headers.get("authorization") || "";
@@ -67,4 +70,47 @@ export async function POST(request: NextRequest) {
   ]);
 
   return NextResponse.json({ ok: true, gateway: "sepay", message: "Đã xác nhận thanh toán và nâng cấp gói." });
+}
+
+// Lemon Squeezy fires this for every order/subscription event; we only act
+// on `order_created` with status "paid" and otherwise 200 it so LS doesn't
+// retry-storm us for events we intentionally ignore. Signature must be
+// checked over the raw body before any JSON.parse.
+async function handleLemonSqueezyWebhook(request: NextRequest, env: CloudflareEnv) {
+  const rawBody = await request.text();
+  const valid = await verifyLemonSqueezySignature(
+    rawBody,
+    request.headers.get("x-signature"),
+    env.LEMONSQUEEZY_WEBHOOK_SECRET
+  );
+  if (!valid) {
+    return NextResponse.json({ ok: false, message: "Unauthorized webhook." }, { status: 401 });
+  }
+
+  const payload = JSON.parse(rawBody) as LemonSqueezyWebhookPayload;
+  const orderId = payload.meta?.custom_data?.order_id;
+  if (!orderId) {
+    return NextResponse.json({ ok: false, message: "Thiếu order_id trong custom_data." }, { status: 400 });
+  }
+
+  if (payload.meta?.event_name !== "order_created" || payload.data?.attributes?.status !== "paid") {
+    return NextResponse.json({ ok: true, message: "Sự kiện đã ghi nhận, không cần xử lý." });
+  }
+
+  const db = drizzle(env.DB);
+  const order = await db.select().from(orders).where(eq(orders.id, orderId)).get();
+  if (!order) {
+    return NextResponse.json({ ok: false, message: "Đơn hàng không tồn tại." }, { status: 404 });
+  }
+  if (order.status !== "PENDING") {
+    return NextResponse.json({ ok: true, message: "Đơn hàng đã được xử lý trước đó." });
+  }
+
+  const now = new Date().toISOString();
+  await db.batch([
+    db.update(orders).set({ status: "PAID", paidAt: now, rawPayload: rawBody }).where(eq(orders.id, orderId)),
+    db.update(users).set({ tier: order.tier }).where(eq(users.id, order.userId)),
+  ]);
+
+  return NextResponse.json({ ok: true, gateway: "lemonsqueezy", message: "Đã xác nhận thanh toán và nâng cấp gói." });
 }
