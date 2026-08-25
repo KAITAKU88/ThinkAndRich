@@ -26,6 +26,7 @@ import {
   generateSkylineSlots,
   assignPostsToSkylineSlots,
   paginateSkylineRows,
+  MIN_CARDS_PER_PAGE,
   type SlottedPost,
 } from "@/lib/algorithms/skyline-packer";
 import {
@@ -110,11 +111,6 @@ const TIER_ACCENT_VAR: Record<"PLUS" | "PRO", string> = {
   PLUS: "var(--tier-plus)",
   PRO: "var(--tier-pro)",
 };
-
-// Floor for how many cards a page must accumulate before it's allowed to
-// cut at a flat skyline boundary — keeps pages from being tiny even when a
-// flat line appears early.
-const MIN_CARDS_PER_PAGE = 50;
 
 // How many topic-tag chips the "Thẻ chủ đề" filter shows at once.
 const TAG_LIMIT = 16;

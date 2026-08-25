@@ -273,6 +273,19 @@ export function findFlatRowBoundaries(slots: Slot[], fillers: SpineFiller[]): nu
 // Groups flat boundaries into page breaks, each page holding at least
 // `minCardsPerPage` cards (except possibly the last). Returns the ordered
 // list of row cut-lines: page N spans [cuts[N-1], cuts[N]).
+/**
+ * Cards a page must accumulate before the paginator is allowed to cut at a
+ * flat skyline boundary.
+ *
+ * It lives here, next to the algorithm it governs, so a test can assert on it
+ * — it was previously a bare constant inside the Khám phá component, where
+ * being raised from 10 to 50 during an unrelated rework silently switched
+ * pagination off: at a 63-post catalogue on a 12-column desktop grid, no flat
+ * boundary is reached before the end of the grid, so the whole catalogue
+ * collapsed into a single page and the controls hid themselves.
+ */
+export const MIN_CARDS_PER_PAGE = 20;
+
 export function paginateSkylineRows(
   slots: Slot[],
   fillers: SpineFiller[],
