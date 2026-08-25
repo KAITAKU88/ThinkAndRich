@@ -18,7 +18,6 @@ import {
   Brain,
   Compass,
   Lightbulb,
-  Sparkles,
   Type,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -34,7 +33,7 @@ import {
 import { PaywallCTA } from "@/components/paywall/PaywallCTA";
 import { InteractiveSquareCard } from "@/components/ideas/InteractiveSquareCard";
 import { useSession } from "@/store/session";
-import { cn, formatViews, formatFormula } from "@/lib/utils";
+import { cn, formatViews } from "@/lib/utils";
 import { normalizeTemplate } from "@/lib/reading-templates";
 import { PILLARS_CONFIG } from "@/lib/data";
 import { getTranslation } from "@/lib/i18n/translations";
@@ -233,34 +232,11 @@ export function PostDetailPage() {
             {post.summarySnippet || post.shortDescription}
           </p>
 
-          {/* Academic Formula Callout Banner */}
-          {post.academicFormula && (
-            <div className="p-4 sm:p-5 rounded-2xl bg-secondary/80 border border-border space-y-1.5">
-              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-amber-500" /> {t.detail.formulaLabel}
-              </span>
-              <div className="font-mono text-sm sm:text-base md:text-lg text-foreground font-semibold academic-formula">
-                {formatFormula(post.academicFormula)}
-              </div>
-            </div>
-          )}
-
-          {/* Key Takeaways Box */}
-          {post.keyTakeaways && post.keyTakeaways.length > 0 && (
-            <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border space-y-2">
-              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                {t.detail.takeawaysLabel}
-              </span>
-              <ul className="space-y-1.5 text-xs sm:text-sm text-foreground/90">
-                {post.keyTakeaways.map((item, idx) => (
-                  <li key={idx} className="flex items-start gap-2">
-                    <span className="text-primary font-bold mt-0.5">•</span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          {/* The formula callout and takeaways box that used to sit here were
+              folded into the article body: three stacked panels before a word
+              of prose fragmented the page, and neither field could be edited
+              from the console — only written by the MCP tools. Their content
+              was migrated into full_content rather than dropped. */}
 
           {/* Author, Time, Metrics bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border/70 text-xs text-muted-foreground">
@@ -285,20 +261,10 @@ export function PostDetailPage() {
           </div>
         </header>
 
-        {/* Minimalist Vector Schematic Display Box */}
-        {post.schematicSvg && (
-          <div className="mb-10 p-6 sm:p-10 rounded-3xl bg-secondary/50 border border-border flex flex-col items-center justify-center relative overflow-hidden">
-            <div className="w-full max-w-md h-48 sm:h-64 flex items-center justify-center text-foreground">
-              <div
-                className="w-full h-full"
-                dangerouslySetInnerHTML={{ __html: post.schematicSvg }}
-              />
-            </div>
-            <span className="text-[10px] font-mono text-muted-foreground mt-3 uppercase tracking-widest">
-              {t.detail.schematicCaption}
-            </span>
-          </div>
-        )}
+        {/* The vector schematic box is gone for the same reason. Its SVG was
+            not migrated: TipTap's schema would strip raw <svg> on the next
+            edit, so the column is simply left unread — diagrams belong in the
+            body as images now. */}
 
         {/* Article Body & Paywall Gate.
             The reader's size control feeds --reader-size rather than Tailwind

@@ -253,7 +253,6 @@ function ExploreContent() {
           p.title.toLowerCase().includes(q) ||
           p.summarySnippet?.toLowerCase().includes(q) ||
           p.shortDescription?.toLowerCase().includes(q) ||
-          p.academicFormula?.toLowerCase().includes(q) ||
           p.category.toLowerCase().includes(q) ||
           p.tags?.some((t) => t.toLowerCase().includes(q))
       );

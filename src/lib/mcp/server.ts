@@ -63,9 +63,12 @@ export function buildMcpServer(env: CloudflareEnv): McpServer {
         pillar: z.enum(PILLAR_VALUES),
         category: z.string().min(1).describe("Call list_pillars_and_categories first to reuse an existing category name where it fits."),
         summarySnippet: z.string().min(10).describe("Short teaser shown on the card/feed, 1-2 sentences."),
-        fullContent: z.string().min(20).describe("Full article body as HTML."),
-        academicFormula: z.string().optional().describe("Short logic/axiom callout shown at the top of the article, if applicable."),
-        keyTakeaways: z.array(z.string()).optional().describe("Up to 3 core bullet points."),
+        fullContent: z
+          .string()
+          .min(20)
+          .describe(
+            "Full article body as HTML. Everything belongs here — the reading page is a single column of prose, with no separate boxes for a formula or a takeaways list."
+          ),
         tags: z.array(z.string()).optional(),
         displaySize: z.enum(DISPLAY_SIZE_VALUES).optional(),
         accessLevel: z.enum(ACCESS_LEVEL_VALUES).optional().describe("Defaults to FREE when omitted."),
@@ -123,8 +126,6 @@ export function buildMcpServer(env: CloudflareEnv): McpServer {
         title: z.string().min(3).optional(),
         summarySnippet: z.string().min(10).optional(),
         fullContent: z.string().min(20).optional(),
-        academicFormula: z.string().optional(),
-        keyTakeaways: z.array(z.string()).optional(),
         tags: z.array(z.string()).optional(),
         category: z.string().optional(),
         pillar: z.enum(PILLAR_VALUES).optional(),
@@ -146,8 +147,6 @@ export function buildMcpServer(env: CloudflareEnv): McpServer {
       if (patch.title !== undefined) updates.title = patch.title;
       if (patch.summarySnippet !== undefined) updates.summarySnippet = patch.summarySnippet;
       if (patch.fullContent !== undefined) updates.fullContent = patch.fullContent;
-      if (patch.academicFormula !== undefined) updates.academicFormula = patch.academicFormula;
-      if (patch.keyTakeaways !== undefined) updates.keyTakeaways = JSON.stringify(patch.keyTakeaways);
       if (patch.tags !== undefined) updates.tags = JSON.stringify(patch.tags);
       if (patch.category !== undefined) updates.category = patch.category;
       if (patch.pillar !== undefined) updates.pillar = patch.pillar;

@@ -9,7 +9,6 @@ import {
   Lightbulb,
   Globe,
   Sparkles,
-  LineChart,
   CheckCircle2,
 } from "lucide-react";
 import { PILLARS_CONFIG, PRICING_PLANS } from "@/lib/data";
@@ -17,7 +16,7 @@ import { InteractiveSquareCard } from "@/components/ideas/InteractiveSquareCard"
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/store/session";
 import { usePosts } from "@/lib/hooks/use-posts";
-import { cn, formatFormula } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { getTranslation } from "@/lib/i18n/translations";
 import type { Post, PillarType } from "@/lib/types";
 
@@ -44,7 +43,6 @@ export function HomePage() {
     <div>
       <HeroSection posts={posts} />
       <PillarsSection posts={posts} />
-      <FormatShowcaseSection posts={posts} />
       <StatsStrip posts={posts} />
       <PricingTeaserSection />
       <FinalCtaSection />
@@ -185,93 +183,6 @@ function PillarsSection({ posts }: { posts: Post[] }) {
               </Link>
             );
           })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────
-// FORMAT SHOWCASE — what a "hồ sơ" actually contains, mocked up with one
-// real post instead of described in the abstract.
-// ─────────────────────────────────────────────────────────────────────────
-function FormatShowcaseSection({ posts }: { posts: Post[] }) {
-  const language = useSession((s) => s.language);
-  const t = getTranslation(language);
-  const post = useMemo(() => {
-    return (
-      posts.find((p) => p.academicFormula && p.keyTakeaways && p.keyTakeaways.length > 0) ||
-      posts[0]
-    );
-  }, [posts]);
-
-  if (!post) return null;
-
-  return (
-    <section className="border-b border-border/70">
-      <div className="container mx-auto max-w-[1400px] px-4 sm:px-6 py-14 sm:py-20 grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-        <div className="order-2 lg:order-1">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
-            {t.home.formatEyebrow}
-          </span>
-          <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-2 mb-5">
-            {t.home.formatTitle}
-          </h2>
-          <ul className="space-y-4 text-sm sm:text-base text-foreground/90">
-            <li className="flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-                <Sparkles className="w-3 h-3" />
-              </span>
-              <span>
-                <strong className="font-semibold">{t.home.formatFormulaTitle}</strong> — {t.home.formatFormulaDesc}
-              </span>
-            </li>
-            <li className="flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-                <LineChart className="w-3 h-3" />
-              </span>
-              <span>
-                <strong className="font-semibold">{t.home.formatSchematicTitle}</strong> — {t.home.formatSchematicDesc}
-              </span>
-            </li>
-            <li className="flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-                <CheckCircle2 className="w-3 h-3" />
-              </span>
-              <span>
-                <strong className="font-semibold">{t.home.formatTakeawaysTitle}</strong> — {t.home.formatTakeawaysDesc}
-              </span>
-            </li>
-          </ul>
-        </div>
-
-        <div className="order-1 lg:order-2 rounded-3xl border border-border bg-card p-5 sm:p-7 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-            {PILLARS_CONFIG[post.pillar]?.titleVi}
-          </p>
-          <h3 className="font-display text-lg sm:text-xl font-bold text-foreground mb-3 leading-snug">
-            {post.title}
-          </h3>
-          {post.academicFormula && (
-            <div className="p-3.5 rounded-2xl bg-secondary/80 border border-border mb-3">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1 mb-1">
-                <Sparkles className="w-3 h-3 text-amber-500" /> {t.home.formatCardFormulaLabel}
-              </span>
-              <div className="font-mono text-sm text-foreground font-semibold academic-formula">
-                {formatFormula(post.academicFormula)}
-              </div>
-            </div>
-          )}
-          {post.keyTakeaways && post.keyTakeaways.length > 0 && (
-            <ul className="space-y-1.5 text-xs sm:text-sm text-foreground/90">
-              {post.keyTakeaways.slice(0, 3).map((item, idx) => (
-                <li key={idx} className="flex items-start gap-2">
-                  <span className="text-primary font-bold mt-0.5">•</span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          )}
         </div>
       </div>
     </section>

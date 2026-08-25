@@ -36,7 +36,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useSession } from "@/store/session";
-import { cn, formatFormula } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { Post } from "@/lib/types";
 import { PILLARS_CONFIG } from "@/lib/data";
 import { SUPPORTED_LANGUAGES_LIST, getTranslation } from "@/lib/i18n/translations";
@@ -346,11 +346,6 @@ export function Header() {
                         <h4 className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
                           {item.title}
                         </h4>
-                        {item.academicFormula && (
-                          <p className="text-xs text-muted-foreground font-mono truncate mt-0.5">
-                            {formatFormula(item.academicFormula)}
-                          </p>
-                        )}
                       </div>
                       <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0" />
                     </Link>
