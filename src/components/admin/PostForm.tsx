@@ -6,12 +6,13 @@ import StarterKit from "@tiptap/starter-kit";
 import TiptapLink from "@tiptap/extension-link";
 import TiptapImage from "@tiptap/extension-image";
 import TiptapYoutube from "@tiptap/extension-youtube";
-import { Bold, Italic, List, ListOrdered, Quote, Image as ImageIcon, Video, ArrowLeft } from "lucide-react";
+import { Bold, Italic, List, ListOrdered, Quote, Image as ImageIcon, Video, ArrowLeft, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import type { AdminPost } from "@/lib/admin/use-admin-posts";
 import type { CardDisplaySize, ContentAccessLevel, Post, PillarType } from "@/lib/types";
 
@@ -31,6 +32,7 @@ export function PostForm({ editingPost, onCreate, onUpdate, onDone }: PostFormPr
   const [displaySize, setDisplaySize] = useState<CardDisplaySize>(editingPost?.displaySize ?? "SQUARE_SM");
   const [accessLevel, setAccessLevel] = useState<ContentAccessLevel>(editingPost?.accessLevel ?? "FREE");
   const [status, setStatus] = useState<Post["status"]>(editingPost?.status ?? "DRAFT");
+  const [previewing, setPreviewing] = useState(false);
 
   const [postId, setPostId] = useState<string | null>(editingPost?.id ?? null);
   const [saving, setSaving] = useState(false);
@@ -156,19 +158,71 @@ export function PostForm({ editingPost, onCreate, onUpdate, onDone }: PostFormPr
             <Textarea id="post-summary" value={summarySnippet} onChange={(e) => markDirty(setSummarySnippet)(e.target.value)} placeholder="2-3 câu tóm tắt giá trị cốt lõi..." rows={2} />
           </div>
           <div className="space-y-1.5">
-            <Label>Nội dung</Label>
-            <div className="border border-border rounded-xl overflow-hidden">
-              <div className="flex items-center gap-0.5 p-1.5 border-b border-border bg-secondary/40">
-                <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => editor?.chain().focus().toggleBold().run()}><Bold className="w-3.5 h-3.5" /></Button>
-                <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => editor?.chain().focus().toggleItalic().run()}><Italic className="w-3.5 h-3.5" /></Button>
-                <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => editor?.chain().focus().toggleBulletList().run()}><List className="w-3.5 h-3.5" /></Button>
-                <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => editor?.chain().focus().toggleOrderedList().run()}><ListOrdered className="w-3.5 h-3.5" /></Button>
-                <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => editor?.chain().focus().toggleBlockquote().run()}><Quote className="w-3.5 h-3.5" /></Button>
-                <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={insertImage}><ImageIcon className="w-3.5 h-3.5" /></Button>
-                <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={insertYoutube}><Video className="w-3.5 h-3.5" /></Button>
+            <div className="flex items-center justify-between">
+              <Label>Nội dung</Label>
+              {/* Preview reads the editor's current document, so it works on
+                  unsaved changes — the point is to check the writing before
+                  committing it, not after. */}
+              <div className="flex items-center rounded-lg border border-border p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setPreviewing(false)}
+                  className={cn(
+                    "px-2.5 py-1 text-xs font-medium rounded-md transition-colors",
+                    !previewing ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Soạn thảo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewing(true)}
+                  className={cn(
+                    "inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md transition-colors",
+                    previewing ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Eye className="w-3.5 h-3.5" /> Xem trước
+                </button>
               </div>
-              <EditorContent editor={editor} onKeyUp={() => setDirty(true)} />
             </div>
+
+            {previewing ? (
+              <div className="border border-border rounded-xl bg-background px-5 py-8 sm:px-10 sm:py-12">
+                <div className="mx-auto" style={{ maxWidth: "min(100%, 46rem)" }}>
+                  <h1 className="font-display text-3xl sm:text-4xl font-bold leading-[1.25] tracking-tight text-balance">
+                    {title.trim() || "Tiêu đề bài viết"}
+                  </h1>
+                  {summarySnippet.trim() && (
+                    <p className="mt-4 font-display text-lg leading-relaxed text-muted-foreground">
+                      {summarySnippet}
+                    </p>
+                  )}
+                  <div className="mt-8 h-px bg-border" />
+                  <article
+                    className="prose-academic mt-8"
+                    dangerouslySetInnerHTML={{ __html: editor?.getHTML() ?? "" }}
+                  />
+                </div>
+                <p className="mt-10 text-center text-[11px] text-muted-foreground">
+                  Bản xem trước dùng đúng kiểu chữ và dàn trang của trang đọc. Phần khung trang — điều hướng, nút chia
+                  sẻ, tường phí — không hiển thị ở đây.
+                </p>
+              </div>
+            ) : (
+              <div className="border border-border rounded-xl overflow-hidden">
+                <div className="flex items-center gap-0.5 p-1.5 border-b border-border bg-secondary/40">
+                  <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => editor?.chain().focus().toggleBold().run()}><Bold className="w-3.5 h-3.5" /></Button>
+                  <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => editor?.chain().focus().toggleItalic().run()}><Italic className="w-3.5 h-3.5" /></Button>
+                  <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => editor?.chain().focus().toggleBulletList().run()}><List className="w-3.5 h-3.5" /></Button>
+                  <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => editor?.chain().focus().toggleOrderedList().run()}><ListOrdered className="w-3.5 h-3.5" /></Button>
+                  <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => editor?.chain().focus().toggleBlockquote().run()}><Quote className="w-3.5 h-3.5" /></Button>
+                  <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={insertImage}><ImageIcon className="w-3.5 h-3.5" /></Button>
+                  <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={insertYoutube}><Video className="w-3.5 h-3.5" /></Button>
+                </div>
+                <EditorContent editor={editor} onKeyUp={() => setDirty(true)} />
+              </div>
+            )}
           </div>
         </div>
 

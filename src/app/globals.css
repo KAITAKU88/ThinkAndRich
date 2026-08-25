@@ -141,80 +141,334 @@ body {
   letter-spacing: 0.01em;
 }
 
-/* Rich text reader typography */
-.prose-academic h2 {
+/* ==========================================================================
+   Reading surface (.prose-academic)
+
+   Renders the HTML that TipTap produces, for articles that run thousands of
+   words. Tuned for Vietnamese first, which rules out several habits of
+   classical book typography:
+
+   - Tone marks stack above vowels (ế, ộ, ằ, ữ). The 1.4–1.5 leading usual in
+     book settings crowds or clips them, so body copy sits at 1.85 and every
+     heading carries explicit room above its cap line.
+   - Text is never justified. Vietnamese words are short and monosyllabic and
+     browsers do not hyphenate the language, so justification opens rivers of
+     white space instead of closing them.
+   - Nothing is set in all caps inside running text: Ẩ, Ự and Ằ lose their
+     marks at cap height.
+   - No drop cap. Vietnamese sentences frequently open on a capital that
+     carries a mark, which collides with the line above it.
+
+   Structure: one column held to a 64ch measure, with section marks and
+   quotation marks hung into the left margin so the text edge stays straight.
+   ========================================================================== */
+
+.prose-academic {
+  --reader-measure: 64ch;
+  --reader-rule: color-mix(in srgb, var(--border) 65%, transparent);
+  --reader-gap: 1.35em;
+
   font-family: var(--font-display);
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-top: 2.5rem;
-  padding-top: 1.5rem;
-  margin-bottom: 0.85rem;
+  font-size: var(--reader-size, 1.1875rem);
+  line-height: 1.85;
   color: var(--foreground);
-  letter-spacing: -0.015em;
-  line-height: 1.3;
-  border-top: 1px solid var(--border);
+  text-align: left;
+  hyphens: none;
+  overflow-wrap: break-word;
 }
 
-.prose-academic > :first-child {
+/* The column is held to the measure and stays flush with the left edge of
+   its container, so the article body shares one left margin with the title
+   above it. Centring the column independently split the page into two
+   different left edges. */
+.prose-academic {
+  max-width: var(--reader-measure);
+}
+
+/* Content arrives wrapped in a div (dangerouslySetInnerHTML), so rules that
+   need the first block have to reach through that one level. */
+.prose-academic > :first-child,
+.prose-academic > div:first-child > :first-child {
   margin-top: 0;
-  padding-top: 0;
-  border-top: none;
+}
+
+/* Headings ---------------------------------------------------------------- */
+
+.prose-academic h2,
+.prose-academic h3 {
+  font-family: var(--font-display);
+  color: var(--foreground);
+  letter-spacing: -0.01em;
+  text-wrap: pretty; /* keeps a lone word off the last line */
+}
+
+.prose-academic h2 {
+  position: relative;
+  font-size: 1.55em;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-top: 2.6em;
+  margin-bottom: 0.7em;
+}
+
+/* A tick hung in the margin marks each section without a full-width rule
+   cutting the column in half. It retreats inline once there is no margin
+   left to hang it in. */
+.prose-academic h2::before {
+  content: "";
+  position: absolute;
+  left: -1.75rem;
+  top: 0.72em;
+  width: 1rem;
+  height: 1px;
+  background: var(--primary);
 }
 
 .prose-academic h3 {
-  font-size: 1.2rem;
+  font-size: 1.2em;
   font-weight: 600;
-  margin-top: 1.75rem;
-  margin-bottom: 0.65rem;
-  color: var(--foreground);
+  line-height: 1.4;
+  margin-top: 2em;
+  margin-bottom: 0.5em;
 }
 
-.prose-academic p {
-  color: var(--foreground);
-  line-height: 1.85;
-  margin-bottom: 1.25rem;
-  font-size: 1.05rem;
-  opacity: 0.92;
+.prose-academic h2 + h3 {
+  margin-top: 1.2em;
 }
+
+/* Paragraphs -------------------------------------------------------------- */
+
+.prose-academic p {
+  margin-bottom: var(--reader-gap);
+}
+
+/* The opening paragraph carries the reader in, so it is set a step larger
+   and a little looser. */
+.prose-academic > p:first-child,
+.prose-academic > div:first-child > p:first-child {
+  font-size: 1.1em;
+  line-height: 1.75;
+  color: color-mix(in srgb, var(--foreground) 92%, transparent);
+}
+
+.prose-academic strong {
+  font-weight: 650;
+}
+
+.prose-academic em {
+  font-style: italic;
+}
+
+.prose-academic a {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-decoration-color: var(--primary);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+.prose-academic a:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* Lists ------------------------------------------------------------------- */
 
 .prose-academic ul,
 .prose-academic ol {
-  padding-left: 1.5rem;
-  margin-bottom: 1.25rem;
-  line-height: 1.8;
+  margin-bottom: var(--reader-gap);
+  padding-left: 1.4em;
 }
 
 .prose-academic ul {
-  list-style-type: disc;
+  list-style: none;
 }
 
 .prose-academic ol {
-  list-style-type: decimal;
+  list-style: decimal;
 }
 
 .prose-academic li {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.45em;
+  padding-left: 0.15em;
 }
 
-.prose-academic blockquote {
-  border-left: 3px solid var(--primary);
-  padding: 0.9rem 1.35rem;
-  margin: 1.85rem 0;
-  background: var(--secondary);
-  border-radius: 0 0.75rem 0.75rem 0;
-  font-style: italic;
-  font-family: var(--font-display);
-  color: var(--foreground);
-  font-size: 1.15rem;
-  line-height: 1.6;
+/* Markers hang outside the text edge, so wrapped lines align with the first
+   line rather than with the bullet. */
+.prose-academic ul > li {
+  position: relative;
 }
+
+.prose-academic ul > li::before {
+  content: "";
+  position: absolute;
+  left: -0.95em;
+  top: 0.82em;
+  width: 0.32em;
+  height: 0.32em;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+.prose-academic ol > li::marker {
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+  color: var(--muted-foreground);
+}
+
+.prose-academic li > ul,
+.prose-academic li > ol {
+  margin-top: 0.45em;
+  margin-bottom: 0;
+}
+
+/* Quotations -------------------------------------------------------------- */
+
+/* The opening mark hangs into the margin: the classical way to keep the text
+   edge straight when a passage is set apart. */
+.prose-academic blockquote {
+  position: relative;
+  margin: 2.2em 0;
+  padding-left: 1.4em;
+  border-left: 2px solid var(--primary);
+  font-size: 1.1em;
+  line-height: 1.7;
+  font-style: italic;
+  color: color-mix(in srgb, var(--foreground) 88%, transparent);
+}
+
+.prose-academic blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+/* Section break ----------------------------------------------------------- */
+
+/* An asterism rather than a rule — a pause inside a chapter, not a border. */
+.prose-academic hr {
+  border: 0;
+  margin: 3em 0;
+  text-align: center;
+  overflow: visible;
+}
+
+.prose-academic hr::before {
+  content: "⁂";
+  color: var(--muted-foreground);
+  font-size: 1.1em;
+  letter-spacing: 0.3em;
+}
+
+/* Figures ----------------------------------------------------------------- */
+
+/* Images may breathe wider than the measure; the caption stays on it. */
+.prose-academic img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 2.2em 0 0.7em;
+  border-radius: 0.5rem;
+}
+
+.prose-academic figure {
+  margin: 2.2em 0;
+}
+
+.prose-academic figcaption {
+  font-family: var(--font-mono);
+  font-size: 0.75em;
+  line-height: 1.6;
+  color: var(--muted-foreground);
+}
+
+.prose-academic iframe {
+  display: block;
+  max-width: 100%;
+  margin: 2.2em 0;
+  border-radius: 0.5rem;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  height: auto;
+}
+
+/* Code and data ----------------------------------------------------------- */
 
 .prose-academic code {
   font-family: var(--font-mono);
-  font-size: 0.875em;
-  padding: 0.2em 0.4em;
+  font-size: 0.82em;
+  padding: 0.15em 0.4em;
   border-radius: 0.25rem;
   background-color: var(--secondary);
+}
+
+.prose-academic pre {
+  margin: 1.8em 0;
+  padding: 1.1em 1.3em;
+  border-radius: 0.6rem;
+  background: var(--secondary);
+  border: 1px solid var(--reader-rule);
+  overflow-x: auto;
+  line-height: 1.6;
+}
+
+.prose-academic pre code {
+  padding: 0;
+  background: none;
+  font-size: 0.85em;
+}
+
+.prose-academic table {
+  width: 100%;
+  margin: 2em 0;
+  border-collapse: collapse;
+  font-size: 0.9em;
+  line-height: 1.6;
+}
+
+.prose-academic th,
+.prose-academic td {
+  padding: 0.6em 0.8em;
+  border-bottom: 1px solid var(--reader-rule);
+  text-align: left;
+  vertical-align: top;
+}
+
+.prose-academic th {
+  font-family: var(--font-sans);
+  font-size: 0.82em;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+
+/* Narrow screens ---------------------------------------------------------- */
+
+/* Below the point where a margin exists to hang things in, the section tick
+   sits above its heading instead. */
+@media (max-width: 45rem) {
+  .prose-academic {
+    --reader-measure: 100%;
+  }
+
+  .prose-academic h2::before {
+    left: 0;
+    top: -0.55em;
+    width: 1.75rem;
+  }
+
+  /* The page title shrinks on a narrow screen while these do not, which left
+     section headings shouting louder than the title of the article they sit
+     inside. */
+  .prose-academic h2 {
+    font-size: 1.3em;
+    margin-top: 2.2em;
+    padding-top: 0.35em;
+  }
+
+  .prose-academic h3 {
+    font-size: 1.1em;
+  }
+
+  .prose-academic ul {
+    padding-left: 1.1em;
+  }
 }
 
 /* Hero fanned card catalog — idle sway. Reduced-motion is handled by the

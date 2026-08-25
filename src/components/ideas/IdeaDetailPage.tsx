@@ -299,11 +299,19 @@ export function PostDetailPage() {
           </div>
         )}
 
-        {/* Article Body & Paywall Gate */}
-        <article className={cn(
-          "relative min-h-[300px] prose-academic max-w-none text-foreground/90",
-          fontSize === "large" ? "text-lg leading-[1.9]" : fontSize === "xlarge" ? "text-xl leading-[2.0]" : "text-base"
-        )}>
+        {/* Article Body & Paywall Gate.
+            The reader's size control feeds --reader-size rather than Tailwind
+            text-* classes: everything inside .prose-academic is sized in em,
+            so one root value rescales the whole surface — headings, quotes,
+            captions and rhythm together — instead of resizing body copy while
+            the rest stays put. */}
+        <article
+          className="relative min-h-[300px] prose-academic"
+          style={{
+            ["--reader-size" as string]:
+              fontSize === "large" ? "1.3125rem" : fontSize === "xlarge" ? "1.4375rem" : "1.1875rem",
+          }}
+        >
           {hasAccess ? (
             <div dangerouslySetInnerHTML={{ __html: post.fullContent }} />
           ) : (
