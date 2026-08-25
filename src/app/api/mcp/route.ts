@@ -36,6 +36,22 @@ async function secretsMatch(a: string, b: string): Promise<boolean> {
   return diff === 0;
 }
 
+// A 401 here is what starts the OAuth dance: RFC 9728 says the challenge must
+// name the resource-metadata document, and that is how a client such as
+// Claude.ai discovers where to register and send the user to authorize.
+function unauthorized(request: NextRequest, description: string) {
+  const metadataUrl = `${new URL(request.url).origin}/.well-known/oauth-protected-resource`;
+  return Response.json(
+    { error: "invalid_token", error_description: description },
+    {
+      status: 401,
+      headers: {
+        "WWW-Authenticate": `Bearer resource_metadata="${metadataUrl}", error="invalid_token", error_description="${description}"`,
+      },
+    }
+  );
+}
+
 async function handleMcpRequest(request: NextRequest) {
   const { env } = getCloudflareContext();
 
@@ -44,9 +60,7 @@ async function handleMcpRequest(request: NextRequest) {
   const queryToken = request.nextUrl.searchParams.get("key") ?? undefined;
   const token = headerToken ?? queryToken;
 
-  if (!token) {
-    return Response.json({ error: "Missing API key." }, { status: 401 });
-  }
+  if (!token) return unauthorized(request, "Missing credentials.");
 
   // Keys created in the admin console (revocable, hashed at rest, per-client)
   // are the real credential. MCP_API_KEY stays accepted as a fallback so the
@@ -55,9 +69,7 @@ async function handleMcpRequest(request: NextRequest) {
   const dbToken = await verifyMcpToken(env.DB, token);
   const legacyOk = !dbToken && !!env.MCP_API_KEY && (await secretsMatch(token, env.MCP_API_KEY));
 
-  if (!dbToken && !legacyOk) {
-    return Response.json({ error: "Invalid or revoked API key." }, { status: 401 });
-  }
+  if (!dbToken && !legacyOk) return unauthorized(request, "Invalid or revoked credentials.");
 
   const authInfo: AuthInfo = {
     token,

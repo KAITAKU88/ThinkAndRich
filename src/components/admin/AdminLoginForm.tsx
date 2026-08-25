@@ -16,7 +16,12 @@ import { useSession } from "@/store/session";
 export function AdminLoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const from = searchParams.get("from") || "/admin";
+  // `from` is attacker-controllable — anyone can hand out
+  // /admin/login?from=https://example.com — so only same-origin paths are
+  // honoured. A protocol-relative "//host" would be read as a host by the
+  // browser, hence the second check.
+  const requested = searchParams.get("from");
+  const from = requested && requested.startsWith("/") && !requested.startsWith("//") ? requested : "/admin";
 
   const user = useSession((s) => s.user);
   const requestOtp = useSession((s) => s.requestOtp);

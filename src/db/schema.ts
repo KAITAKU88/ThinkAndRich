@@ -210,3 +210,39 @@ export const mcpTokens = sqliteTable(
     index("mcp_tokens_revoked_idx").on(table.revokedAt),
   ]
 );
+
+// OAuth clients that registered themselves through RFC 7591 dynamic client
+// registration. Registration is deliberately open — Claude.ai registers
+// itself before it can even show a consent screen, and there is no chance to
+// pre-share credentials with it. Registering buys an anonymous caller
+// nothing on its own: minting a token still requires a logged-in ADMIN to
+// approve the request on /mcp/authorize.
+export const mcpOauthClients = sqliteTable("mcp_oauth_clients", {
+  id: text("id").primaryKey(), // client_id
+  secretHash: text("secret_hash"), // null for public (PKCE-only) clients
+  name: text("name").notNull(),
+  redirectUris: text("redirect_uris").notNull(), // JSON array of exact-match URIs
+  createdAt: text("created_at").notNull(),
+});
+
+// Short-lived authorization codes. Stored hashed and single-use: `usedAt` is
+// set on redemption, and a code presented twice is treated as an attack on
+// the client that holds it rather than a retry.
+export const mcpAuthCodes = sqliteTable(
+  "mcp_auth_codes",
+  {
+    codeHash: text("code_hash").primaryKey(),
+    clientId: text("client_id").notNull(),
+    redirectUri: text("redirect_uri").notNull(),
+    codeChallenge: text("code_challenge").notNull(),
+    codeChallengeMethod: text("code_challenge_method").notNull(),
+    scope: text("scope").notNull(),
+    userId: text("user_id").notNull(),
+    userEmail: text("user_email").notNull(),
+    resource: text("resource"),
+    createdAt: text("created_at").notNull(),
+    expiresAt: text("expires_at").notNull(),
+    usedAt: text("used_at"),
+  },
+  (table) => [index("mcp_auth_codes_expires_idx").on(table.expiresAt)]
+);
