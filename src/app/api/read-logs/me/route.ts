@@ -16,9 +16,9 @@ export async function GET(request: NextRequest) {
   }
 
   const db = drizzle(ctx.env.DB);
-  // Joined to the post so each row carries its access level: the store
-  // derives today's quota usage from these rows and has to apply the same
-  // OPEN exclusion the server applies, or the number on screen disagrees with
+  // Joined to the post so each row carries its access level: the store meters
+  // today's usage from these rows and has to apply the same per-level rule the
+  // server applies (src/lib/quota.ts), or the number on screen disagrees with
   // the one actually enforced.
   const rows = await db
     .select({ log: readLogs, accessLevel: posts.accessLevel })
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     .orderBy(desc(readLogs.readAt))
     .all();
 
-  const result: (ReadLog & { countsTowardQuota: boolean })[] = rows.map(({ log, accessLevel }) => ({
+  const result: (ReadLog & { accessLevel: string })[] = rows.map(({ log, accessLevel }) => ({
     id: log.id,
     userId: log.userId,
     userEmail: log.userEmail,
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     postCategory: log.postCategory ?? undefined,
     readAt: log.readAt,
     reaction: (log.reaction as ReadLog["reaction"]) ?? undefined,
-    countsTowardQuota: accessLevel !== "OPEN",
+    accessLevel,
   }));
 
   return NextResponse.json({ ok: true, readLogs: result });

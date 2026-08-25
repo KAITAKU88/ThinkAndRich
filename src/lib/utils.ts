@@ -113,11 +113,6 @@ export function slugify(text: string): string {
 // purpose so both the client store (optimistic UI) and the server access
 // -control module (src/lib/server/access-control.ts, real enforcement)
 // import the exact same numbers instead of drifting.
-export function dailyReadLimit(user: { role: string; tier: string } | null): number {
-  if (!user || user.role === "ADMIN" || user.tier === "PRO") return Infinity;
-  if (user.tier === "PLUS") return 25;
-  return 10;
-}
 
 export function timeAgo(isoDate: string): string {
   const diff = Date.now() - new Date(isoDate).getTime();

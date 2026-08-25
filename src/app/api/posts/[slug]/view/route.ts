@@ -4,6 +4,7 @@ import { drizzle } from "drizzle-orm/d1";
 import { and, eq, like } from "drizzle-orm";
 import { posts, readLogs, users } from "@/db/schema";
 import { verifySession, SESSION_COOKIE } from "@/lib/session-token";
+import { quotaForTier } from "@/lib/quota";
 
 // Increments views unconditionally (even anonymous) and, when a session
 // exists, records a read_logs row + updates the daily quota counter — one
@@ -52,10 +53,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         reaction: null,
       });
 
-      // OPEN articles are logged but never charged to the allowance — see
-      // getTodayReadCount in src/lib/server/access-control.ts, which applies
-      // the same exclusion when the paywall counts.
-      const countsTowardQuota = post.accessLevel !== "OPEN";
+      // A read is charged only at the level this tier's allowance meters —
+      // src/lib/quota.ts, the same rule checkPostAccess applies. Everything
+      // else is still logged, just not counted.
+      const quota = quotaForTier(user);
+      const countsTowardQuota = quota !== null && post.accessLevel === quota.level;
 
       if (!alreadyReadToday && countsTowardQuota) {
         const nextCount = user.dailyReadsDate === today ? user.dailyReadsCount + 1 : 1;

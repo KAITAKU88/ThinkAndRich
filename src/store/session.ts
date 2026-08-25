@@ -10,7 +10,7 @@ import type {
 } from "@/lib/types";
 
 import { DEFAULT_SETTINGS } from "@/lib/data";
-import { dailyReadLimit } from "@/lib/utils";
+import { quotaForTier } from "@/lib/quota";
 
 // Shape returned by the real /api/auth/* routes (src/db/schema.ts users
 // table via Drizzle) — maps it onto the SessionUser the rest of the app
@@ -211,7 +211,7 @@ export const useSession = create<SessionState>()(
         const user = get().user;
         if (!user) return;
 
-        set({ dailyLimit: dailyReadLimit(user) });
+        set({ dailyLimit: quotaForTier(user)?.limit ?? Infinity });
 
         const [bookmarksRes, reactionsRes, readLogsRes] = await Promise.allSettled([
           fetch("/api/bookmarks").then((r) => r.json() as Promise<{ ok: boolean; posts?: { id: string }[] }>),
@@ -222,7 +222,7 @@ export const useSession = create<SessionState>()(
             (r) =>
               r.json() as Promise<{
                 ok: boolean;
-                readLogs?: { postId: string; readAt: string; countsTowardQuota?: boolean }[];
+                readLogs?: { postId: string; readAt: string; accessLevel?: string }[];
               }>
           ),
         ]);
@@ -236,12 +236,18 @@ export const useSession = create<SessionState>()(
         if (readLogsRes.status === "fulfilled" && readLogsRes.value.ok && readLogsRes.value.readLogs) {
           const logs = readLogsRes.value.readLogs;
           const today = new Date().toISOString().slice(0, 10);
-          // OPEN articles never consume the allowance (the server applies the
-          // same rule in getTodayReadCount), so they must not appear in the
-          // "read today" figure shown next to the limit either.
+          // Only reads at the level this tier's allowance meters are counted,
+          // matching checkPostAccess exactly — otherwise the figure beside the
+          // limit disagrees with the limit actually being applied.
+          const quota = quotaForTier(user);
           const todayPostIds = new Set(
             logs
-              .filter((l) => l.readAt.slice(0, 10) === today && l.countsTowardQuota !== false)
+              .filter(
+                (l) =>
+                  l.readAt.slice(0, 10) === today &&
+                  quota !== null &&
+                  l.accessLevel === quota.level
+              )
               .map((l) => l.postId)
           );
           set({

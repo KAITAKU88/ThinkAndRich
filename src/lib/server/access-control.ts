@@ -1,8 +1,8 @@
-import { and, eq, like, ne } from "drizzle-orm";
+import { and, eq, like } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 import { posts, readLogs } from "@/db/schema";
-import type { MembershipTier, Post } from "@/lib/types";
-import { dailyReadLimit } from "@/lib/utils";
+import type { ContentAccessLevel, MembershipTier, Post } from "@/lib/types";
+import { quotaForTier, type TierQuota } from "@/lib/quota";
 
 // Server-side port of the tier/access-level/daily-quota logic that used to
 // live only in src/store/session.ts (canAccessPost/getDailyLimit/
@@ -27,23 +27,21 @@ function getTodayString(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export const getDailyLimit = dailyReadLimit;
+export function getDailyLimit(user: { role: string; tier: string } | null): number {
+  return quotaForTier(user)?.limit ?? Infinity;
+}
 
 /**
- * Distinct posts read today that count against the daily quota.
+ * Distinct posts read today at one access level.
  *
- * OPEN articles are excluded. They are readable by anyone, signed in or not,
- * so charging them to a member's allowance punished exactly the wrong people:
- * a FREE reader could spend the whole day's ten slots on articles an
- * anonymous visitor reads without limit, and then be locked out of the FREE
- * articles the allowance exists for. Signing in made the site worse, which is
- * the opposite of what the tier is meant to do.
- *
- * Reads are still logged for all levels — this only changes what is counted.
+ * Only the level a tier's allowance meters is ever counted — see
+ * src/lib/quota.ts. Reads are still logged at every level; this only decides
+ * what is charged.
  */
-export async function getTodayReadCount(
+export async function getTodayReadCountAtLevel(
   db: DrizzleD1Database,
-  userId: string
+  userId: string,
+  level: ContentAccessLevel
 ): Promise<number> {
   const today = getTodayString();
   const rows = await db
@@ -54,11 +52,22 @@ export async function getTodayReadCount(
       and(
         eq(readLogs.userId, userId),
         like(readLogs.readAt, `${today}%`),
-        ne(posts.accessLevel, "OPEN")
+        eq(posts.accessLevel, level)
       )
     );
   return new Set(rows.map((r) => r.postId)).size;
 }
+
+/** Reads charged against this user's own allowance today. */
+export async function getTodayReadCount(
+  db: DrizzleD1Database,
+  userId: string,
+  quota: TierQuota | null
+): Promise<number> {
+  if (!quota) return 0;
+  return getTodayReadCountAtLevel(db, userId, quota.level);
+}
+
 
 async function hasReadPostToday(
   db: DrizzleD1Database,
@@ -96,29 +105,33 @@ export async function checkPostAccess(
     return { allowed: true };
   }
 
-  const tier = sessionUser.tier || "FREE";
+  const tier: MembershipTier = (sessionUser.tier as MembershipTier) || "FREE";
   const level = post.accessLevel;
 
-  if (tier === "FREE") {
-    if (level === "MEMBER_PLUS" || level === "MEMBER_PRO") {
-      return { allowed: false, reason: "PRO_REQUIRED", tier: "FREE" };
-    }
-    const todayReads = await getTodayReadCount(db, sessionUser.id);
-    if (todayReads >= 10 && !(await hasReadPostToday(db, sessionUser.id, post.id))) {
-      return { allowed: false, reason: "DAILY_LIMIT_REACHED", limit: 10, currentReads: todayReads, tier: "FREE" };
-    }
+  // Levels above the reader's tier are shut regardless of any allowance.
+  if (tier === "FREE" && (level === "MEMBER_PLUS" || level === "MEMBER_PRO")) {
+    return { allowed: false, reason: "PRO_REQUIRED", tier: "FREE" };
+  }
+  if (tier === "PLUS" && level === "MEMBER_PRO") {
+    return { allowed: false, reason: "PRO_REQUIRED", tier: "PLUS" };
+  }
+
+  const quota = quotaForTier(sessionUser);
+  // Anything below the metered level — a PLUS member reading a FREE article,
+  // anyone reading an OPEN one — is unlimited.
+  if (!quota || level !== quota.level) {
     return { allowed: true };
   }
 
-  if (tier === "PLUS") {
-    if (level === "MEMBER_PRO") {
-      return { allowed: false, reason: "PRO_REQUIRED", tier: "PLUS" };
-    }
-    const todayReads = await getTodayReadCount(db, sessionUser.id);
-    if (todayReads >= 25 && !(await hasReadPostToday(db, sessionUser.id, post.id))) {
-      return { allowed: false, reason: "DAILY_LIMIT_REACHED", limit: 25, currentReads: todayReads, tier: "PLUS" };
-    }
-    return { allowed: true };
+  const todayReads = await getTodayReadCountAtLevel(db, sessionUser.id, quota.level);
+  if (todayReads >= quota.limit && !(await hasReadPostToday(db, sessionUser.id, post.id))) {
+    return {
+      allowed: false,
+      reason: "DAILY_LIMIT_REACHED",
+      limit: quota.limit,
+      currentReads: todayReads,
+      tier,
+    };
   }
 
   return { allowed: true };
