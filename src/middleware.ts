@@ -35,20 +35,18 @@ export async function middleware(request: NextRequest) {
   const host = request.headers.get("host")?.toLowerCase();
   const onAdminHost = Boolean(adminHost && host === adminHost);
 
-  // Public hostname: the console belongs on its own host, so send visitors
-  // there instead of serving a second copy here. The API side just refuses —
-  // nothing legitimate calls it from this hostname, and a redirect would only
-  // help someone probing.
+  // Public hostname: the console does not exist here. This used to redirect
+  // to the console host, which was convenient but meant the old
+  // public-site/admin URL still reached a working login form — two front
+  // doors when the point of the split was to have one. Answering exactly as
+  // any unknown path does also means the public site never advertises that a
+  // console exists, or where.
   if (adminHost && !onAdminHost) {
     if (isAdminApi) {
       return NextResponse.json({ ok: false, message: "Forbidden" }, { status: 403 });
     }
     if (pathname === "/admin" || pathname.startsWith("/admin/")) {
-      const target = new URL(request.url);
-      target.host = adminHost;
-      target.protocol = "https:";
-      target.port = "";
-      return NextResponse.redirect(target);
+      return NextResponse.rewrite(new URL("/_admin-not-here", request.url));
     }
   }
 
