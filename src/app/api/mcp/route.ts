@@ -16,33 +16,19 @@ const FAILED_AUTH = { limit: 20, windowSeconds: 10 * 60 };
 // chat session can push a freshly-written article straight into D1 as a
 // DRAFT post.
 //
-// Three ways to authenticate, in descending order of preference:
+// Two ways to authenticate, both backed by the mcp_tokens table:
 //   1. An OAuth access token (src/lib/server/mcp-oauth.ts) in the
 //      Authorization header. Nothing secret ever appears in a URL, and the
 //      401 below is what sets that negotiation going.
 //   2. An admin-created key from the MCP Connector screen, also as a bearer
 //      header, or as `?key=` for clients whose UI offers nowhere to put a
 //      header — Claude.ai's connector dialog being one.
-//   3. The legacy MCP_API_KEY secret, kept only so the connector that was
-//      already set up did not break. Drop it once nothing uses it.
-
-// Constant-time comparison so a wrong key can't be recovered by timing the
-// response. Both sides are hashed first so the loop length — and therefore
-// the timing — never depends on the supplied key's length either. Only the
-// legacy MCP_API_KEY path needs this; D1-backed keys are matched by digest
-// inside SQLite (see verifyMcpToken).
-async function secretsMatch(a: string, b: string): Promise<boolean> {
-  const encoder = new TextEncoder();
-  const [digestA, digestB] = await Promise.all([
-    crypto.subtle.digest("SHA-256", encoder.encode(a)),
-    crypto.subtle.digest("SHA-256", encoder.encode(b)),
-  ]);
-  const bytesA = new Uint8Array(digestA);
-  const bytesB = new Uint8Array(digestB);
-  let diff = 0;
-  for (let i = 0; i < bytesA.length; i++) diff |= bytesA[i] ^ bytesB[i];
-  return diff === 0;
-}
+//
+// A third route used to exist: a single MCP_API_KEY held in the Worker's
+// secrets. It was removed once the live connector had moved to OAuth, because
+// it could not be revoked without a redeploy and was invisible to the admin
+// console. Every credential is now revocable from there, and every one of
+// them is checked against a stored digest rather than a value in the config.
 
 // A 401 here is what starts the OAuth dance: RFC 9728 says the challenge must
 // name the resource-metadata document, and that is how a client such as
@@ -76,22 +62,16 @@ async function handleMcpRequest(request: NextRequest) {
 
   if (!token) return unauthorized(request, "Missing credentials.");
 
-  // Keys created in the admin console (revocable, hashed at rest, per-client)
-  // are the real credential. MCP_API_KEY stays accepted as a fallback so the
-  // already-connected client keeps working while keys are migrated over —
-  // remove it from the Worker's secrets once every client holds a D1 key.
   const dbToken = await verifyMcpToken(env.DB, token);
-  const legacyOk = !dbToken && !!env.MCP_API_KEY && (await secretsMatch(token, env.MCP_API_KEY));
-
-  if (!dbToken && !legacyOk) {
+  if (!dbToken) {
     await recordRateLimitHit(env.OTP_KV, "mcp-auth", ip, FAILED_AUTH);
     return unauthorized(request, "Invalid or revoked credentials.");
   }
 
   const authInfo: AuthInfo = {
     token,
-    clientId: dbToken?.clientId ?? dbToken?.id ?? "think-and-rich-legacy-key",
-    scopes: (dbToken?.scope ?? "mcp").split(" "),
+    clientId: dbToken.clientId ?? dbToken.id,
+    scopes: dbToken.scope.split(" "),
     // Long-lived credential rather than a short-lived OAuth token; actual
     // expiry/revocation is enforced by verifyMcpToken on every request.
     expiresAt: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365,
