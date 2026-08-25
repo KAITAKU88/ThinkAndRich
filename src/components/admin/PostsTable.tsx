@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SortableHeader } from "@/components/admin/SortableHeader";
 import { PILLARS_CONFIG } from "@/lib/data";
-import { formatViews } from "@/lib/utils";
+import { cn, formatViews } from "@/lib/utils";
 import type { AdminPost } from "@/lib/admin/use-admin-posts";
 import type { PillarType } from "@/lib/types";
 
@@ -22,9 +22,17 @@ interface PostsTableProps {
 }
 
 type SortKey = "title" | "views" | "clicks" | "shares" | "bookmarkCount";
+type StatusFilter = "ALL" | "DRAFT" | "PUBLISHED";
+
+const STATUS_TABS: { id: StatusFilter; label: string }[] = [
+  { id: "ALL", label: "Tất cả" },
+  { id: "DRAFT", label: "Bản nháp" },
+  { id: "PUBLISHED", label: "Đã xuất bản" },
+];
 
 export function PostsTable({ posts, loading, onEdit, onDelete, onCreateNew }: PostsTableProps) {
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [pillarFilter, setPillarFilter] = useState<"ALL" | PillarType>("ALL");
   const [sortKey, setSortKey] = useState<SortKey>("views");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
@@ -39,8 +47,20 @@ export function PostsTable({ posts, loading, onEdit, onDelete, onCreateNew }: Po
     }
   }
 
+  // Counts come from the full set, not the filtered one, so each tab keeps
+  // showing how many posts it holds while a search is narrowing the table.
+  const statusCounts = useMemo(
+    () => ({
+      ALL: posts.length,
+      DRAFT: posts.filter((p) => p.status === "DRAFT").length,
+      PUBLISHED: posts.filter((p) => p.status === "PUBLISHED").length,
+    }),
+    [posts]
+  );
+
   const filtered = useMemo(() => {
     let list = posts;
+    if (statusFilter !== "ALL") list = list.filter((p) => p.status === statusFilter);
     if (pillarFilter !== "ALL") list = list.filter((p) => p.pillar === pillarFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -52,7 +72,7 @@ export function PostsTable({ posts, loading, onEdit, onDelete, onCreateNew }: Po
       const cmp = av < bv ? -1 : av > bv ? 1 : 0;
       return dir === "asc" ? cmp : -cmp;
     });
-  }, [posts, pillarFilter, search, sortKey, dir]);
+  }, [posts, statusFilter, pillarFilter, search, sortKey, dir]);
 
   async function handleDelete(id: string) {
     const res = await onDelete(id);
@@ -63,6 +83,37 @@ export function PostsTable({ posts, loading, onEdit, onDelete, onCreateNew }: Po
 
   return (
     <div className="space-y-4">
+      {/* Drafts are the reason this exists: posts arriving over MCP land as
+          drafts and need reviewing, which was impossible to see in a list
+          mixing them with everything already published. */}
+      <div className="flex items-center gap-1 border-b border-border">
+        {STATUS_TABS.map((statusTab) => {
+          const active = statusFilter === statusTab.id;
+          return (
+            <button
+              key={statusTab.id}
+              onClick={() => setStatusFilter(statusTab.id)}
+              className={cn(
+                "relative px-3 py-2 text-xs font-medium transition-colors -mb-px border-b-2",
+                active
+                  ? "border-primary text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {statusTab.label}
+              <span
+                className={cn(
+                  "ml-1.5 rounded-full px-1.5 py-0.5 text-[10px]",
+                  active ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"
+                )}
+              >
+                {statusCounts[statusTab.id]}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="flex flex-wrap items-center gap-2 justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
@@ -107,7 +158,15 @@ export function PostsTable({ posts, loading, onEdit, onDelete, onCreateNew }: Po
             {loading ? (
               <tr><td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">Đang tải...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">Không có bài viết nào.</td></tr>
+              <tr>
+                <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
+                  {statusFilter === "DRAFT"
+                    ? "Không có bản nháp nào đang chờ duyệt."
+                    : statusFilter === "PUBLISHED"
+                      ? "Chưa có bài viết nào được xuất bản."
+                      : "Không có bài viết nào."}
+                </td>
+              </tr>
             ) : (
               filtered.map((post) => {
                 const pillarMeta = PILLARS_CONFIG[post.pillar];

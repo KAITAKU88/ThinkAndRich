@@ -95,7 +95,12 @@ export function PostForm({ editingPost, onCreate, onUpdate, onDone }: PostFormPr
       return;
     }
     if (!postId && result.post) setPostId(result.post.id);
-    if (nextStatus) setStatus(nextStatus);
+    if (nextStatus) {
+      setStatus(nextStatus);
+      toast.success(
+        nextStatus === "PUBLISHED" ? "Đã xuất bản bài viết." : "Đã chuyển về bản nháp — bài không còn hiển thị công khai."
+      );
+    }
     setDirty(false);
     setLastSavedAt(new Date());
   }
@@ -212,6 +217,23 @@ export function PostForm({ editingPost, onCreate, onUpdate, onDone }: PostFormPr
             <Button className="w-full h-10" disabled={saving} onClick={() => save("PUBLISHED")}>
               {status === "PUBLISHED" ? "Cập nhật bài đã xuất bản" : "Xuất bản"}
             </Button>
+            {/* Editing a published post was always possible — every save kept
+                it live. What was missing was a way to pull it off the public
+                site while it is being reworked. */}
+            {status === "PUBLISHED" && (
+              <Button
+                className="w-full h-10 text-destructive hover:text-destructive"
+                variant="ghost"
+                disabled={saving}
+                onClick={() => {
+                  if (confirm("Chuyển bài này về bản nháp? Bài sẽ bị gỡ khỏi trang công khai cho đến khi bạn xuất bản lại.")) {
+                    void save("DRAFT");
+                  }
+                }}
+              >
+                Chuyển về bản nháp
+              </Button>
+            )}
           </div>
         </div>
       </div>

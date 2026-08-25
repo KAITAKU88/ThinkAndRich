@@ -109,7 +109,21 @@ export function AdminPage() {
           <h1 className="font-display font-bold text-lg hidden lg:block">
             {SIDEBAR.find((s) => s.id === tab)?.label}
           </h1>
-          <span className="text-xs text-muted-foreground ml-auto">{user.email}</span>
+          {/* Also present at the foot of the sidebar, but styled like the
+              logout button down there and easy to miss — checking the live
+              site is frequent enough to deserve a spot in the header. */}
+          <div className="ml-auto flex items-center gap-3">
+            <Link
+              href="/"
+              target="_blank"
+              rel="noopener"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-secondary"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Xem trang công khai</span>
+            </Link>
+            <span className="text-xs text-muted-foreground hidden sm:inline">{user.email}</span>
+          </div>
         </header>
 
         <main className="p-4 lg:p-6">
