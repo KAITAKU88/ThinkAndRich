@@ -49,3 +49,7 @@ next-env.d.ts
 
 # local agent/skill tooling cache (nested git repo, not project source)
 /.agents/
+
+# D1 production exports — these contain real user data (emails, orders),
+# so they must never reach the repo.
+/.backups/
