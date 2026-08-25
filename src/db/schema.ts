@@ -178,3 +178,35 @@ export const postTranslations = sqliteTable(
     index("post_translations_language_idx").on(table.language),
   ]
 );
+
+// Credentials for the MCP content-authoring server (src/app/api/mcp).
+// Replaces the single MCP_API_KEY env var, which could only be rotated from
+// the CLI and gave no way to tell one AI client from another. Keys live here
+// hashed (SHA-256 — the raw key is 256 bits of entropy, so a slow KDF buys
+// nothing) and the plaintext is shown exactly once, at creation.
+//
+// `kind` distinguishes an admin-pasted key from a token minted by the OAuth
+// authorize flow, so both share one revocation list and one admin screen.
+export const mcpTokens = sqliteTable(
+  "mcp_tokens",
+  {
+    id: text("id").primaryKey(),
+    tokenHash: text("token_hash").notNull().unique(),
+    // First few chars of the raw key, kept so the admin UI can identify a key
+    // it can never show again ("tnr_mcp_9f3a…").
+    tokenPrefix: text("token_prefix").notNull(),
+    label: text("label").notNull(),
+    kind: text("kind", { enum: ["MANUAL", "OAUTH"] }).notNull().default("MANUAL"),
+    // Admin who created/authorized it, for audit.
+    createdBy: text("created_by").notNull(),
+    clientId: text("client_id"), // OAuth client that holds it; null for MANUAL
+    scope: text("scope").notNull().default("mcp"),
+    createdAt: text("created_at").notNull(),
+    expiresAt: text("expires_at"), // null = never expires
+    lastUsedAt: text("last_used_at"),
+    revokedAt: text("revoked_at"),
+  },
+  (table) => [
+    index("mcp_tokens_revoked_idx").on(table.revokedAt),
+  ]
+);

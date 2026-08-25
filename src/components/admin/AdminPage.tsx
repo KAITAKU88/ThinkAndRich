@@ -14,6 +14,7 @@ import {
   FileText,
   UserCheck,
   BadgeDollarSign,
+  Plug,
 } from "lucide-react";
 import { useSession } from "@/store/session";
 import { useAdminPosts, type AdminPost } from "@/lib/admin/use-admin-posts";
@@ -21,6 +22,7 @@ import { PostsTable } from "@/components/admin/PostsTable";
 import { PostForm } from "@/components/admin/PostForm";
 import { UsersTable } from "@/components/admin/UsersTable";
 import { OrdersTable } from "@/components/admin/OrdersTable";
+import { McpKeysPanel } from "@/components/admin/McpKeysPanel";
 import { cn, timeAgo } from "@/lib/utils";
 
 const SIDEBAR = [
@@ -28,6 +30,7 @@ const SIDEBAR = [
   { id: "posts", label: "Quản lý Bài viết", icon: BookOpen },
   { id: "users", label: "Quản lý Người dùng", icon: Users },
   { id: "orders", label: "Đơn hàng & Doanh thu", icon: Wallet },
+  { id: "mcp", label: "MCP Connector", icon: Plug },
 ] as const;
 
 type TabId = (typeof SIDEBAR)[number]["id"];
@@ -132,6 +135,7 @@ export function AdminPage() {
 
           {tab === "users" && <UsersTable />}
           {tab === "orders" && <OrdersTable />}
+          {tab === "mcp" && <McpKeysPanel />}
         </main>
       </div>
     </div>
