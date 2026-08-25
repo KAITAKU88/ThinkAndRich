@@ -18,22 +18,37 @@ import { verifySession, SESSION_COOKIE } from "@/lib/session-token";
 // that risk, but it MUST be verified with `npm run preview` (a real
 // Workers build), not just `next dev`, before trusting it in production.
 //
-// The console also answers on its own hostname, named by the ADMIN_HOST
-// variable rather than hardcoded, so moving it to a different domain later
-// is a config change plus a route in wrangler.jsonc — not a code change.
-// "/" is matched so that hostname can serve the console at its root.
+// Hostnames come from ADMIN_HOST / PUBLIC_HOST rather than being hardcoded,
+// so moving either to a different domain is a config change plus a route in
+// wrangler.jsonc.
+//
+// The matcher covers every page request because each hostname has to be able
+// to turn away what does not belong to it. Static assets and image
+// optimisation are excluded: they are shared by both surfaces and gain
+// nothing from the check.
 export const config = {
-  matcher: ["/", "/admin/:path*", "/api/admin/:path*"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isAdminApi = pathname.startsWith("/api/admin");
+  const isApi = pathname.startsWith("/api");
+  const isAdminPage = pathname === "/admin" || pathname.startsWith("/admin/");
   const { env } = getCloudflareContext();
 
   const adminHost = env.ADMIN_HOST?.trim().toLowerCase();
+  const publicHost = env.PUBLIC_HOST?.trim().toLowerCase();
   const host = request.headers.get("host")?.toLowerCase();
   const onAdminHost = Boolean(adminHost && host === adminHost);
+
+  function sendTo(targetHost: string) {
+    const target = new URL(request.url);
+    target.host = targetHost;
+    target.protocol = "https:";
+    target.port = "";
+    return NextResponse.redirect(target);
+  }
 
   // Public hostname: the console does not exist here. This used to redirect
   // to the console host, which was convenient but meant the old
@@ -45,20 +60,36 @@ export async function middleware(request: NextRequest) {
     if (isAdminApi) {
       return NextResponse.json({ ok: false, message: "Forbidden" }, { status: 403 });
     }
-    if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    if (isAdminPage) {
       return NextResponse.rewrite(new URL("/_admin-not-here", request.url));
     }
   }
 
-  // The admin hostname serves the console at its root. Gate it as if it were
-  // /admin and rewrite only once that passes — rewriting first would hand out
-  // the console shell without ever checking the session, which is precisely
-  // the server-side gate this file exists to provide.
+  // Console hostname: it serves the console and nothing else. Public pages
+  // were reachable here too, which put the whole site at a second address —
+  // the same duplication the split was meant to remove, pointing the other
+  // way. These redirect rather than 404 because the content genuinely
+  // exists; it just lives at the public address.
+  //
+  // APIs are exempt: the session store shared with the public site calls
+  // /api/geo, /api/bookmarks and friends from inside the console, and every
+  // one of those routes authenticates itself.
+  if (onAdminHost && publicHost && !isApi && !isAdminPage && pathname !== "/") {
+    return sendTo(publicHost);
+  }
+
+  // The console serves itself at the root of its hostname. Gate it as if it
+  // were /admin and rewrite only once that passes — rewriting first would
+  // hand out the console shell without ever checking the session, which is
+  // precisely the server-side gate this file exists to provide.
   const servesConsoleAtRoot = onAdminHost && pathname === "/";
   const effectivePath = servesConsoleAtRoot ? "/admin" : pathname;
 
   // The public home page is not this middleware's business.
   if (pathname === "/" && !servesConsoleAtRoot) return NextResponse.next();
+
+  // Nothing below applies to routes that are neither the console nor its API.
+  if (!isAdminApi && !isAdminPage && !servesConsoleAtRoot) return NextResponse.next();
 
   // The login page itself must stay reachable, or an unauthenticated user
   // has nowhere to go — everything else under /admin requires a real

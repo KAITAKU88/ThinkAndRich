@@ -22,6 +22,9 @@
 		// than hardcoded so moving to another domain later means editing this
 		// and adding a route above — no code change.
 		"ADMIN_HOST": "admin.thinkandrich.ankiva.cc",
+		// Where the public site lives. The console hostname sends any page
+		// that is not the console here, so the site keeps a single address.
+		"PUBLIC_HOST": "thinkandrich.ankiva.cc",
 		// Parent domain the session cookie is scoped to, so a login on the
 		// admin hostname is still recognised by /mcp/authorize on the public
 		// one. Must start with a dot and cover both hostnames. Leave unset
