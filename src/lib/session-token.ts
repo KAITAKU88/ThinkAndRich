@@ -44,3 +44,16 @@ export const SESSION_COOKIE_OPTIONS = {
   path: "/",
   maxAge: SESSION_TTL_SECONDS,
 };
+
+/**
+ * Cookie options widened to a parent domain when SESSION_COOKIE_DOMAIN is set
+ * (e.g. ".thinkandrich.ankiva.cc").
+ *
+ * The console lives on its own hostname, but /mcp/authorize — the OAuth
+ * consent screen — is served from the public one and has to see the same
+ * admin session, so a host-only cookie would break that flow. Left unset the
+ * cookie stays host-only, which is what local development wants.
+ */
+export function sessionCookieOptions(domain?: string) {
+  return domain ? { ...SESSION_COOKIE_OPTIONS, domain } : SESSION_COOKIE_OPTIONS;
+}

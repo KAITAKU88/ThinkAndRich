@@ -3,7 +3,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { drizzle } from "drizzle-orm/d1";
 import { eq } from "drizzle-orm";
 import { users } from "@/db/schema";
-import { signSession, SESSION_COOKIE, SESSION_COOKIE_OPTIONS } from "@/lib/session-token";
+import { signSession, SESSION_COOKIE, sessionCookieOptions } from "@/lib/session-token";
 import { peekRateLimit, recordRateLimitHit, tooManyRequests } from "@/lib/server/rate-limit";
 import { otpKey } from "@/lib/server/otp";
 
@@ -92,6 +92,6 @@ export async function POST(request: NextRequest) {
   );
 
   const res = NextResponse.json({ ok: true, user });
-  res.cookies.set(SESSION_COOKIE, token, SESSION_COOKIE_OPTIONS);
+  res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(env.SESSION_COOKIE_DOMAIN));
   return res;
 }

@@ -5,12 +5,29 @@
 	"compatibility_date": "2026-08-24",
 	"compatibility_flags": ["nodejs_compat"],
 	"workers_dev": true,
+	// The admin console answers on its own hostname (see ADMIN_HOST below).
+	// Both point at this same Worker; middleware decides what each one serves.
 	"routes": [
 		{
 			"pattern": "thinkandrich.ankiva.cc",
 			"custom_domain": true
+		},
+		{
+			"pattern": "admin.thinkandrich.ankiva.cc",
+			"custom_domain": true
 		}
 	],
+	"vars": {
+		// Hostname that serves the admin console. Kept as configuration rather
+		// than hardcoded so moving to another domain later means editing this
+		// and adding a route above — no code change.
+		"ADMIN_HOST": "admin.thinkandrich.ankiva.cc",
+		// Parent domain the session cookie is scoped to, so a login on the
+		// admin hostname is still recognised by /mcp/authorize on the public
+		// one. Must start with a dot and cover both hostnames. Leave unset
+		// locally, where the cookie should stay host-only.
+		"SESSION_COOKIE_DOMAIN": ".thinkandrich.ankiva.cc"
+	},
 	"assets": {
 		"directory": ".open-next/assets",
 		"binding": "ASSETS"
