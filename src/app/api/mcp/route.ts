@@ -3,21 +3,29 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { createMcpHandler, type AuthInfo } from "@modelcontextprotocol/server";
 import { buildMcpServer } from "@/lib/mcp/server";
 import { verifyMcpToken } from "@/lib/server/mcp-tokens";
+import { clientIp, peekRateLimit, recordRateLimitHit, tooManyRequests } from "@/lib/server/rate-limit";
+
+// Counts only rejected credentials, so ordinary authenticated MCP traffic
+// costs no KV writes — the Free plan allows barely a thousand a day. A valid
+// key is 256 bits, so this exists to make bulk guessing pointless rather than
+// to defend a weak secret.
+const FAILED_AUTH = { limit: 20, windowSeconds: 10 * 60 };
 
 // Remote MCP server for content authoring — see src/lib/mcp/server.ts for
-// the tools. Meant to be wired into Claude.ai / ChatGPT as a custom/remote
-// MCP connector so an AI chat session can push a freshly-written article
-// straight into D1 as a DRAFT post.
+// the tools. Wired into Claude.ai / ChatGPT as a custom connector so an AI
+// chat session can push a freshly-written article straight into D1 as a
+// DRAFT post.
 //
-// Auth: a single static token (MCP_API_KEY) rather than real OAuth — this is
-// a single-tenant tool for the site owner's own use, not a multi-tenant
-// public MCP server, so the extra OAuth machinery (dynamic client
-// registration, authorize/token endpoints) isn't warranted here. Claude.ai's
-// "Add custom connector" dialog has no field for a raw bearer token/API key
-// (only Name, URL, and optional OAuth Client ID/Secret), so the token is
-// also accepted as a `?key=` query param — meant to be embedded directly in
-// the connector URL. Treat the key like a password either way: only the
-// site owner's AI client config should ever hold it.
+// Three ways to authenticate, in descending order of preference:
+//   1. An OAuth access token (src/lib/server/mcp-oauth.ts) in the
+//      Authorization header. Nothing secret ever appears in a URL, and the
+//      401 below is what sets that negotiation going.
+//   2. An admin-created key from the MCP Connector screen, also as a bearer
+//      header, or as `?key=` for clients whose UI offers nowhere to put a
+//      header — Claude.ai's connector dialog being one.
+//   3. The legacy MCP_API_KEY secret, kept only so the connector that was
+//      already set up did not break. Drop it once nothing uses it.
+
 // Constant-time comparison so a wrong key can't be recovered by timing the
 // response. Both sides are hashed first so the loop length — and therefore
 // the timing — never depends on the supplied key's length either. Only the
@@ -60,6 +68,12 @@ async function handleMcpRequest(request: NextRequest) {
   const queryToken = request.nextUrl.searchParams.get("key") ?? undefined;
   const token = headerToken ?? queryToken;
 
+  const ip = clientIp(request);
+  const throttle = await peekRateLimit(env.OTP_KV, "mcp-auth", ip, FAILED_AUTH);
+  if (!throttle.allowed) {
+    return tooManyRequests("Too many failed authentication attempts.", throttle.retryAfterSeconds);
+  }
+
   if (!token) return unauthorized(request, "Missing credentials.");
 
   // Keys created in the admin console (revocable, hashed at rest, per-client)
@@ -69,7 +83,10 @@ async function handleMcpRequest(request: NextRequest) {
   const dbToken = await verifyMcpToken(env.DB, token);
   const legacyOk = !dbToken && !!env.MCP_API_KEY && (await secretsMatch(token, env.MCP_API_KEY));
 
-  if (!dbToken && !legacyOk) return unauthorized(request, "Invalid or revoked credentials.");
+  if (!dbToken && !legacyOk) {
+    await recordRateLimitHit(env.OTP_KV, "mcp-auth", ip, FAILED_AUTH);
+    return unauthorized(request, "Invalid or revoked credentials.");
+  }
 
   const authInfo: AuthInfo = {
     token,

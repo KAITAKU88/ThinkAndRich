@@ -1,6 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { registerOAuthClient } from "@/lib/server/mcp-oauth";
+import { checkRateLimit, clientIp, tooManyRequests } from "@/lib/server/rate-limit";
+
+// Unauthenticated by necessity, so every call counts — otherwise a stranger
+// can fill the clients table for free.
+const REGISTRATIONS = { limit: 10, windowSeconds: 60 * 60 };
 
 // RFC 7591 dynamic client registration. Claude.ai calls this itself before it
 // can present a consent screen, so it cannot require authentication — the
@@ -15,6 +20,12 @@ interface RegistrationRequest {
 
 export async function POST(request: NextRequest) {
   const { env } = getCloudflareContext();
+
+  const throttle = await checkRateLimit(env.OTP_KV, "oauth-register", clientIp(request), REGISTRATIONS);
+  if (!throttle.allowed) {
+    return tooManyRequests("Too many client registrations.", throttle.retryAfterSeconds);
+  }
+
   const body = (await request.json().catch(() => null)) as RegistrationRequest | null;
 
   if (!body || !Array.isArray(body.redirect_uris) || body.redirect_uris.length === 0) {

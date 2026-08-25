@@ -2,6 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { consumeAuthCode } from "@/lib/server/mcp-oauth";
 import { createMcpToken } from "@/lib/server/mcp-tokens";
+import { clientIp, peekRateLimit, recordRateLimitHit, tooManyRequests } from "@/lib/server/rate-limit";
+
+// Authorization codes are high-entropy, but a token endpoint that answers an
+// unlimited number of wrong guesses is still worth closing off.
+const FAILED_EXCHANGES = { limit: 20, windowSeconds: 10 * 60 };
 
 // Token endpoint: authorization_code + PKCE only. Redeeming a code mints a
 // row in mcp_tokens with kind "OAUTH", so a token issued here shows up on the
@@ -13,6 +18,12 @@ function oauthError(error: string, description: string, status = 400) {
 
 export async function POST(request: NextRequest) {
   const { env } = getCloudflareContext();
+
+  const ip = clientIp(request);
+  const throttle = await peekRateLimit(env.OTP_KV, "oauth-token", ip, FAILED_EXCHANGES);
+  if (!throttle.allowed) {
+    return tooManyRequests("Too many failed token requests.", throttle.retryAfterSeconds);
+  }
 
   // RFC 6749 requires form encoding here; some clients still send JSON.
   let params: Record<string, string> = {};
@@ -67,6 +78,7 @@ export async function POST(request: NextRequest) {
   });
 
   if (!result.ok) {
+    await recordRateLimitHit(env.OTP_KV, "oauth-token", ip, FAILED_EXCHANGES);
     return oauthError(result.error, result.description, result.error === "invalid_client" ? 401 : 400);
   }
 

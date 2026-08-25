@@ -1,7 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { checkRateLimit, clientIp, tooManyRequests } from "@/lib/server/rate-limit";
+import { OTP_TTL_SECONDS, otpKey } from "@/lib/server/otp";
 
-const OTP_TTL_SECONDS = 5 * 60;
+// This endpoint mails a code to whatever address it is handed, so without a
+// limit it is both a spam relay pointed at strangers and a way to exhaust the
+// account's Cloudflare email quota. Two counters: per address, so one mailbox
+// can't be flooded, and per IP, so one caller can't work through many.
+const PER_EMAIL = { limit: 4, windowSeconds: 15 * 60 };
+const PER_IP = { limit: 15, windowSeconds: 60 * 60 };
 
 export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as { email?: string } | null;
@@ -11,9 +18,22 @@ export async function POST(request: NextRequest) {
   }
 
   const { env } = getCloudflareContext();
+
+  const byIp = await checkRateLimit(env.OTP_KV, "otp-ip", clientIp(request), PER_IP);
+  if (!byIp.allowed) {
+    return tooManyRequests("Bạn đã yêu cầu quá nhiều mã. Vui lòng thử lại sau.", byIp.retryAfterSeconds);
+  }
+  const byEmail = await checkRateLimit(env.OTP_KV, "otp-email", email, PER_EMAIL);
+  if (!byEmail.allowed) {
+    return tooManyRequests(
+      "Email này đã được gửi quá nhiều mã. Vui lòng thử lại sau ít phút.",
+      byEmail.retryAfterSeconds
+    );
+  }
+
   const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-  await env.OTP_KV.put(email, code, { expirationTtl: OTP_TTL_SECONDS });
+  await env.OTP_KV.put(otpKey(email, code), "1", { expirationTtl: OTP_TTL_SECONDS });
 
   await env.EMAIL.send({
     to: email,
