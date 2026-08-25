@@ -52,7 +52,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         reaction: null,
       });
 
-      if (!alreadyReadToday) {
+      // OPEN articles are logged but never charged to the allowance — see
+      // getTodayReadCount in src/lib/server/access-control.ts, which applies
+      // the same exclusion when the paywall counts.
+      const countsTowardQuota = post.accessLevel !== "OPEN";
+
+      if (!alreadyReadToday && countsTowardQuota) {
         const nextCount = user.dailyReadsDate === today ? user.dailyReadsCount + 1 : 1;
         await db.batch([
           insertLog,

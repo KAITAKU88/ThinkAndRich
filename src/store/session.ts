@@ -219,7 +219,11 @@ export const useSession = create<SessionState>()(
             (r) => r.json() as Promise<{ ok: boolean; reactions?: Record<string, "like" | "dislike"> }>
           ),
           fetch("/api/read-logs/me").then(
-            (r) => r.json() as Promise<{ ok: boolean; readLogs?: { postId: string; readAt: string }[] }>
+            (r) =>
+              r.json() as Promise<{
+                ok: boolean;
+                readLogs?: { postId: string; readAt: string; countsTowardQuota?: boolean }[];
+              }>
           ),
         ]);
 
@@ -232,8 +236,13 @@ export const useSession = create<SessionState>()(
         if (readLogsRes.status === "fulfilled" && readLogsRes.value.ok && readLogsRes.value.readLogs) {
           const logs = readLogsRes.value.readLogs;
           const today = new Date().toISOString().slice(0, 10);
+          // OPEN articles never consume the allowance (the server applies the
+          // same rule in getTodayReadCount), so they must not appear in the
+          // "read today" figure shown next to the limit either.
           const todayPostIds = new Set(
-            logs.filter((l) => l.readAt.slice(0, 10) === today).map((l) => l.postId)
+            logs
+              .filter((l) => l.readAt.slice(0, 10) === today && l.countsTowardQuota !== false)
+              .map((l) => l.postId)
           );
           set({
             readPostIds: Array.from(new Set(logs.map((l) => l.postId))),

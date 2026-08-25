@@ -47,7 +47,22 @@ export function PricingPage() {
   const currentPpp = getPppPricing(countryCode);
   const currentTier = user?.tier || "FREE";
 
+  // OPEN leads the list because it is what a visitor gets before doing
+  // anything at all — it is an access level rather than something to buy, so
+  // it carries no price suffix and sends people to the library instead of to
+  // checkout.
   const plans = [
+    {
+      id: "OPEN" as const,
+      name: t.pricing.plans.openName,
+      tagline: t.pricing.plans.openTagline,
+      priceFormatted: currentPpp.plans.FREE.formatted,
+      dailyLimitText: t.pricing.plans.openLimit,
+      isPro: false,
+      badge: undefined,
+      features: t.pricing.plans.openFeatures,
+      ctaText: t.pricing.startFree,
+    },
     {
       id: "FREE" as const,
       name: t.pricing.plans.freeName,
@@ -154,8 +169,8 @@ export function PricingPage() {
         </div>
       </div>
 
-      {/* 3-Tier Pricing Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch mb-16">
+      {/* Four access levels: Open, Free, Plus, Pro */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch mb-16">
         {plans.map((plan) => {
           const isCurrent = user && currentTier === plan.id;
           const isPro = plan.id === "PRO";
@@ -219,6 +234,10 @@ export function PricingPage() {
                 {isCurrent ? (
                   <Button variant="outline" disabled className="w-full rounded-full font-semibold">
                     ✓ {t.pricing.currentPlan}
+                  </Button>
+                ) : plan.id === "OPEN" ? (
+                  <Button variant="outline" className="w-full rounded-full font-semibold" asChild>
+                    <Link href="/explore">{t.pricing.startFree} &rarr;</Link>
                   </Button>
                 ) : plan.id === "FREE" ? (
                   user ? (

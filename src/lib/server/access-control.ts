@@ -1,6 +1,6 @@
-import { and, eq, like } from "drizzle-orm";
+import { and, eq, like, ne } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
-import { readLogs } from "@/db/schema";
+import { posts, readLogs } from "@/db/schema";
 import type { MembershipTier, Post } from "@/lib/types";
 import { dailyReadLimit } from "@/lib/utils";
 
@@ -29,8 +29,18 @@ function getTodayString(): string {
 
 export const getDailyLimit = dailyReadLimit;
 
-// Distinct posts read today by this user (matches the store's original
-// distinct-post-per-day semantics, not a raw read_logs row count).
+/**
+ * Distinct posts read today that count against the daily quota.
+ *
+ * OPEN articles are excluded. They are readable by anyone, signed in or not,
+ * so charging them to a member's allowance punished exactly the wrong people:
+ * a FREE reader could spend the whole day's ten slots on articles an
+ * anonymous visitor reads without limit, and then be locked out of the FREE
+ * articles the allowance exists for. Signing in made the site worse, which is
+ * the opposite of what the tier is meant to do.
+ *
+ * Reads are still logged for all levels — this only changes what is counted.
+ */
 export async function getTodayReadCount(
   db: DrizzleD1Database,
   userId: string
@@ -39,7 +49,14 @@ export async function getTodayReadCount(
   const rows = await db
     .select({ postId: readLogs.postId })
     .from(readLogs)
-    .where(and(eq(readLogs.userId, userId), like(readLogs.readAt, `${today}%`)));
+    .innerJoin(posts, eq(posts.id, readLogs.postId))
+    .where(
+      and(
+        eq(readLogs.userId, userId),
+        like(readLogs.readAt, `${today}%`),
+        ne(posts.accessLevel, "OPEN")
+      )
+    );
   return new Set(rows.map((r) => r.postId)).size;
 }
 

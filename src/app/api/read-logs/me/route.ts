@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { drizzle } from "drizzle-orm/d1";
 import { eq, desc } from "drizzle-orm";
-import { readLogs } from "@/db/schema";
+import { posts, readLogs } from "@/db/schema";
 import { requireSession } from "@/lib/api-auth";
 import type { ReadLog } from "@/lib/types";
 
@@ -16,24 +16,30 @@ export async function GET(request: NextRequest) {
   }
 
   const db = drizzle(ctx.env.DB);
+  // Joined to the post so each row carries its access level: the store
+  // derives today's quota usage from these rows and has to apply the same
+  // OPEN exclusion the server applies, or the number on screen disagrees with
+  // the one actually enforced.
   const rows = await db
-    .select()
+    .select({ log: readLogs, accessLevel: posts.accessLevel })
     .from(readLogs)
+    .innerJoin(posts, eq(posts.id, readLogs.postId))
     .where(eq(readLogs.userId, ctx.session.sub))
     .orderBy(desc(readLogs.readAt))
     .all();
 
-  const result: ReadLog[] = rows.map((r) => ({
-    id: r.id,
-    userId: r.userId,
-    userEmail: r.userEmail,
-    userName: r.userName,
-    postId: r.postId,
-    postTitle: r.postTitle,
-    pillar: (r.pillar as ReadLog["pillar"]) ?? undefined,
-    postCategory: r.postCategory ?? undefined,
-    readAt: r.readAt,
-    reaction: (r.reaction as ReadLog["reaction"]) ?? undefined,
+  const result: (ReadLog & { countsTowardQuota: boolean })[] = rows.map(({ log, accessLevel }) => ({
+    id: log.id,
+    userId: log.userId,
+    userEmail: log.userEmail,
+    userName: log.userName,
+    postId: log.postId,
+    postTitle: log.postTitle,
+    pillar: (log.pillar as ReadLog["pillar"]) ?? undefined,
+    postCategory: log.postCategory ?? undefined,
+    readAt: log.readAt,
+    reaction: (log.reaction as ReadLog["reaction"]) ?? undefined,
+    countsTowardQuota: accessLevel !== "OPEN",
   }));
 
   return NextResponse.json({ ok: true, readLogs: result });
