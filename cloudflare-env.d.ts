@@ -15,6 +15,7 @@ interface __BaseEnv_CloudflareEnv {
 	LEMONSQUEEZY_VARIANT_PRO: string;
 	LEMONSQUEEZY_WEBHOOK_SECRET: string;
 	MCP_API_KEY: string;
+	ADMIN_EMAILS: string;
 }
 declare namespace Cloudflare {
 	interface GlobalProps {
@@ -27,7 +28,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "JWT_SECRET" | "SEPAY_WEBHOOK_SECRET" | "LEMONSQUEEZY_API_KEY" | "LEMONSQUEEZY_STORE_ID" | "LEMONSQUEEZY_VARIANT_PLUS" | "LEMONSQUEEZY_VARIANT_PRO" | "LEMONSQUEEZY_WEBHOOK_SECRET" | "MCP_API_KEY">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "JWT_SECRET" | "SEPAY_WEBHOOK_SECRET" | "LEMONSQUEEZY_API_KEY" | "LEMONSQUEEZY_STORE_ID" | "LEMONSQUEEZY_VARIANT_PLUS" | "LEMONSQUEEZY_VARIANT_PRO" | "LEMONSQUEEZY_WEBHOOK_SECRET" | "MCP_API_KEY" | "ADMIN_EMAILS">> {}
 }
 
 // Begin runtime types

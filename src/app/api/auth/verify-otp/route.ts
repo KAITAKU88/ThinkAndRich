@@ -27,8 +27,18 @@ export async function POST(request: NextRequest) {
   await env.OTP_KV.delete(email); // one-time use
 
   const db = drizzle(env.DB);
-  const isAdmin = email.includes("admin") || email === "admin@thinkandrich.com";
   const now = new Date().toISOString();
+
+  // Admin rights come from an explicit allowlist held in the Worker's
+  // secrets, never from the address itself. This previously read
+  // `email.includes("admin")`, which handed ADMIN + PRO to anyone on first
+  // login from any address containing that substring — admin@gmail.com,
+  // myadmin@…, even badmin@… — i.e. to anybody who wanted it.
+  const adminEmails = (env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((entry) => entry.trim().toLowerCase())
+    .filter(Boolean);
+  const isAllowlistedAdmin = adminEmails.includes(email);
 
   let user = (await db.select().from(users).where(eq(users.email, email)).get()) ?? null;
   if (!user) {
@@ -38,8 +48,8 @@ export async function POST(request: NextRequest) {
       id: crypto.randomUUID(),
       email,
       name,
-      role: isAdmin ? "ADMIN" : "USER",
-      tier: isAdmin ? "PRO" : "FREE",
+      role: isAllowlistedAdmin ? "ADMIN" : "USER",
+      tier: isAllowlistedAdmin ? "PRO" : "FREE",
       avatar: null,
       countryCode: null,
       preferredLang: null,
@@ -49,6 +59,13 @@ export async function POST(request: NextRequest) {
       dailyReadsCount: 0,
     };
     await db.insert(users).values(user);
+  } else if (isAllowlistedAdmin && user.role !== "ADMIN") {
+    // Lets the owner grant themselves access by editing the allowlist, even
+    // though their account already exists as a plain reader. Only ever
+    // promotes: demotion stays a deliberate action in the admin console, so a
+    // mistyped allowlist cannot lock everyone out.
+    user = { ...user, role: "ADMIN", tier: "PRO" };
+    await db.update(users).set({ role: "ADMIN", tier: "PRO", lastLoginAt: now }).where(eq(users.id, user.id));
   } else {
     await db.update(users).set({ lastLoginAt: now }).where(eq(users.id, user.id));
   }
