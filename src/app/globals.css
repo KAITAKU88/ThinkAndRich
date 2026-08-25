@@ -3,8 +3,23 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: var(--font-plex-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-display: var(--font-newsreader), Georgia, Cambria, "Times New Roman", Times, serif;
+  /* The web fonts cover Latin, Vietnamese, Cyrillic and Greek. Shipping faces
+     for the remaining scripts would mean megabytes per language — a single
+     CJK face dwarfs the whole page — so each stack ends with the system faces
+     those scripts are actually read in. Browsers resolve font-family per
+     glyph, so a Japanese quotation inside a Vietnamese article picks up
+     Hiragino or Yu Gothic while the surrounding text stays in IBM Plex.
+     Order matters: Apple, then Windows, then Linux, then generic. */
+  --font-cjk: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Microsoft YaHei UI", "PingFang SC",
+    "Malgun Gothic", "Noto Sans CJK SC", "Noto Sans SC", "Source Han Sans SC";
+  --font-arabic: "SF Arabic", "Geeza Pro", "Segoe UI Historic", "Noto Naskh Arabic", "Noto Sans Arabic", "Tahoma";
+  --font-indic: "Kohinoor Devanagari", "Nirmala UI", "Noto Sans Devanagari", "Mangal";
+  --font-thai: "Thonburi", "Leelawadee UI", "Noto Sans Thai", "Tahoma";
+
+  --font-sans: var(--font-plex-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    var(--font-cjk), var(--font-arabic), var(--font-indic), var(--font-thai), sans-serif;
+  --font-display: var(--font-newsreader), Georgia, Cambria, "Times New Roman", Times,
+    var(--font-cjk), var(--font-arabic), var(--font-indic), var(--font-thai), serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   --color-background: var(--background);
@@ -164,13 +179,25 @@ body {
    ========================================================================== */
 
 .prose-academic {
+  /* Every value a template can change lives here. Templates set tokens; no
+     template redeclares a rule, so they cannot drift apart as the surface
+     grows. */
   --reader-measure: 64ch;
   --reader-rule: color-mix(in srgb, var(--border) 65%, transparent);
   --reader-gap: 1.35em;
+  --reader-body: var(--font-display);
+  --reader-heading: var(--font-display);
+  --reader-leading: 1.85;
+  --reader-heading-weight: 600;
+  --reader-h2-scale: 1.55;
+  --reader-h3-scale: 1.2;
+  --reader-indent: 0;
+  --reader-tick-display: block;
+  --reader-dropcap-lines: 0; /* 0 disables the initial */
 
-  font-family: var(--font-display);
+  font-family: var(--reader-body);
   font-size: var(--reader-size, 1.1875rem);
-  line-height: 1.85;
+  line-height: var(--reader-leading);
   color: var(--foreground);
   text-align: left;
   hyphens: none;
@@ -196,7 +223,7 @@ body {
 
 .prose-academic h2,
 .prose-academic h3 {
-  font-family: var(--font-display);
+  font-family: var(--reader-heading);
   color: var(--foreground);
   letter-spacing: -0.01em;
   text-wrap: pretty; /* keeps a lone word off the last line */
@@ -204,8 +231,8 @@ body {
 
 .prose-academic h2 {
   position: relative;
-  font-size: 1.55em;
-  font-weight: 600;
+  font-size: calc(var(--reader-h2-scale) * 1em);
+  font-weight: var(--reader-heading-weight);
   line-height: 1.3;
   margin-top: 2.6em;
   margin-bottom: 0.7em;
@@ -216,6 +243,7 @@ body {
    left to hang it in. */
 .prose-academic h2::before {
   content: "";
+  display: var(--reader-tick-display);
   position: absolute;
   left: -1.75rem;
   top: 0.72em;
@@ -225,8 +253,8 @@ body {
 }
 
 .prose-academic h3 {
-  font-size: 1.2em;
-  font-weight: 600;
+  font-size: calc(var(--reader-h3-scale) * 1em);
+  font-weight: var(--reader-heading-weight);
   line-height: 1.4;
   margin-top: 2em;
   margin-bottom: 0.5em;
@@ -240,6 +268,18 @@ body {
 
 .prose-academic p {
   margin-bottom: var(--reader-gap);
+  text-indent: var(--reader-indent);
+}
+
+/* A first line is never indented after a heading or a break — the indent
+   marks continuation, and there is nothing yet to continue from. */
+.prose-academic h2 + p,
+.prose-academic h3 + p,
+.prose-academic hr + p,
+.prose-academic blockquote + p,
+.prose-academic > p:first-child,
+.prose-academic > div:first-child > p:first-child {
+  text-indent: 0;
 }
 
 /* The opening paragraph carries the reader in, so it is set a step larger
@@ -290,6 +330,18 @@ body {
 .prose-academic li {
   margin-bottom: 0.45em;
   padding-left: 0.15em;
+}
+
+/* TipTap wraps list item content in <p>, which would otherwise pick up the
+   first-line indent and paragraph spacing meant for running prose — a list
+   is not prose that continues. */
+.prose-academic li p {
+  text-indent: 0;
+  margin-bottom: 0;
+}
+
+.prose-academic li p + p {
+  margin-top: 0.45em;
 }
 
 /* Markers hang outside the text edge, so wrapped lines align with the first
@@ -436,6 +488,110 @@ body {
   font-size: 0.82em;
   font-weight: 600;
   color: var(--muted-foreground);
+}
+
+/* Reading templates -------------------------------------------------------
+   Each one only re-sets tokens declared on .prose-academic above. The
+   catalogue that drives the picker lives in src/lib/reading-templates.ts and
+   must stay in step with the names used here.
+
+   Leading never drops below 1.6 in any template: Vietnamese stacks tone marks
+   above the vowel, and tighter setting than that crowds them whatever the
+   design intent. */
+
+/* Sách kinh điển — a narrow measure and an initial, the way a printed book
+   opens a chapter. */
+[data-reading-template="classic"] {
+  --reader-measure: 58ch;
+  --reader-leading: 1.8;
+  --reader-h2-scale: 1.4;
+  --reader-heading-weight: 500;
+  --reader-tick-display: none;
+}
+
+/* Tiểu thuyết — paragraphs run on, separated by an indent rather than a gap,
+   which is how continuous prose is set on paper. */
+[data-reading-template="novel"] {
+  --reader-measure: 56ch;
+  --reader-leading: 1.78;
+  --reader-gap: 0;
+  --reader-indent: 1.6em;
+  --reader-h2-scale: 1.35;
+  --reader-heading-weight: 500;
+  --reader-tick-display: none;
+}
+
+/* Tạp chí — a sans headline against serif body copy, set wider. */
+[data-reading-template="magazine"] {
+  --reader-measure: 70ch;
+  --reader-heading: var(--font-sans);
+  --reader-leading: 1.8;
+  --reader-h2-scale: 1.7;
+  --reader-h3-scale: 1.25;
+  --reader-heading-weight: 700;
+}
+
+/* Tối giản — one face throughout, nothing in the margin. */
+[data-reading-template="minimal"] {
+  --reader-body: var(--font-sans);
+  --reader-heading: var(--font-sans);
+  --reader-measure: 62ch;
+  --reader-leading: 1.8;
+  --reader-h2-scale: 1.4;
+  --reader-heading-weight: 600;
+  --reader-tick-display: none;
+}
+
+/* Cô đọng — more words in view for reference material, still leaving the
+   tone marks room to breathe. */
+[data-reading-template="compact"] {
+  --reader-measure: 72ch;
+  --reader-leading: 1.65;
+  --reader-gap: 1em;
+  --reader-h2-scale: 1.35;
+  --reader-h3-scale: 1.12;
+}
+
+/* Dễ đọc — large print, for reading at a distance or with low vision. */
+[data-reading-template="large"] {
+  --reader-measure: 52ch;
+  --reader-leading: 2;
+  --reader-gap: 1.6em;
+  --reader-h2-scale: 1.5;
+  --reader-heading-weight: 700;
+}
+
+/* Bản thảo — mono headings over serif body, for teardowns and technical
+   pieces where the structure is the point. */
+[data-reading-template="manuscript"] {
+  --reader-heading: var(--font-mono);
+  --reader-measure: 66ch;
+  --reader-leading: 1.8;
+  --reader-h2-scale: 1.2;
+  --reader-h3-scale: 1.02;
+  --reader-heading-weight: 600;
+}
+
+/* An initial, sized in lines of text.
+
+   The reason the default surface has none: a Vietnamese sentence often opens
+   on a capital carrying a tone mark (Ế, Ộ, Ằ), which a normal drop cap clips
+   against the line above. The padding-top below reserves that headroom, so
+   the templates that want the flourish can have it safely. */
+/* first-of-type, not first-child: an article that opens with a section
+   heading should still get its initial on the paragraph that follows. */
+[data-reading-template="classic"] > div:first-child > p:first-of-type::first-letter,
+[data-reading-template="classic"] > p:first-of-type::first-letter,
+[data-reading-template="novel"] > div:first-child > p:first-of-type::first-letter,
+[data-reading-template="novel"] > p:first-of-type::first-letter {
+  float: left;
+  font-family: var(--reader-heading);
+  font-size: 3.2em;
+  line-height: 0.8;
+  font-weight: 600;
+  color: var(--primary);
+  padding-top: 0.16em;
+  padding-right: 0.09em;
 }
 
 /* Narrow screens ---------------------------------------------------------- */

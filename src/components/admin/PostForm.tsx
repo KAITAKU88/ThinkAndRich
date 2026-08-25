@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { READING_TEMPLATES, normalizeTemplate, type ReadingTemplateId } from "@/lib/reading-templates";
 import type { AdminPost } from "@/lib/admin/use-admin-posts";
 import type { CardDisplaySize, ContentAccessLevel, Post, PillarType } from "@/lib/types";
 
@@ -33,6 +34,9 @@ export function PostForm({ editingPost, onCreate, onUpdate, onDone }: PostFormPr
   const [accessLevel, setAccessLevel] = useState<ContentAccessLevel>(editingPost?.accessLevel ?? "FREE");
   const [status, setStatus] = useState<Post["status"]>(editingPost?.status ?? "DRAFT");
   const [previewing, setPreviewing] = useState(false);
+  const [readingTemplate, setReadingTemplate] = useState<ReadingTemplateId>(
+    normalizeTemplate(editingPost?.readingTemplate)
+  );
 
   const [postId, setPostId] = useState<string | null>(editingPost?.id ?? null);
   const [saving, setSaving] = useState(false);
@@ -83,6 +87,7 @@ export function PostForm({ editingPost, onCreate, onUpdate, onDone }: PostFormPr
       accessLevel,
       fullContent: editor?.getHTML() ?? "<p></p>",
       readingTimeMinutes,
+      readingTemplate,
       category: pillar === "MENTAL_MODEL" ? "Mô hình Tư duy" : pillar === "BUSINESS_STRATEGY" ? "Chiến lược Kinh doanh" : "Ý tưởng Khởi nghiệp",
       author: "Think & Rich",
       tags: editingPost?.tags ?? [],
@@ -188,26 +193,59 @@ export function PostForm({ editingPost, onCreate, onUpdate, onDone }: PostFormPr
             </div>
 
             {previewing ? (
-              <div className="border border-border rounded-xl bg-background px-5 py-8 sm:px-10 sm:py-12">
-                <div className="mx-auto" style={{ maxWidth: "min(100%, 46rem)" }}>
-                  <h1 className="font-display text-3xl sm:text-4xl font-bold leading-[1.25] tracking-tight text-balance">
-                    {title.trim() || "Tiêu đề bài viết"}
-                  </h1>
-                  {summarySnippet.trim() && (
-                    <p className="mt-4 font-display text-lg leading-relaxed text-muted-foreground">
-                      {summarySnippet}
-                    </p>
-                  )}
-                  <div className="mt-8 h-px bg-border" />
-                  <article
-                    className="prose-academic mt-8"
-                    dangerouslySetInnerHTML={{ __html: editor?.getHTML() ?? "" }}
-                  />
+              <div className="space-y-3">
+                {/* Layouts are compared on the writer's own words, so the
+                    choice is made against the real article rather than a
+                    sample. Selecting one only stages it; it is stored with the
+                    post on the next save. */}
+                <div className="rounded-xl border border-border bg-secondary/30 p-3">
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <span className="text-xs font-semibold">Kiểu dàn trang</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {READING_TEMPLATES.find((tpl) => tpl.id === readingTemplate)?.description}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {READING_TEMPLATES.map((tpl) => (
+                      <button
+                        key={tpl.id}
+                        type="button"
+                        onClick={() => markDirty(setReadingTemplate)(tpl.id)}
+                        className={cn(
+                          "px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors",
+                          readingTemplate === tpl.id
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border hover:bg-secondary"
+                        )}
+                      >
+                        {tpl.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <p className="mt-10 text-center text-[11px] text-muted-foreground">
-                  Bản xem trước dùng đúng kiểu chữ và dàn trang của trang đọc. Phần khung trang — điều hướng, nút chia
-                  sẻ, tường phí — không hiển thị ở đây.
-                </p>
+
+                <div className="border border-border rounded-xl bg-background px-5 py-8 sm:px-10 sm:py-12">
+                  <div className="mx-auto" style={{ maxWidth: "min(100%, 46rem)" }}>
+                    <h1 className="font-display text-3xl sm:text-4xl font-bold leading-[1.25] tracking-tight text-balance">
+                      {title.trim() || "Tiêu đề bài viết"}
+                    </h1>
+                    {summarySnippet.trim() && (
+                      <p className="mt-4 font-display text-lg leading-relaxed text-muted-foreground">
+                        {summarySnippet}
+                      </p>
+                    )}
+                    <div className="mt-8 h-px bg-border" />
+                    <article
+                      className="prose-academic mt-8"
+                      data-reading-template={readingTemplate}
+                      dangerouslySetInnerHTML={{ __html: editor?.getHTML() ?? "" }}
+                    />
+                  </div>
+                  <p className="mt-10 text-center text-[11px] text-muted-foreground">
+                    Bản xem trước dùng đúng kiểu chữ và dàn trang của trang đọc. Phần khung trang — điều hướng, nút chia
+                    sẻ, tường phí — không hiển thị ở đây.
+                  </p>
+                </div>
               </div>
             ) : (
               <div className="border border-border rounded-xl overflow-hidden">

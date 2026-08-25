@@ -18,6 +18,10 @@ export const posts = sqliteTable("posts", {
 
   accessLevel: text("access_level").notNull(),
   readingTimeMinutes: integer("reading_time_minutes").notNull(),
+  // Which reading layout this article is set in — see
+  // src/lib/reading-templates.ts. Nullable so existing rows keep the default
+  // without a backfill.
+  readingTemplate: text("reading_template"),
   status: text("status").notNull(),
   views: integer("views").notNull().default(0),
   clicks: integer("clicks").notNull().default(0),

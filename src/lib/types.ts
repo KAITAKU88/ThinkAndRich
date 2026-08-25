@@ -50,6 +50,7 @@ export interface Post {
 
   accessLevel: ContentAccessLevel;
   readingTimeMinutes: number;
+  readingTemplate?: string | null;
   status: PostStatus;
   views: number;
   clicks: number;

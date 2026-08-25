@@ -17,6 +17,7 @@ export interface CreatePostInput {
   keyTakeaways?: string[];
   accessLevel?: Post["accessLevel"];
   readingTimeMinutes?: number;
+  readingTemplate?: string | null;
   status?: Post["status"];
   author?: string;
   tags?: string[];
@@ -49,6 +50,7 @@ export async function createPost(db: ReturnType<typeof drizzle>, input: CreatePo
     keyTakeaways: input.keyTakeaways,
     accessLevel: input.accessLevel || "FREE",
     readingTimeMinutes: input.readingTimeMinutes ?? 3,
+    readingTemplate: input.readingTemplate ?? null,
     // Always DRAFT unless the caller explicitly asked to publish — matches
     // the admin create/edit form's own default-to-Draft behavior.
     status: input.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT",

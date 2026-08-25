@@ -35,6 +35,7 @@ import { PaywallCTA } from "@/components/paywall/PaywallCTA";
 import { InteractiveSquareCard } from "@/components/ideas/InteractiveSquareCard";
 import { useSession } from "@/store/session";
 import { cn, formatViews, formatFormula } from "@/lib/utils";
+import { normalizeTemplate } from "@/lib/reading-templates";
 import { PILLARS_CONFIG } from "@/lib/data";
 import { getTranslation } from "@/lib/i18n/translations";
 import type { AccessCheckResult } from "@/lib/server/access-control";
@@ -307,6 +308,7 @@ export function PostDetailPage() {
             the rest stays put. */}
         <article
           className="relative min-h-[300px] prose-academic"
+          data-reading-template={normalizeTemplate(post.readingTemplate)}
           style={{
             ["--reader-size" as string]:
               fontSize === "large" ? "1.3125rem" : fontSize === "xlarge" ? "1.4375rem" : "1.1875rem",
