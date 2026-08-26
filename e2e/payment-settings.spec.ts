@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { readConfiguredAdminEmail, readOtpFromLocalKv, resetOtpThrottle } from "./helpers/otp";
+import { signInAsAdmin, signInAsReader } from "./helpers/auth";
 import { clearPaymentSettings, seedPaymentSettings } from "./helpers/settings";
 
 test.setTimeout(180_000);
@@ -8,32 +8,12 @@ test.setTimeout(180_000);
 // the configured details back so specs stay order-independent.
 test.afterAll(() => seedPaymentSettings());
 
-async function signInAsAdmin(page: import("@playwright/test").Page) {
-  const email = readConfiguredAdminEmail();
-  resetOtpThrottle(email);
-  await page.goto("/admin");
-  await page.getByLabel("Email quản trị viên").fill(email);
-  await page.getByRole("button", { name: "Đăng nhập bằng Email OTP" }).click();
-  await page.getByLabel("Mã xác thực OTP (6 chữ số)").fill(readOtpFromLocalKv(email));
-  await page.getByRole("button", { name: /Xác nhận/ }).click();
-  await expect(page).toHaveURL(/\/admin$/);
-}
-
 test.describe("payment settings", () => {
   test("an unconfigured site shows no QR instead of a wrong one", async ({ page }) => {
     clearPaymentSettings();
 
     // Reaching checkout needs an account, but not an admin one.
-    const email = `e2e-pay-${Date.now()}@example.com`;
-    resetOtpThrottle(email);
-    await page.goto("/");
-    await page.getByTestId("login-cta").click();
-    await page.locator("#auth-email").fill(email);
-    await page.getByTestId("auth-send-otp").click();
-    await expect(page.locator("#auth-otp")).toBeVisible();
-    await page.locator("#auth-otp").fill(readOtpFromLocalKv(email));
-    await page.getByTestId("auth-verify-otp").click();
-    await expect(page.getByTestId("login-cta")).toBeHidden();
+    await signInAsReader(page, `e2e-pay-${Date.now()}@example.com`);
 
     await page.goto("/checkout?plan=PLUS&country=VN");
     await expect(page.getByTestId("payment-not-configured")).toBeVisible();
@@ -88,16 +68,7 @@ test.describe("payment settings", () => {
   });
 
   test("is not editable by a reader", async ({ page }) => {
-    const email = `e2e-pay-reader-${Date.now()}@example.com`;
-    resetOtpThrottle(email);
-    await page.goto("/");
-    await page.getByTestId("login-cta").click();
-    await page.locator("#auth-email").fill(email);
-    await page.getByTestId("auth-send-otp").click();
-    await expect(page.locator("#auth-otp")).toBeVisible();
-    await page.locator("#auth-otp").fill(readOtpFromLocalKv(email));
-    await page.getByTestId("auth-verify-otp").click();
-    await expect(page.getByTestId("login-cta")).toBeHidden();
+    await signInAsReader(page, `e2e-pay-reader-${Date.now()}@example.com`);
 
     expect((await page.request.get("/api/admin/settings")).status()).toBe(403);
     expect(

@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/d1";
 import { orders } from "@/db/schema";
 import { requireSession } from "@/lib/api-auth";
 import { UPGRADE_REFUSAL_MESSAGES, buildUpgradeOffer } from "@/lib/server/upgrade";
+import { generateOrderReference } from "@/lib/order-reference";
 import type { CountryCode } from "@/lib/types";
 
 // Mid-term PLUS → PRO upgrade.
@@ -70,6 +71,7 @@ export async function POST(request: NextRequest) {
 
   const { quote } = result.offer;
   const id = `ord_${crypto.randomUUID()}`;
+  const reference = generateOrderReference();
 
   await db.insert(orders).values({
     id,
@@ -80,7 +82,7 @@ export async function POST(request: NextRequest) {
     amount: quote.topUpAmount,
     currency: quote.currency,
     status: "PENDING",
-    gatewayReference: id,
+    gatewayReference: reference,
     rawPayload: null,
     createdAt: new Date().toISOString(),
     paidAt: null,
@@ -89,6 +91,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     ok: true,
     orderId: id,
+    reference,
     amount: quote.topUpAmount,
     currency: quote.currency,
     remainingCredit: quote.remainingCredit,

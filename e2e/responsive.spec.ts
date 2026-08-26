@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { readConfiguredAdminEmail, readOtpFromLocalKv, resetOtpThrottle } from "./helpers/otp";
+import { signInAsAdmin } from "./helpers/auth";
 
 // 390 is a modern iPhone; 320 is the narrowest screen still in real use
 // (iPhone SE 1st gen, a folded Galaxy Fold) and the width that actually
@@ -39,15 +39,21 @@ async function measure(page: Page): Promise<Overflow> {
       // Only something partly on screen can be clipped mid-content.
       if (box.right <= 0 || box.left >= viewport) continue;
 
-      // Only report the outermost offender, and skip anything sitting in a
-      // container that was deliberately made to scroll sideways (wide
-      // tables, tab strips, the editor toolbar).
-      let scrollable = false;
+      // Skip anything sitting inside a container that already decides what
+      // happens to overflow: one made to scroll sideways (wide tables, tab
+      // strips, the editor toolbar), or one that clips (`truncate`, which is
+      // overflow:hidden plus an ellipsis — the text is cut on purpose and the
+      // reader is shown that it was). What is left is the case worth
+      // reporting: content spilling out of a container that made no such
+      // decision. An inline box reports its full layout rect even when an
+      // ancestor is clipping it, so without this a truncated title looks
+      // identical to a genuine overflow.
+      let handled = false;
       for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
         const overflowX = getComputedStyle(p).overflowX;
-        if (overflowX === "auto" || overflowX === "scroll") scrollable = true;
+        if (overflowX === "auto" || overflowX === "scroll" || overflowX === "hidden") handled = true;
       }
-      if (scrollable) continue;
+      if (handled) continue;
 
       const parent = el.parentElement?.getBoundingClientRect();
       if (parent && (parent.right > viewport + 1 || parent.left < -1)) continue;
@@ -169,15 +175,7 @@ test.describe("admin console on a phone", () => {
   ];
 
   test("every console tab stays within the mobile viewport", async ({ page }) => {
-    const email = readConfiguredAdminEmail();
-    resetOtpThrottle(email);
-
-    await page.goto("/admin");
-    await page.getByLabel("Email quản trị viên").fill(email);
-    await page.getByRole("button", { name: "Đăng nhập bằng Email OTP" }).click();
-    await page.getByLabel("Mã xác thực OTP (6 chữ số)").fill(readOtpFromLocalKv(email));
-    await page.getByRole("button", { name: /Xác nhận/ }).click();
-    await expect(page).toHaveURL(/\/admin$/);
+    await signInAsAdmin(page);
 
     // The sidebar collapses into a drawer below lg, and picking a tab closes
     // it again, so every tab is reached through the hamburger.
@@ -190,15 +188,7 @@ test.describe("admin console on a phone", () => {
   });
 
   test("the post editor stays within the mobile viewport", async ({ page }) => {
-    const email = readConfiguredAdminEmail();
-    resetOtpThrottle(email);
-
-    await page.goto("/admin");
-    await page.getByLabel("Email quản trị viên").fill(email);
-    await page.getByRole("button", { name: "Đăng nhập bằng Email OTP" }).click();
-    await page.getByLabel("Mã xác thực OTP (6 chữ số)").fill(readOtpFromLocalKv(email));
-    await page.getByRole("button", { name: /Xác nhận/ }).click();
-    await expect(page).toHaveURL(/\/admin$/);
+    await signInAsAdmin(page);
 
     await page.getByRole("button", { name: "Mở menu quản trị" }).click();
     await page.getByRole("button", { name: "Quản lý Bài viết" }).click();

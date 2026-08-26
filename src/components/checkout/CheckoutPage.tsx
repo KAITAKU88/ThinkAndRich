@@ -50,7 +50,7 @@ function CheckoutContent() {
   const [copied, setCopied] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [order, setOrder] = useState<{ id: string; amount: number; currency: string } | null>(null);
+  const [order, setOrder] = useState<{ id: string; reference: string; amount: number; currency: string } | null>(null);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [lemonCheckoutUrl, setLemonCheckoutUrl] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -100,10 +100,15 @@ function CheckoutContent() {
     // PRO price for an upgrade they were promised a credit on.
     if (upgradeOrderId) {
       fetch(`/api/orders/${upgradeOrderId}`)
-        .then((res) => res.json() as Promise<{ ok: boolean; order?: { id: string; amount: number; currency: string; status: string }; message?: string }>)
+        .then((res) => res.json() as Promise<{ ok: boolean; order?: { id: string; gatewayReference: string; amount: number; currency: string; status: string }; message?: string }>)
         .then((data) => {
           if (data.ok && data.order && data.order.status === "PENDING") {
-            setOrder({ id: data.order.id, amount: data.order.amount, currency: data.order.currency });
+            setOrder({
+              id: data.order.id,
+              reference: data.order.gatewayReference,
+              amount: data.order.amount,
+              currency: data.order.currency,
+            });
           } else {
             setOrderError(data.message || t.checkout.genericOrderError);
           }
@@ -123,6 +128,7 @@ function CheckoutContent() {
             ok: boolean;
             message?: string;
             orderId?: string;
+            reference?: string;
             amount?: number;
             currency?: string;
             checkoutUrl?: string;
@@ -130,7 +136,7 @@ function CheckoutContent() {
       )
       .then((data) => {
         if (data.ok && data.orderId) {
-          setOrder({ id: data.orderId, amount: data.amount!, currency: data.currency! });
+          setOrder({ id: data.orderId, reference: data.reference!, amount: data.amount!, currency: data.currency! });
           if (data.checkoutUrl) setLemonCheckoutUrl(data.checkoutUrl);
         } else {
           setOrderError(data.message || t.checkout.genericOrderError);
@@ -158,7 +164,10 @@ function CheckoutContent() {
     };
   }, [order, isSuccess, planName, ppp.gateway, t.checkout.sepayGatewayLabel, t.checkout.lemonGatewayLabel, t.checkout.paymentConfirmedPrefix]);
 
-  const memoCode = order ? order.id : t.common.loading;
+  // The transfer memo is the short reference, not the order id: a bank
+  // rewrites this field, and forty characters of underscores and hyphens do
+  // not survive the trip. See src/lib/order-reference.ts.
+  const memoCode = order ? order.reference : t.common.loading;
 
   // The bank details come from the console (Cấu hình Thanh toán), not from
   // this file. They were constants here, including a placeholder account

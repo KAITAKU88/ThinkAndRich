@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { wrangler } from "./otp";
 
 /**
  * Seed or clear the operator payment settings straight in the local D1.
@@ -36,9 +36,5 @@ export function clearPaymentSettings(): void {
 }
 
 function d1(command: string): void {
-  execFileSync(
-    "npx",
-    ["wrangler", "d1", "execute", "thinkandrich-db", "--local", "--command", command],
-    { encoding: "utf8", env: { ...process.env, CI: "true" } }
-  );
+  wrangler(["d1", "execute", "thinkandrich-db", "--local", "--command", command]);
 }

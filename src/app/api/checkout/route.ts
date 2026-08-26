@@ -4,6 +4,7 @@ import { orders } from "@/db/schema";
 import { requireSession } from "@/lib/api-auth";
 import { getPppPricing } from "@/lib/geo-pricing";
 import { createLemonSqueezyCheckout } from "@/lib/lemonsqueezy";
+import { generateOrderReference } from "@/lib/order-reference";
 import type { CountryCode, MembershipTier } from "@/lib/types";
 
 // Creates a PENDING order with server-computed amount/currency — never
@@ -29,6 +30,10 @@ export async function POST(request: NextRequest) {
   const amount = ppp.plans[body.tier].price;
   const db = drizzle(ctx.env.DB);
   const id = `ord_${crypto.randomUUID()}`;
+  // What the customer puts in their transfer, kept apart from the internal
+  // id: a bank rewrites this field on its way through, so it has to be short
+  // and free of punctuation. See src/lib/order-reference.ts.
+  const reference = generateOrderReference();
   const now = new Date().toISOString();
 
   if (ppp.gateway === "sepay") {
@@ -40,13 +45,13 @@ export async function POST(request: NextRequest) {
       amount,
       currency: ppp.currency,
       status: "PENDING",
-      gatewayReference: id,
+      gatewayReference: reference,
       rawPayload: null,
       createdAt: now,
       paidAt: null,
     });
 
-    return NextResponse.json({ ok: true, orderId: id, amount, currency: ppp.currency });
+    return NextResponse.json({ ok: true, orderId: id, reference, amount, currency: ppp.currency });
   }
 
   // Lemon Squeezy branch
@@ -79,11 +84,11 @@ export async function POST(request: NextRequest) {
     amount,
     currency: ppp.currency,
     status: "PENDING",
-    gatewayReference: id,
+    gatewayReference: reference,
     rawPayload: null,
     createdAt: now,
     paidAt: null,
   });
 
-  return NextResponse.json({ ok: true, orderId: id, amount, currency: ppp.currency, checkoutUrl: checkout.url });
+  return NextResponse.json({ ok: true, orderId: id, reference, amount, currency: ppp.currency, checkoutUrl: checkout.url });
 }

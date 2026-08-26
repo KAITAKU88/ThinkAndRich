@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { execFileSync } from "node:child_process";
-import { readDevVar, readOtpFromLocalKv, resetOtpThrottle } from "./helpers/otp";
+import { readDevVar, wrangler } from "./helpers/otp";
+import { signInAsReader } from "./helpers/auth";
 import { seedPaymentSettings } from "./helpers/settings";
 
 // Logging in, reading the OTP back out of KV and shelling out to wrangler all
@@ -12,39 +12,25 @@ test.setTimeout(180_000);
 // once the bank details are configured (see the console's payment tab).
 test.beforeAll(() => seedPaymentSettings());
 
-/** Puts the signed-in account on PLUS, `days` into its term. */
-function makePlusMember(userId: string, days: number) {
-  const startedAt = new Date(Date.now() - days * 86_400_000).toISOString();
-  execFileSync(
-    "npx",
-    [
-      "wrangler", "d1", "execute", "thinkandrich-db", "--local", "--command",
-      `UPDATE users SET tier='PLUS', plan_started_at='${startedAt}' WHERE id='${userId}';`,
-    ],
-    { encoding: "utf8", env: { ...process.env, CI: "true" } }
-  );
-}
-
-async function signIn(page: import("@playwright/test").Page): Promise<string> {
-  const email = `e2e-upgrade-${Date.now()}@example.com`;
-  resetOtpThrottle(email);
-
-  await page.goto("/");
-  await page.getByTestId("login-cta").click();
-  await page.locator("#auth-email").fill(email);
-  await page.getByTestId("auth-send-otp").click();
-  await expect(page.locator("#auth-otp")).toBeVisible();
-  await page.locator("#auth-otp").fill(readOtpFromLocalKv(email));
-  await page.getByTestId("auth-verify-otp").click();
-  await expect(page.getByTestId("login-cta")).toBeHidden();
-
+/** A freshly signed-in reader, returning the id these tests need to set up. */
+async function signInAsUpgradeCandidate(page: import("@playwright/test").Page): Promise<string> {
+  await signInAsReader(page, `e2e-upgrade-${Date.now()}@example.com`);
   const me = (await (await page.request.get("/api/auth/me")).json()) as { user: { id: string } };
   return me.user.id;
 }
 
+/** Puts the signed-in account on PLUS, `days` into its term. */
+function makePlusMember(userId: string, days: number) {
+  const startedAt = new Date(Date.now() - days * 86_400_000).toISOString();
+  wrangler([
+    "d1", "execute", "thinkandrich-db", "--local", "--command",
+    `UPDATE users SET tier='PLUS', plan_started_at='${startedAt}' WHERE id='${userId}';`,
+  ]);
+}
+
 test.describe("PLUS → PRO mid-term upgrade", () => {
   test("quotes the prorated top-up and shows it in the modal", async ({ page }) => {
-    const userId = await signIn(page);
+    const userId = await signInAsUpgradeCandidate(page);
     makePlusMember(userId, 182);
 
     // The same figures the unit tests pin down for a six-month-old VND term
@@ -71,7 +57,7 @@ test.describe("PLUS → PRO mid-term upgrade", () => {
   });
 
   test("opens a PENDING order for the top-up, and grants nothing until it is paid", async ({ page }) => {
-    const userId = await signIn(page);
+    const userId = await signInAsUpgradeCandidate(page);
     makePlusMember(userId, 182);
 
     const created = await (await page.request.post("/api/upgrade?country=VN")).json();
@@ -85,14 +71,14 @@ test.describe("PLUS → PRO mid-term upgrade", () => {
   });
 
   test("refuses to quote for a reader who has nothing to upgrade from", async ({ page }) => {
-    await signIn(page); // still FREE
+    await signInAsUpgradeCandidate(page); // still FREE
     const res = await page.request.get("/api/upgrade?country=VN");
     expect(res.status()).toBe(409);
     expect((await res.json()).reason).toBe("NOT_A_MEMBER");
   });
 
   test("refuses a gateway that cannot charge a prorated amount", async ({ page }) => {
-    const userId = await signIn(page);
+    const userId = await signInAsUpgradeCandidate(page);
     makePlusMember(userId, 182);
 
     // US routes to Lemon Squeezy, whose checkout bills a fixed variant.
@@ -108,7 +94,7 @@ test.describe("PLUS → PRO mid-term upgrade", () => {
 // at the list price, so the member was quoted a credit and then charged as
 // if they had none.
 test("carries the quoted price through checkout and settles it", async ({ page }) => {
-  const userId = await signIn(page);
+  const userId = await signInAsUpgradeCandidate(page);
   makePlusMember(userId, 182);
 
   await page.goto("/profile");
@@ -119,15 +105,19 @@ test("carries the quoted price through checkout and settles it", async ({ page }
 
   // The confirm hands off to the payment page carrying the order it made.
   await expect(page).toHaveURL(/\/checkout\?plan=PRO&order=ord_/);
-  const orderId = new URL(page.url()).searchParams.get("order")!;
 
   // What is displayed and what the QR asks for must be the same number, and
   // that number must be the prorated one — not 499.000.
   await expect(page.getByText("418.857 VND")).toBeVisible();
-  await expect(page.locator('img[alt="VietQR SePay Transfer"]')).toHaveAttribute(
-    "src",
-    new RegExp(`amount=418857&addInfo=${orderId}`)
-  );
+  const qrSrc = await page.locator('img[alt="VietQR SePay Transfer"]').getAttribute("src");
+  expect(qrSrc).toContain("amount=418857");
+
+  // The memo is the short transfer reference, not the order id — forty
+  // characters of underscores and hyphens do not survive a bank's content
+  // field. See src/lib/order-reference.ts.
+  const reference = new URL(qrSrc!).searchParams.get("addInfo")!;
+  expect(reference).toMatch(/^TNR[A-Z0-9]{8}$/);
+  await expect(page.getByText(reference)).toBeVisible();
 
   // Nothing has been granted yet — the account is still PLUS.
   let me = await (await page.request.get("/api/auth/me")).json();
@@ -136,7 +126,13 @@ test("carries the quoted price through checkout and settles it", async ({ page }
   // Now play the bank: SePay posts the transfer to the webhook.
   const settled = await page.request.post("/api/webhooks/billing?gateway=sepay", {
     headers: { Authorization: `Apikey ${readDevVar("SEPAY_WEBHOOK_SECRET")}` },
-    data: { transactionContent: orderId, amountIn: 418_857, referenceCode: "e2e-transfer" },
+    // Sent the way a bank actually renders it: the code wrapped in narration
+    // of the bank's own, which is what the reader has to cope with.
+    data: {
+      transactionContent: `CHUYEN TIEN ${reference} GD 987654321`,
+      amountIn: 418_857,
+      referenceCode: "e2e-transfer",
+    },
   });
   expect(settled.ok()).toBe(true);
 
@@ -145,12 +141,10 @@ test("carries the quoted price through checkout and settles it", async ({ page }
 
   // ...and the new term is stamped, so a later upgrade quote has something
   // to measure from.
-  const row = execFileSync(
-    "npx",
-    ["wrangler", "d1", "execute", "thinkandrich-db", "--local", "--json", "--command",
-     `SELECT tier, plan_started_at, plan_expires_at FROM users WHERE id='${userId}';`],
-    { encoding: "utf8", env: { ...process.env, CI: "true" } }
-  );
+  const row = wrangler([
+    "d1", "execute", "thinkandrich-db", "--local", "--json", "--command",
+    `SELECT tier, plan_started_at, plan_expires_at FROM users WHERE id='${userId}';`,
+  ]);
   const user = JSON.parse(row)[0].results[0] as {
     tier: string;
     plan_started_at: string;

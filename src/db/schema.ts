@@ -158,7 +158,10 @@ export const orders = sqliteTable(
     paidAt: text("paid_at"),
   },
   (table) => [
-    index("orders_gateway_reference_idx").on(table.gatewayReference),
+    // The customer-facing transfer code (src/lib/order-reference.ts) lives
+    // here, and the webhook reconciles a payment by looking it up — so two
+    // orders sharing one would settle the wrong account.
+    uniqueIndex("orders_gateway_reference_idx").on(table.gatewayReference),
     index("orders_user_id_idx").on(table.userId),
   ]
 );

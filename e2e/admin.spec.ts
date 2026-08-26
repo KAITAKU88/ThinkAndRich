@@ -19,6 +19,9 @@ test.describe("Admin gate", () => {
     await page.goto("/admin");
     await page.getByLabel("Email quản trị viên").fill(email);
     await page.getByRole("button", { name: "Đăng nhập bằng Email OTP" }).click();
+    // The form only renders the OTP field once /api/auth/request-otp has
+    // answered, so this is what says the code exists to be read.
+    await expect(page.getByLabel("Mã xác thực OTP (6 chữ số)")).toBeVisible();
     const code = readOtpFromLocalKv(email);
     await page.getByLabel("Mã xác thực OTP (6 chữ số)").fill(code);
     await page.getByRole("button", { name: /Xác nhận/ }).click();
@@ -34,6 +37,9 @@ test.describe("Admin gate", () => {
     await page.goto("/admin");
     await page.getByLabel("Email quản trị viên").fill(email);
     await page.getByRole("button", { name: "Đăng nhập bằng Email OTP" }).click();
+    // The form only renders the OTP field once /api/auth/request-otp has
+    // answered, so this is what says the code exists to be read.
+    await expect(page.getByLabel("Mã xác thực OTP (6 chữ số)")).toBeVisible();
     const code = readOtpFromLocalKv(email);
     await page.getByLabel("Mã xác thực OTP (6 chữ số)").fill(code);
     await page.getByRole("button", { name: /Xác nhận/ }).click();
@@ -52,6 +58,9 @@ test.describe("Admin content management", () => {
     await page.goto("/admin");
     await page.getByLabel("Email quản trị viên").fill(email);
     await page.getByRole("button", { name: "Đăng nhập bằng Email OTP" }).click();
+    // The form only renders the OTP field once /api/auth/request-otp has
+    // answered, so this is what says the code exists to be read.
+    await expect(page.getByLabel("Mã xác thực OTP (6 chữ số)")).toBeVisible();
     const code = readOtpFromLocalKv(email);
     await page.getByLabel("Mã xác thực OTP (6 chữ số)").fill(code);
     await page.getByRole("button", { name: /Xác nhận/ }).click();

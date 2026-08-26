@@ -9,11 +9,7 @@ import { join } from "node:path";
 // from the local KV simulator instead of an inbox.
 export function readOtpFromLocalKv(email: string): string {
   const prefix = `otp:${email}:`;
-  const out = execFileSync(
-    "npx",
-    ["wrangler", "kv", "key", "list", "--binding=OTP_KV", `--prefix=${prefix}`, "--local"],
-    { cwd: process.cwd(), env: { ...process.env, CI: "true" }, encoding: "utf8" }
-  );
+  const out = wrangler(["kv", "key", "list", "--binding=OTP_KV", `--prefix=${prefix}`, "--local"]);
   const keys = JSON.parse(out) as Array<{ name: string; expiration?: number }>;
   const newest = keys.sort((a, b) => (b.expiration ?? 0) - (a.expiration ?? 0))[0];
   const code = newest?.name.slice(prefix.length) ?? "";
@@ -90,10 +86,26 @@ export function resetOtpThrottle(email: string): void {
   }
 }
 
-function wrangler(args: string[]): string {
-  return execFileSync("npx", ["wrangler", ...args], {
-    cwd: process.cwd(),
-    env: { ...process.env, CI: "true" },
-    encoding: "utf8",
-  });
+/**
+ * `wrangler --local` opens the same .wrangler/state SQLite files the running
+ * `next dev` server has open, so a call can land mid-write and come back
+ * SQLITE_BUSY. That is contention, not failure — the next attempt a moment
+ * later succeeds. Without the retry it surfaced as an unrelated-looking
+ * "internal error" from workerd partway through an otherwise green run.
+ */
+export function wrangler(args: string[], attempts = 4): string {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return execFileSync("npx", ["wrangler", ...args], {
+        cwd: process.cwd(),
+        env: { ...process.env, CI: "true" },
+        encoding: "utf8",
+      });
+    } catch (error) {
+      const message = String(error);
+      const contended = message.includes("SQLITE_BUSY") || message.includes("database is locked");
+      if (!contended || attempt >= attempts) throw error;
+      execFileSync("sleep", [String(attempt * 0.5)]);
+    }
+  }
 }
