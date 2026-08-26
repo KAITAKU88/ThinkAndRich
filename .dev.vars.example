@@ -1,0 +1,33 @@
+# Copy to `.dev.vars` and fill in. Wrangler loads that file for `next dev`
+# and for the local Worker; it is gitignored, this template is not.
+#
+# Everything here is a *secret*. The non-secret configuration — ADMIN_HOST,
+# PUBLIC_HOST, SESSION_COOKIE_DOMAIN — lives in wrangler.jsonc and needs no
+# local override: those vars do reach `next dev`, but both places that read
+# them derive their behaviour from the request's own host, so a loopback dev
+# server neutralises them by itself. See src/lib/host-routing.ts and
+# sessionCookieDomain() in src/lib/session-token.ts.
+
+# Signs the session JWT. Any long random string locally; in production set it
+# with `wrangler secret put JWT_SECRET`.
+JWT_SECRET=
+
+# Comma-separated allowlist of addresses that get ADMIN on login. Admin rights
+# come ONLY from this list, never from the address itself.
+# The e2e suite reads the first entry here to log into the console
+# (readConfiguredAdminEmail in e2e/helpers/otp.ts), so it must be set before
+# `npm run test:e2e`.
+ADMIN_EMAILS=
+
+# Verifies SePay's webhook signature. Leave blank to develop without it;
+# /api/webhooks/billing rejects unsigned calls when it is set.
+SEPAY_WEBHOOK_SECRET=
+
+# Lemon Squeezy — international checkout. Left blank, that gateway is
+# disabled and /api/checkout returns a 503 rather than pretending to work.
+# The two variant IDs come from Members > Plus / Pro in the LS dashboard.
+LEMONSQUEEZY_API_KEY=
+LEMONSQUEEZY_STORE_ID=
+LEMONSQUEEZY_VARIANT_PLUS=
+LEMONSQUEEZY_VARIANT_PRO=
+LEMONSQUEEZY_WEBHOOK_SECRET=
