@@ -25,11 +25,13 @@ import { timeAgo, cn } from "@/lib/utils";
 import type { PillarType, Post, ReadLog } from "@/lib/types";
 import { PILLARS_CONFIG } from "@/lib/data";
 import { getTranslation } from "@/lib/i18n/translations";
+import { UpgradeModal } from "@/components/upgrade/UpgradeModal";
 
 type ProfileTab = "saved" | "history" | "favorites" | "account";
 
 export function ProfilePage() {
   const [tab, setTab] = useState<ProfileTab>("saved");
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [savedPillar, setSavedPillar] = useState<"ALL" | PillarType>("ALL");
   const [favPillar, setFavPillar] = useState<"ALL" | PillarType>("ALL");
 
@@ -456,16 +458,30 @@ export function ProfilePage() {
               </div>
 
               {user.tier !== "PRO" && (
-                <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-between">
-                  <div>
+                <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex flex-col min-[420px]:flex-row min-[420px]:items-center justify-between gap-3">
+                  <div className="min-w-0">
                     <h4 className="font-bold text-amber-600 dark:text-amber-500 text-sm">{t.profile.upgradeTitle}</h4>
                     <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-1">
                       {t.profile.upgradeDesc}
                     </p>
                   </div>
-                  <Button size="sm" className="rounded-full shrink-0 shadow-sm" asChild>
-                    <Link href="/pricing">{t.profile.upgradeBtn}</Link>
-                  </Button>
+                  {/* A PLUS member is mid-term, so the price is not the list
+                      price — it is the PRO price less what their PLUS year is
+                      still worth, which only the server can quote. A FREE
+                      reader has nothing to credit and goes to the plans. */}
+                  {user.tier === "PLUS" ? (
+                    <Button
+                      size="sm"
+                      className="rounded-full shrink-0 shadow-sm self-end min-[420px]:self-auto"
+                      onClick={() => setUpgradeOpen(true)}
+                    >
+                      {t.profile.upgradeBtn}
+                    </Button>
+                  ) : (
+                    <Button size="sm" className="rounded-full shrink-0 shadow-sm self-end min-[420px]:self-auto" asChild>
+                      <Link href="/pricing">{t.profile.upgradeBtn}</Link>
+                    </Button>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -518,6 +534,7 @@ export function ProfilePage() {
           </Card>
         </div>
       )}
+      <UpgradeModal open={upgradeOpen} onOpenChange={setUpgradeOpen} />
     </div>
   );
 }
