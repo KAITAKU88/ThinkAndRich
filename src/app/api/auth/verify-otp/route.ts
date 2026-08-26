@@ -92,6 +92,6 @@ export async function POST(request: NextRequest) {
   );
 
   const res = NextResponse.json({ ok: true, user });
-  res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(env.SESSION_COOKIE_DOMAIN));
+  res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(env.SESSION_COOKIE_DOMAIN, request.headers.get("host")));
   return res;
 }
