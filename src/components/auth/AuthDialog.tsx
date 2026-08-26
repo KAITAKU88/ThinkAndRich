@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSession } from "@/store/session";
 import { getTranslation } from "@/lib/i18n/translations";
+import { OTP_TTL_MINUTES } from "@/lib/otp-policy";
 
 
 export function AuthDialog() {
@@ -68,7 +69,7 @@ export function AuthDialog() {
     setStep("OTP");
     setCountdown(60);
     toast.success(t.auth.otpSentToastTitle, {
-      description: `${t.auth.otpSentToastDescPrefix} ${email}. ${t.auth.otpSentToastDescSuffix}`,
+      description: `${t.auth.otpSentToastDescPrefix} ${email}. ${t.auth.otpSentToastDescSuffix.replace("{minutes}", String(OTP_TTL_MINUTES))}`,
       duration: 8000,
     });
   }

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { checkRateLimit, clientIp, tooManyRequests } from "@/lib/server/rate-limit";
-import { OTP_TTL_SECONDS, otpKey } from "@/lib/server/otp";
+import { OTP_TTL_MINUTES, OTP_TTL_SECONDS, otpKey } from "@/lib/server/otp";
 
 // This endpoint mails a code to whatever address it is handed, so without a
 // limit it is both a spam relay pointed at strangers and a way to exhaust the
@@ -39,8 +39,8 @@ export async function POST(request: NextRequest) {
     to: email,
     from: { email: "otp@ankiva.cc", name: "Think & Rich" },
     subject: `${code} là mã xác thực đăng nhập Think & Rich của bạn`,
-    text: `Mã xác thực của bạn là: ${code}\n\nMã có hiệu lực trong 5 phút. Nếu bạn không yêu cầu mã này, hãy bỏ qua email.`,
-    html: `<p>Mã xác thực của bạn là: <strong style="font-size:20px;letter-spacing:2px">${code}</strong></p><p>Mã có hiệu lực trong 5 phút. Nếu bạn không yêu cầu mã này, hãy bỏ qua email.</p>`,
+    text: `Mã xác thực của bạn là: ${code}\n\nMã có hiệu lực trong ${OTP_TTL_MINUTES} phút. Nếu bạn không yêu cầu mã này, hãy bỏ qua email.`,
+    html: `<p>Mã xác thực của bạn là: <strong style="font-size:20px;letter-spacing:2px">${code}</strong></p><p>Mã có hiệu lực trong ${OTP_TTL_MINUTES} phút. Nếu bạn không yêu cầu mã này, hãy bỏ qua email.</p>`,
   });
 
   return NextResponse.json({ ok: true });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Post } from "@/lib/types";
 
 export interface UsePostsFilters {
@@ -16,13 +16,20 @@ export interface UsePostsFilters {
 // that need client-side pillar/access/tag/search/sort filtering (Explore's
 // skyline layout) still do that in-memory over the fetched array, same as
 // before — only the source of the array changed.
-export function usePosts(filters: UsePostsFilters = {}) {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+export function usePosts(filters: UsePostsFilters = {}, initialPosts?: Post[]) {
+  const [posts, setPosts] = useState<Post[]>(initialPosts ?? []);
+  const [loading, setLoading] = useState(initialPosts === undefined);
+  const initialPostsHandled = useRef(false);
 
   const { pillar, q, sort, pageSize } = filters;
 
   useEffect(() => {
+    if (!initialPostsHandled.current && initialPosts !== undefined) {
+      initialPostsHandled.current = true;
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
     setLoading(true);
     const params = new URLSearchParams();
@@ -44,7 +51,7 @@ export function usePosts(filters: UsePostsFilters = {}) {
     return () => {
       cancelled = true;
     };
-  }, [pillar, q, sort, pageSize]);
+  }, [initialPosts, pillar, q, sort, pageSize]);
 
   return { posts, loading };
 }

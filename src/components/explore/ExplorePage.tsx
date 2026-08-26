@@ -115,12 +115,12 @@ const TIER_ACCENT_VAR: Record<"PLUS" | "PRO", string> = {
 // How many topic-tag chips the "Thẻ chủ đề" filter shows at once.
 const TAG_LIMIT = 16;
 
-function ExploreContent() {
+function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
   const searchParams = useSearchParams();
   const initialQ = searchParams.get("q") || "";
   const initialPillar = (searchParams.get("pillar") as PillarFilter) || "ALL";
 
-  const { posts } = usePosts({ pageSize: 200 });
+  const { posts } = usePosts({ pageSize: 200 }, initialPosts);
   const user = useSession((s) => s.user);
   const bookmarks = useSession((s) => s.bookmarks);
   const hideSavedPosts = useSession((s) => s.hideSavedPosts);
@@ -138,7 +138,12 @@ function ExploreContent() {
   const [readStatusFilter, setReadStatusFilter] = useState<ReadStatusFilter>("ALL");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState(initialQ);
-  const [numCols, setNumCols] = useState(12);
+  // SSR must agree with the narrow-screen CSS default. Starting at 12 made
+  // the server emit cards on grid lines 9-12 while CSS exposed only 4
+  // columns, so the first non-hydrated paint overflowed before the resize
+  // effect could correct it. Wider screens move to 8/12 immediately after
+  // hydration; mobile is correct from the HTML response onward.
+  const [numCols, setNumCols] = useState(4);
   const [page, setPage] = useState(1);
 
   const todayReadCount = user ? getTodayReadCount() : 0;
@@ -824,7 +829,7 @@ function ExploreContent() {
   );
 }
 
-export function ExplorePage() {
+export function ExplorePage({ initialPosts }: { initialPosts: Post[] }) {
   return (
     <Suspense
       fallback={
@@ -833,7 +838,7 @@ export function ExplorePage() {
         </div>
       }
     >
-      <ExploreContent />
+      <ExploreContent initialPosts={initialPosts} />
     </Suspense>
   );
 }

@@ -1,4 +1,4 @@
-export const OTP_TTL_SECONDS = 5 * 60;
+export { OTP_TTL_MINUTES, OTP_TTL_SECONDS } from "@/lib/otp-policy";
 
 /**
  * KV key for one issued code.
@@ -11,7 +11,7 @@ export const OTP_TTL_SECONDS = 5 * 60;
  * expired code.
  *
  * Multiple live codes barely move the guessing odds (a handful of six-digit
- * values out of a million, over a five-minute window, behind a cap on
+ * values out of a million, over the code's lifetime, behind a cap on
  * verification attempts), and they remove a failure mode users hit constantly.
  */
 export function otpKey(email: string, code: string): string {
