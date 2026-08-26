@@ -10,6 +10,10 @@ export default defineConfig({
   // when hitting the same routes with curl. Unrelated to app logic; a
   // production Workers build wouldn't have this dev-only reload path.
   retries: 1,
+  // The admin tests shell out to `npx wrangler` two or three times each to
+  // read the OTP back out of the local KV simulator and clear its throttling
+  // counters, and process startup alone eats a large part of the 30s default.
+  timeout: 60_000,
   reporter: [["list"]],
   use: {
     baseURL: "http://localhost:3000",

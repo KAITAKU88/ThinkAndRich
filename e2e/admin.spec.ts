@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { readOtpFromLocalKv } from "./helpers/otp";
+import { readConfiguredAdminEmail, readOtpFromLocalKv, resetOtpThrottle } from "./helpers/otp";
 
 test.describe("Admin gate", () => {
   test("redirects /admin to a dedicated login page while logged out", async ({ page }) => {
@@ -15,6 +15,7 @@ test.describe("Admin gate", () => {
     // Must not contain the substring "admin" — src/app/api/auth/verify-otp
     // grants ADMIN role to any email containing it, which "notadmin" would.
     const email = `e2e-regular-user-${Date.now()}@example.com`;
+    resetOtpThrottle(email);
     await page.goto("/admin");
     await page.getByLabel("Email quản trị viên").fill(email);
     await page.getByRole("button", { name: "Đăng nhập bằng Email OTP" }).click();
@@ -22,12 +23,19 @@ test.describe("Admin gate", () => {
     await page.getByLabel("Mã xác thực OTP (6 chữ số)").fill(code);
     await page.getByRole("button", { name: /Xác nhận/ }).click();
 
-    await expect(page.getByText("Tài khoản này không có quyền quản trị.")).toBeVisible();
+    // Same allowance as the redirect assertions below: the message is a
+    // persistent inline box (setDeniedReason in AdminLoginForm), not a toast,
+    // so the only thing being waited on is the verify-otp round trip, which
+    // regularly runs past 5s under `next dev`.
+    await expect(page.getByText("Tài khoản này không có quyền quản trị.")).toBeVisible({
+      timeout: 20_000,
+    });
     await expect(page).toHaveURL(/\/admin\/login/);
   });
 
-  test("an email containing 'admin' gets real ADMIN access and reaches the console", async ({ page }) => {
-    const email = `e2e-admin-${Date.now()}@example.com`;
+  test("an allowlisted admin gets real ADMIN access and reaches the console", async ({ page }) => {
+    const email = readConfiguredAdminEmail();
+    resetOtpThrottle(email);
 
     await page.goto("/admin");
     await page.getByLabel("Email quản trị viên").fill(email);
@@ -36,7 +44,7 @@ test.describe("Admin gate", () => {
     await page.getByLabel("Mã xác thực OTP (6 chữ số)").fill(code);
     await page.getByRole("button", { name: /Xác nhận/ }).click();
 
-    await expect(page).toHaveURL(/\/admin$/);
+    await expect(page).toHaveURL(/\/admin$/, { timeout: 20_000 });
     await expect(page.getByRole("button", { name: "Quản lý Bài viết" })).toBeVisible();
     // The admin console must not carry the public site's header/footer.
     await expect(page.getByText("Khai phóng tư duy")).toBeHidden();
@@ -45,14 +53,15 @@ test.describe("Admin gate", () => {
 
 test.describe("Admin content management", () => {
   test("a published post shows up on the real public site immediately", async ({ page }) => {
-    const email = `e2e-admin-content-${Date.now()}@example.com`;
+    const email = readConfiguredAdminEmail();
+    resetOtpThrottle(email);
     await page.goto("/admin");
     await page.getByLabel("Email quản trị viên").fill(email);
     await page.getByRole("button", { name: "Đăng nhập bằng Email OTP" }).click();
     const code = readOtpFromLocalKv(email);
     await page.getByLabel("Mã xác thực OTP (6 chữ số)").fill(code);
     await page.getByRole("button", { name: /Xác nhận/ }).click();
-    await expect(page).toHaveURL(/\/admin$/);
+    await expect(page).toHaveURL(/\/admin$/, { timeout: 20_000 });
 
     await page.getByRole("button", { name: "Quản lý Bài viết" }).click();
     await page.getByRole("button", { name: "Viết bài mới" }).click();
