@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Newsreader, IBM_Plex_Sans, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { SiteShell } from "@/components/layout/SiteShell";
@@ -33,6 +33,17 @@ export const metadata: Metadata = {
   title: "Think & Rich — Thư viện Mô hình Tư duy & Chiến lược Kinh doanh",
   description:
     "Kho tàng tổng hợp và đúc kết toàn bộ các Mô hình Tư duy, Mô hình Tâm trí và Chiến lược Kinh doanh đỉnh cao, khai phóng nhận thức và nâng tầm quyết định.",
+};
+
+// Next's default viewport tag stops at `width=device-width, initial-scale=1`,
+// which leaves `env(safe-area-inset-*)` resolving to 0 on notched phones —
+// so the bottom nav and the reading dock, which both budget for the home
+// indicator, would sit right on top of it. `viewport-fit: cover` is what
+// makes those insets report their real values.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

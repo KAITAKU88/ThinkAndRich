@@ -61,10 +61,10 @@ export function BottomNav() {
 
   return (
     <nav className={cn(
-      "sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-md border-t border-border/80 px-2 py-1 transition-transform duration-200",
+      "sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-md border-t border-border/80 px-1 min-[375px]:px-2 pt-1 pb-[calc(0.25rem+env(safe-area-inset-bottom,0px))] transition-transform duration-200",
       isPostPage ? "translate-y-0" : ""
     )}>
-      <div className="flex items-center justify-around">
+      <div className="flex items-center justify-around pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]" data-testid="mobile-nav">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = item.exact
@@ -77,7 +77,7 @@ export function BottomNav() {
                 key={item.id}
                 type="button"
                 onClick={item.action}
-                className="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-colors text-muted-foreground hover:text-foreground active:scale-95"
+                className="min-w-0 flex-1 flex flex-col items-center justify-center py-1 px-1 min-[375px]:px-2.5 rounded-xl transition-colors text-muted-foreground hover:text-foreground active:scale-95"
               >
                 <div className="relative">
                   <Icon className="w-5 h-5" />
@@ -94,7 +94,7 @@ export function BottomNav() {
               key={item.id}
               href={item.path}
               className={cn(
-                "flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all relative active:scale-95",
+                "min-w-0 flex-1 flex flex-col items-center justify-center py-1 px-1 min-[375px]:px-2.5 rounded-xl transition-all relative active:scale-95",
                 isActive
                   ? "text-primary font-semibold"
                   : "text-muted-foreground hover:text-foreground",

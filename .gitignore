@@ -42,6 +42,8 @@ yarn-error.log*
 /.wrangler/
 /.open-next/
 .dev.vars*
+# ...but the template that documents what belongs in it is not a secret.
+!.dev.vars.example
 
 # typescript
 *.tsbuildinfo

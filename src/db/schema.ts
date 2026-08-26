@@ -50,6 +50,23 @@ export const users = sqliteTable("users", {
   lastLoginAt: text("last_login_at").notNull(),
   dailyReadsDate: text("daily_reads_date"),
   dailyReadsCount: integer("daily_reads_count").notNull().default(0),
+
+  // When the member's current paid term began and ends, ISO-8601.
+  //
+  // Until now a tier was permanent once granted: nothing recorded when it
+  // started, so nothing could say how much of it had been used. Mid-term
+  // upgrade pricing (src/lib/upgrade-pricing.ts) needs exactly that, since
+  // what a PLUS member pays to reach PRO is the PRO price less the unspent
+  // part of their PLUS term.
+  //
+  // Both are nullable and mean "no paid term": a FREE reader has neither.
+  // planExpiresAt is recorded but NOT yet enforced anywhere — access still
+  // follows `tier` alone. Making it enforcing is a separate feature with its
+  // own decisions (renewal, notice before expiry, what a lapsed member sees),
+  // and switching it on before those exist would silently revoke access from
+  // every member whose stamp predates this column.
+  planStartedAt: text("plan_started_at"),
+  planExpiresAt: text("plan_expires_at"),
 });
 
 export const bookmarks = sqliteTable(
@@ -141,7 +158,10 @@ export const orders = sqliteTable(
     paidAt: text("paid_at"),
   },
   (table) => [
-    index("orders_gateway_reference_idx").on(table.gatewayReference),
+    // The customer-facing transfer code (src/lib/order-reference.ts) lives
+    // here, and the webhook reconciles a payment by looking it up — so two
+    // orders sharing one would settle the wrong account.
+    uniqueIndex("orders_gateway_reference_idx").on(table.gatewayReference),
     index("orders_user_id_idx").on(table.userId),
   ]
 );
@@ -250,3 +270,25 @@ export const mcpAuthCodes = sqliteTable(
   },
   (table) => [index("mcp_auth_codes_expires_idx").on(table.expiresAt)]
 );
+
+// Operator-editable configuration, so things like the bank account a
+// customer is told to transfer to can be corrected from the console instead
+// of a redeploy.
+//
+// A key/value shape rather than a column per setting: these are read one
+// group at a time by code that already knows what it is looking for, and a
+// new setting should not need a migration. Values are stored as text and
+// parsed by the reader (src/lib/server/settings.ts), which owns the
+// defaults — a missing row means "never configured", not an error.
+//
+// SECRETS DO NOT BELONG HERE. The SePay webhook secret, the Lemon Squeezy
+// API key and JWT_SECRET stay Worker secrets: this table is readable by
+// every admin and is dumped into backups, and its whole point is being
+// editable from a web form. What lives here is configuration a customer
+// sees anyway — the bank details printed on their transfer QR.
+export const appSettings = sqliteTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: text("updated_at").notNull(),
+  updatedBy: text("updated_by"), // admin email, for audit
+});

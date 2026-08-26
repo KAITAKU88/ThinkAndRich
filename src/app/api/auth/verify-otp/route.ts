@@ -73,6 +73,12 @@ export async function POST(request: NextRequest) {
       lastLoginAt: now,
       dailyReadsDate: null,
       dailyReadsCount: 0,
+      // No paid term: this account has bought nothing yet. An allowlisted
+      // admin lands here as PRO without a term too, which is right — they
+      // were granted the tier, they did not purchase a year of it, so there
+      // is nothing for an upgrade quote to credit them for.
+      planStartedAt: null,
+      planExpiresAt: null,
     };
     await db.insert(users).values(user);
   } else if (isAllowlistedAdmin && user.role !== "ADMIN") {
@@ -92,6 +98,6 @@ export async function POST(request: NextRequest) {
   );
 
   const res = NextResponse.json({ ok: true, user });
-  res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(env.SESSION_COOKIE_DOMAIN));
+  res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(env.SESSION_COOKIE_DOMAIN, request.headers.get("host")));
   return res;
 }

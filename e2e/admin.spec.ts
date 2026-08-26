@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { readOtpFromLocalKv } from "./helpers/otp";
+import { readConfiguredAdminEmail, readOtpFromLocalKv, resetOtpThrottle } from "./helpers/otp";
 
 test.describe("Admin gate", () => {
   test("redirects /admin to a dedicated login page while logged out", async ({ page }) => {
@@ -15,9 +15,13 @@ test.describe("Admin gate", () => {
     // Must not contain the substring "admin" — src/app/api/auth/verify-otp
     // grants ADMIN role to any email containing it, which "notadmin" would.
     const email = `e2e-regular-user-${Date.now()}@example.com`;
+    resetOtpThrottle(email);
     await page.goto("/admin");
     await page.getByLabel("Email quản trị viên").fill(email);
     await page.getByRole("button", { name: "Đăng nhập bằng Email OTP" }).click();
+    // The form only renders the OTP field once /api/auth/request-otp has
+    // answered, so this is what says the code exists to be read.
+    await expect(page.getByLabel("Mã xác thực OTP (6 chữ số)")).toBeVisible();
     const code = readOtpFromLocalKv(email);
     await page.getByLabel("Mã xác thực OTP (6 chữ số)").fill(code);
     await page.getByRole("button", { name: /Xác nhận/ }).click();
@@ -26,12 +30,16 @@ test.describe("Admin gate", () => {
     await expect(page).toHaveURL(/\/admin\/login/);
   });
 
-  test("an email containing 'admin' gets real ADMIN access and reaches the console", async ({ page }) => {
-    const email = `e2e-admin-${Date.now()}@example.com`;
+  test("an allowlisted admin gets real ADMIN access and reaches the console", async ({ page }) => {
+    const email = readConfiguredAdminEmail();
+    resetOtpThrottle(email);
 
     await page.goto("/admin");
     await page.getByLabel("Email quản trị viên").fill(email);
     await page.getByRole("button", { name: "Đăng nhập bằng Email OTP" }).click();
+    // The form only renders the OTP field once /api/auth/request-otp has
+    // answered, so this is what says the code exists to be read.
+    await expect(page.getByLabel("Mã xác thực OTP (6 chữ số)")).toBeVisible();
     const code = readOtpFromLocalKv(email);
     await page.getByLabel("Mã xác thực OTP (6 chữ số)").fill(code);
     await page.getByRole("button", { name: /Xác nhận/ }).click();
@@ -45,10 +53,14 @@ test.describe("Admin gate", () => {
 
 test.describe("Admin content management", () => {
   test("a published post shows up on the real public site immediately", async ({ page }) => {
-    const email = `e2e-admin-content-${Date.now()}@example.com`;
+    const email = readConfiguredAdminEmail();
+    resetOtpThrottle(email);
     await page.goto("/admin");
     await page.getByLabel("Email quản trị viên").fill(email);
     await page.getByRole("button", { name: "Đăng nhập bằng Email OTP" }).click();
+    // The form only renders the OTP field once /api/auth/request-otp has
+    // answered, so this is what says the code exists to be read.
+    await expect(page.getByLabel("Mã xác thực OTP (6 chữ số)")).toBeVisible();
     const code = readOtpFromLocalKv(email);
     await page.getByLabel("Mã xác thực OTP (6 chữ số)").fill(code);
     await page.getByRole("button", { name: /Xác nhận/ }).click();
@@ -69,7 +81,7 @@ test.describe("Admin content management", () => {
 
     const publicPage = await page.context().newPage();
     await publicPage.goto("/explore");
-    await expect(publicPage.getByText(title)).toBeVisible({ timeout: 10000 });
+    await expect(publicPage.getByText(title)).toBeVisible();
     await publicPage.close();
   });
 });

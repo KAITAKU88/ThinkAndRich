@@ -137,6 +137,7 @@ export function AuthDialog() {
 
             <Button
               type="submit"
+              data-testid="auth-send-otp"
               className="w-full h-11 rounded-full font-medium"
               disabled={loading}
             >
@@ -170,6 +171,7 @@ export function AuthDialog() {
 
             <Button
               type="submit"
+              data-testid="auth-verify-otp"
               className="w-full h-11 rounded-full font-medium"
               disabled={loading || otpCode.length < 6}
             >

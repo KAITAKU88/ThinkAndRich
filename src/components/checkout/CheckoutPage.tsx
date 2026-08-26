@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
+  AlertTriangle,
   CheckCircle2,
   Crown,
   QrCode,
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { MembershipTier, CountryCode } from "@/lib/types";
+import type { PaymentSettings } from "@/lib/payment-settings";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +31,12 @@ import { getPppPricing, COUNTRIES_LIST } from "@/lib/geo-pricing";
 function CheckoutContent() {
   const searchParams = useSearchParams();
   const planId = (searchParams.get("plan") as MembershipTier) || "PRO";
+  // A mid-term upgrade arrives here with its order already created and
+  // priced by /api/upgrade — the PRO price less what the member's PLUS term
+  // is still worth. This page must settle that order, not open its own.
+  const upgradeOrderId = searchParams.get("order");
+  const [payment, setPayment] = useState<PaymentSettings | null>(null);
+  const [paymentConfigured, setPaymentConfigured] = useState(false);
 
   const user = useSession((s) => s.user);
   const setAuthOpen = useSession((s) => s.setAuthOpen);
@@ -42,7 +50,7 @@ function CheckoutContent() {
   const [copied, setCopied] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [order, setOrder] = useState<{ id: string; amount: number; currency: string } | null>(null);
+  const [order, setOrder] = useState<{ id: string; reference: string; amount: number; currency: string } | null>(null);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [lemonCheckoutUrl, setLemonCheckoutUrl] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -50,7 +58,15 @@ function CheckoutContent() {
   const isPro = planId === "PRO";
   const planName = isPro ? t.pricing.plans.proName : t.pricing.plans.plusName;
   const planLimitText = isPro ? t.pricing.plans.proLimit : t.pricing.plans.plusLimit;
-  const planPriceFormatted = isPro ? ppp.plans.PRO.formatted : ppp.plans.PLUS.formatted;
+  const listPriceFormatted = isPro ? ppp.plans.PRO.formatted : ppp.plans.PLUS.formatted;
+  // What the page shows has to be what the QR asks for. On an upgrade those
+  // differ by the member's remaining PLUS credit, and showing the list price
+  // next to a QR for a smaller amount is the kind of mismatch that gets a
+  // transfer typed in by hand for the wrong figure.
+  const planPriceFormatted =
+    upgradeOrderId && order
+      ? `${order.amount.toLocaleString("vi-VN")} ${order.currency}`
+      : listPriceFormatted;
 
   // Real PENDING order, created server-side (amount/currency computed from
   // the user's country there too — never trust a client-submitted price).
@@ -59,6 +75,18 @@ function CheckoutContent() {
   // country" selector changes the gateway, so an existing order for the
   // old country must be discarded to let this effect re-fire.
   useEffect(() => {
+    fetch("/api/settings/payment")
+      .then((res) => res.json() as Promise<{ ok: boolean; payment?: PaymentSettings; configured?: boolean }>)
+      .then((data) => {
+        if (data.ok && data.payment) {
+          setPayment(data.payment);
+          setPaymentConfigured(Boolean(data.configured));
+        }
+      })
+      .catch(() => setPaymentConfigured(false));
+  }, []);
+
+  useEffect(() => {
     setOrder(null);
     setLemonCheckoutUrl(null);
     setOrderError(null);
@@ -66,6 +94,29 @@ function CheckoutContent() {
 
   useEffect(() => {
     if (!user || order) return;
+
+    // Creating a second order here would charge the list price and strand
+    // the discounted one the member was quoted — they would pay the full
+    // PRO price for an upgrade they were promised a credit on.
+    if (upgradeOrderId) {
+      fetch(`/api/orders/${upgradeOrderId}`)
+        .then((res) => res.json() as Promise<{ ok: boolean; order?: { id: string; gatewayReference: string; amount: number; currency: string; status: string }; message?: string }>)
+        .then((data) => {
+          if (data.ok && data.order && data.order.status === "PENDING") {
+            setOrder({
+              id: data.order.id,
+              reference: data.order.gatewayReference,
+              amount: data.order.amount,
+              currency: data.order.currency,
+            });
+          } else {
+            setOrderError(data.message || t.checkout.genericOrderError);
+          }
+        })
+        .catch(() => setOrderError(t.checkout.genericConnError));
+      return;
+    }
+
     fetch(`/api/checkout?country=${countryCode}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -77,6 +128,7 @@ function CheckoutContent() {
             ok: boolean;
             message?: string;
             orderId?: string;
+            reference?: string;
             amount?: number;
             currency?: string;
             checkoutUrl?: string;
@@ -84,14 +136,14 @@ function CheckoutContent() {
       )
       .then((data) => {
         if (data.ok && data.orderId) {
-          setOrder({ id: data.orderId, amount: data.amount!, currency: data.currency! });
+          setOrder({ id: data.orderId, reference: data.reference!, amount: data.amount!, currency: data.currency! });
           if (data.checkoutUrl) setLemonCheckoutUrl(data.checkoutUrl);
         } else {
           setOrderError(data.message || t.checkout.genericOrderError);
         }
       })
       .catch(() => setOrderError(t.checkout.genericConnError));
-  }, [user, countryCode, planId, order, t.checkout.genericOrderError, t.checkout.genericConnError]);
+  }, [user, countryCode, planId, order, upgradeOrderId, t.checkout.genericOrderError, t.checkout.genericConnError]);
 
   // Poll for the webhook flipping the order to PAID — this page never
   // decides success itself (see src/app/api/webhooks/billing/route.ts).
@@ -112,17 +164,28 @@ function CheckoutContent() {
     };
   }, [order, isSuccess, planName, ppp.gateway, t.checkout.sepayGatewayLabel, t.checkout.lemonGatewayLabel, t.checkout.paymentConfirmedPrefix]);
 
-  const memoCode = order ? order.id : t.common.loading;
+  // The transfer memo is the short reference, not the order id: a bank
+  // rewrites this field, and forty characters of underscores and hyphens do
+  // not survive the trip. See src/lib/order-reference.ts.
+  const memoCode = order ? order.reference : t.common.loading;
 
-  // VietQR parameters for SePay
-  const bankAccount = "0987654321";
-  const bankName = "MBBank (Ngân hàng Quân Đội)";
-  const accountHolder = "THINK AND RICH CO LTD";
-  const vietQrUrl = order
-    ? `https://img.vietqr.io/image/MB-${bankAccount}-compact2.png?amount=${order.amount}&addInfo=${encodeURIComponent(
-        memoCode
-      )}&accountName=${encodeURIComponent(accountHolder)}`
-    : "";
+  // The bank details come from the console (Cấu hình Thanh toán), not from
+  // this file. They were constants here, including a placeholder account
+  // number, so every QR the site had ever drawn pointed somewhere nobody
+  // owned and fixing it meant a deploy.
+  const bankAccount = payment?.bankAccountNumber ?? "";
+  const bankName = payment?.bankName ?? "";
+  const accountHolder = payment?.bankAccountHolder ?? "";
+
+  // No QR at all until all four fields are set. Half-configured details
+  // produce a scannable code that sends money to the wrong place, which is
+  // far worse than a checkout that plainly says it is not ready.
+  const vietQrUrl =
+    order && paymentConfigured
+      ? `https://img.vietqr.io/image/${payment!.bankCode}-${bankAccount}-compact2.png?amount=${order.amount}&addInfo=${encodeURIComponent(
+          memoCode
+        )}&accountName=${encodeURIComponent(accountHolder)}`
+      : "";
 
   function handleCopy(text: string, key: string) {
     navigator.clipboard.writeText(text);
@@ -188,7 +251,7 @@ function CheckoutContent() {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-12">
+    <div className="container mx-auto max-w-4xl px-3 sm:px-4 py-8 sm:py-12">
       <div className="text-center mb-10 space-y-2">
         <Badge className="bg-primary/15 text-primary border-none text-xs">
           {t.checkout.badge}
@@ -204,7 +267,7 @@ function CheckoutContent() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
         {/* Left: Plan Summary & Currency Lock Info */}
         <div className="space-y-6">
-          <Card className="rounded-3xl border-border/80 bg-card p-6 space-y-6">
+          <Card className="rounded-3xl border-border/80 bg-card p-4 sm:p-6 space-y-6">
             <div>
               <div className="flex items-center gap-2 mb-2">
                 {isPro ? (
@@ -220,17 +283,17 @@ function CheckoutContent() {
             </div>
 
             <div className="p-4 rounded-2xl bg-muted/50 border border-border/60 space-y-3">
-              <div className="flex justify-between items-center text-xs">
+              <div className="flex justify-between items-start gap-3 text-xs">
                 <span className="text-muted-foreground">{t.checkout.duration}</span>
                 <span className="font-semibold text-foreground">{t.checkout.durationValue}</span>
               </div>
-              <div className="flex justify-between items-center text-xs">
+              <div className="flex justify-between items-start gap-3 text-xs">
                 <span className="text-muted-foreground">{t.checkout.readingLimit}</span>
                 <span className="font-semibold text-primary">{planLimitText}</span>
               </div>
               <div className="pt-2 border-t border-border/50 flex justify-between items-baseline">
                 <span className="text-sm font-semibold">{t.checkout.totalAmount}</span>
-                <span className="text-2xl font-extrabold text-primary">
+                <span className="text-xl min-[375px]:text-2xl font-extrabold text-primary text-right break-words">
                   {planPriceFormatted}
                 </span>
               </div>
@@ -241,13 +304,13 @@ function CheckoutContent() {
                 <Globe2 className="w-4 h-4 text-primary" />
                 <span>{t.checkout.currencyLockedNotice}</span>
               </div>
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-card border border-border">
+              <div className="flex flex-col min-[375px]:flex-row min-[375px]:items-center justify-between gap-2 p-2.5 rounded-xl bg-card border border-border">
                 <span>{t.checkout.regionDetectedLabel}</span>
                 <Badge variant="outline" className="font-bold">
                   {ppp.flag} {ppp.countryName} ({ppp.currency})
                 </Badge>
               </div>
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-card border border-border">
+              <div className="flex flex-col min-[375px]:flex-row min-[375px]:items-center justify-between gap-2 p-2.5 rounded-xl bg-card border border-border">
                 <span>{t.checkout.gatewayAutoLabel}</span>
                 <Badge
                   className={
@@ -261,7 +324,7 @@ function CheckoutContent() {
               </div>
             </div>
 
-            <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs">
+            <div className="pt-2 border-t border-border/60 flex flex-col min-[375px]:flex-row min-[375px]:items-center justify-between gap-2 text-xs">
               <span className="text-muted-foreground">{t.checkout.simulateCountryLabel}</span>
               <select
                 value={countryCode}
@@ -290,7 +353,7 @@ function CheckoutContent() {
         <div>
           {ppp.gateway === "sepay" ? (
             /* SEPAY GATEWAY (VIETNAM VNĐ) */
-            <Card className="rounded-3xl border-2 border-primary shadow-lg bg-card p-6 space-y-6">
+            <Card className="rounded-3xl border-2 border-primary shadow-lg bg-card p-4 sm:p-6 space-y-6">
               <div className="flex items-center justify-between">
                 <div>
                   <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-none text-[11px] font-semibold mb-1">
@@ -303,23 +366,36 @@ function CheckoutContent() {
                 </div>
               </div>
 
-              {/* VietQR Display */}
-              <div className="flex flex-col items-center p-4 rounded-2xl bg-white border border-border shadow-inner text-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={vietQrUrl}
-                  alt="VietQR SePay Transfer"
-                  className="w-52 h-52 object-contain rounded-xl"
-                />
-                <p className="text-[11px] text-slate-600 font-medium mt-2">
-                  {t.checkout.sepayDesc}
-                </p>
-              </div>
+              {/* VietQR Display. No bank details configured means no QR: a
+                  code drawn from half-filled details is scannable and sends
+                  money to the wrong account, which is worse than a checkout
+                  that says plainly it is not ready. */}
+              {paymentConfigured ? (
+                <div className="flex flex-col items-center p-4 rounded-2xl bg-white border border-border shadow-inner text-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={vietQrUrl}
+                    alt="VietQR SePay Transfer"
+                    className="w-full max-w-52 aspect-square object-contain rounded-xl"
+                  />
+                  <p className="text-[11px] text-slate-600 font-medium mt-2">
+                    {t.checkout.sepayDesc}
+                  </p>
+                </div>
+              ) : (
+                <div
+                  data-testid="payment-not-configured"
+                  className="flex items-start gap-2.5 p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-xs text-amber-700 dark:text-amber-400"
+                >
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-px" />
+                  <span>{t.checkout.paymentNotConfigured}</span>
+                </div>
+              )}
 
               {/* Transfer Details with Copy Buttons */}
               <div className="space-y-2.5 text-xs">
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/60 border border-border/50">
-                  <div>
+                <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-muted/60 border border-border/50">
+                  <div className="min-w-0">
                     <span className="text-muted-foreground block text-[10px]">{t.checkout.bankName}</span>
                     <span className="font-semibold text-foreground">{bankName}</span>
                   </div>
@@ -328,7 +404,7 @@ function CheckoutContent() {
                 <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/60 border border-border/50">
                   <div>
                     <span className="text-muted-foreground block text-[10px]">{t.checkout.accountNumber}</span>
-                    <span className="font-mono font-bold text-sm text-foreground">{bankAccount}</span>
+                    <span className="font-mono font-bold text-sm text-foreground break-all">{bankAccount}</span>
                   </div>
                   <Button
                     variant="outline"
@@ -348,12 +424,12 @@ function CheckoutContent() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30">
-                  <div>
+                <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                  <div className="min-w-0">
                     <span className="text-amber-700 dark:text-amber-400 block text-[10px] font-semibold">
                       {t.checkout.transferMemo}
                     </span>
-                    <span className="font-mono font-bold text-sm text-amber-600 dark:text-amber-400">
+                    <span className="font-mono font-bold text-sm text-amber-600 dark:text-amber-400 break-all">
                       {memoCode}
                     </span>
                   </div>
@@ -401,7 +477,7 @@ function CheckoutContent() {
                (src/app/api/webhooks/billing/route.ts?gateway=lemonsqueezy)
                flips the order to PAID the same way SePay's does, and this
                page polls for that exactly like the SePay branch above. */
-            <Card className="rounded-3xl border-2 border-primary shadow-lg bg-card p-6 space-y-6 text-center">
+            <Card className="rounded-3xl border-2 border-primary shadow-lg bg-card p-4 sm:p-6 space-y-6 text-center">
               <div className="w-12 h-12 rounded-2xl bg-blue-600/10 mx-auto flex items-center justify-center">
                 <CreditCard className="w-6 h-6 text-blue-600" />
               </div>

@@ -117,13 +117,13 @@ export function Header() {
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b border-border/80 bg-background/95 backdrop-blur-md transition-colors">
-        <div className="container mx-auto max-w-[1600px] px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-4">
+        <div className="container mx-auto max-w-[1600px] px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
           {/* 1. LEFT: LOGO, BRAND NAME, SLOGAN */}
           <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group shrink-0">
             <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-xs transition-transform group-hover:scale-105">
               <Brain className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
-            <div className="flex flex-col">
+            <div className="hidden min-[375px]:flex flex-col min-w-0">
               <span className="font-display font-bold text-base sm:text-lg tracking-tight leading-none text-foreground">
                 {settings.brandName || "Think & Rich"}
               </span>
@@ -134,7 +134,7 @@ export function Header() {
           </Link>
 
           {/* 2. CENTER: MENU (HOME, KHÁM PHÁ, BẢNG GIÁ, CÁ NHÂN) ĐẸP NẰM GIỮA HEADER */}
-          <nav className="flex items-center gap-1 bg-secondary/70 p-1 rounded-full border border-border/60 shadow-xs">
+          <nav data-testid="desktop-nav" className="hidden sm:flex items-center gap-1 bg-secondary/70 p-1 rounded-full border border-border/60 shadow-xs">
             <Link
               href="/"
               className={cn(
@@ -188,7 +188,7 @@ export function Header() {
           </nav>
 
           {/* 3. RIGHT: [NÚT SEARCH] [NÚT THEME] [NÚT NGÔN NGỮ] [NÚT LOGIN/ACCOUNT] */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-0.5 min-[375px]:gap-1 sm:gap-2 shrink-0">
             {/* Nút Search đặt ngay bên trái của Theme Toggle */}
             <Button
               variant="ghost"
@@ -266,11 +266,14 @@ export function Header() {
             {!user && (
               <Button
                 size="sm"
-                className="rounded-full px-3.5 sm:px-4 h-8 sm:h-9 font-semibold text-xs shadow-xs bg-primary text-primary-foreground hover:bg-primary/90"
+                data-testid="login-cta"
+                aria-label={t.nav.login}
+                title={t.nav.login}
+                className="max-w-[9.25rem] rounded-full px-2 sm:px-4 h-8 sm:h-9 font-semibold text-xs shadow-xs bg-primary text-primary-foreground hover:bg-primary/90"
                 onClick={() => setAuthOpen(true)}
               >
-                <Sparkles className="w-3.5 h-3.5 mr-1" />
-                <span>{t.nav.login}</span>
+                <Sparkles className="w-3.5 h-3.5 sm:mr-1" />
+                <span className="hidden sm:inline truncate">{t.nav.login}</span>
               </Button>
             )}
           </div>

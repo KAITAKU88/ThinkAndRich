@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { verifySession, SESSION_COOKIE } from "@/lib/session-token";
+import { isLoopbackHostname, surfaceFor } from "@/lib/host-routing";
 
 // Real server-side admin gate — previously /admin was a fully public route
 // at the routing layer, gated only by a client-side check inside
@@ -37,10 +38,23 @@ export async function middleware(request: NextRequest) {
   const isAdminPage = pathname === "/admin" || pathname.startsWith("/admin/");
   const { env } = getCloudflareContext();
 
-  const adminHost = env.ADMIN_HOST?.trim().toLowerCase();
   const publicHost = env.PUBLIC_HOST?.trim().toLowerCase();
-  const host = request.headers.get("host")?.toLowerCase();
-  const onAdminHost = Boolean(adminHost && host === adminHost);
+
+  // Which surface this hostname is asking for. The rule itself, with its
+  // full truth table and its tests, lives in src/lib/host-routing.ts.
+  //
+  // ADMIN_HOST is a plain var in wrangler.jsonc, and those reach `next dev`
+  // too, so on localhost it names a hostname this origin can never match —
+  // which would hide the console from its own developers. `next dev` is also
+  // the only thing that answers on loopback, and it has no second hostname
+  // to split across, so the split simply does not apply there. Next inlines
+  // NODE_ENV at build time, so this is dead code in a deployed Worker.
+  const surface = surfaceFor(request.headers.get("host"), {
+    adminHost: env.ADMIN_HOST,
+    isLoopbackDev:
+      process.env.NODE_ENV === "development" && isLoopbackHostname(request.nextUrl.hostname),
+  });
+  const onAdminHost = surface === "console";
 
   function sendTo(targetHost: string) {
     const target = new URL(request.url);
@@ -56,7 +70,7 @@ export async function middleware(request: NextRequest) {
   // doors when the point of the split was to have one. Answering exactly as
   // any unknown path does also means the public site never advertises that a
   // console exists, or where.
-  if (adminHost && !onAdminHost) {
+  if (surface === "public") {
     if (isAdminApi) {
       return NextResponse.json({ ok: false, message: "Forbidden" }, { status: 403 });
     }

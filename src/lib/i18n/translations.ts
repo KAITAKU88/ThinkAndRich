@@ -1,6 +1,20 @@
 import type { SupportedLanguage } from "../types";
 
 export interface TranslationDictionary {
+  // Mid-term PLUS → PRO upgrade (src/components/upgrade/UpgradeModal.tsx).
+  upgrade: {
+    title: string;
+    subtitle: string;
+    remainingCredit: string;
+    payToday: string;
+    newExpiry: string;
+    termNote: string;
+    noCreditNote: string;
+    confirmBtn: string;
+    cancelBtn: string;
+    loading: string;
+    failed: string;
+  };
   nav: {
     home: string;
     explore: string;
@@ -220,6 +234,8 @@ export interface TranslationDictionary {
     };
   };
   checkout: {
+    /** Shown instead of a QR when the bank details are not set up yet. */
+    paymentNotConfigured: string;
     badge: string;
     title: string;
     subtitle: string;
@@ -432,6 +448,19 @@ type DeepPartial<T> = T extends readonly unknown[]
 
 export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDictionary>> = {
   vi: {
+    upgrade: {
+      title: "Nâng cấp lên PRO",
+      subtitle: "Phần chưa dùng của gói PLUS được trừ thẳng vào giá PRO.",
+      remainingCredit: "Tín dụng PLUS còn lại",
+      payToday: "Số tiền cần trả hôm nay",
+      newExpiry: "Gói PRO mới hết hạn",
+      termNote: "Gói PLUS kết thúc ngay hôm nay, một năm PRO mới bắt đầu từ bây giờ.",
+      noCreditNote: "Gói PLUS của bạn chưa ghi nhận ngày bắt đầu, nên lần này tính theo giá PRO đầy đủ.",
+      confirmBtn: "Xác nhận nâng cấp",
+      cancelBtn: "Để sau",
+      loading: "Đang tính toán...",
+      failed: "Chưa tính được giá nâng cấp. Vui lòng thử lại.",
+    },
     nav: {
       home: "Trang chủ",
       explore: "Khám phá",
@@ -583,6 +612,8 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
       },
     },
     checkout: {
+      paymentNotConfigured:
+        "Cổng thanh toán trong nước chưa được cấu hình. Vui lòng liên hệ hỗ trợ — chúng tôi sẽ xử lý ngay.",
       badge: "Thanh toán An toàn & Tự động",
       title: "Xác nhận Nâng cấp",
       subtitle: "Kích hoạt tức thì quyền truy cập toàn bộ kho tàng tri thức Think & Rich.",
@@ -870,6 +901,19 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
     },
   },
   en: {
+    upgrade: {
+      title: "Upgrade to PRO",
+      subtitle: "The unused part of your PLUS term comes straight off the PRO price.",
+      remainingCredit: "Remaining PLUS credit",
+      payToday: "Amount to pay today",
+      newExpiry: "New PRO plan expires",
+      termNote: "Your PLUS term ends today and a fresh PRO year starts now.",
+      noCreditNote: "Your PLUS term has no recorded start date, so this is quoted at the full PRO price.",
+      confirmBtn: "Confirm upgrade",
+      cancelBtn: "Maybe later",
+      loading: "Calculating...",
+      failed: "Could not work out your upgrade price. Please try again.",
+    },
     nav: {
       home: "Home",
       explore: "Explore",
@@ -1021,6 +1065,8 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
       },
     },
     checkout: {
+      paymentNotConfigured:
+        "Local payment is not set up yet. Please contact support and we will sort it out right away.",
       badge: "Secure & Automated Checkout",
       title: "Confirm Your Upgrade",
       subtitle: "Instant activation for unlimited access to Think & Rich mental models.",

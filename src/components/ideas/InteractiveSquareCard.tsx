@@ -201,9 +201,9 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
         )}
 
         {/* 1. TOP ROW: ONLY PILLAR ICON (LEFT) + ACCESS BADGE (RIGHT) */}
-        <div className="relative z-10 flex items-center justify-between w-full">
+        <div className="relative z-10 flex items-center justify-between gap-1.5 w-full">
           {/* Pillar Icon & Optional 'Mới' Badge */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <div
               className={cn(
                 "flex items-center justify-center rounded-xl p-1.5 sm:p-2 border transition-transform group-hover:scale-105",
@@ -227,7 +227,7 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
               {post.pillar === "STARTUP_IDEA" && <Lightbulb className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
             </div>
             {isNew && (
-              <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[10px] font-bold uppercase tracking-wider">
+              <span className="truncate px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[10px] font-bold uppercase tracking-wider">
                 {t.card.newBadge}
               </span>
             )}
@@ -236,7 +236,7 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
           {/* Access Level Badge + Đọc sau (Read Later) toggle — always
               rendered, not hover-gated, so it's reachable on touch devices
               too, not just mouse hover. */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
             <span
               className={cn(
                 "text-[9px] sm:text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border shadow-xs select-none",

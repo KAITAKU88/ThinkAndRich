@@ -46,14 +46,43 @@ export const SESSION_COOKIE_OPTIONS = {
 };
 
 /**
+ * The configured parent domain, but only for hosts that actually sit inside
+ * it.
+ *
+ * SESSION_COOKIE_DOMAIN is a plain var in wrangler.jsonc, and those reach
+ * `next dev` through getCloudflareContext() exactly as they reach the
+ * deployed Worker — so "leave it unset locally" was never true. Every local
+ * login was handing the browser a cookie scoped to
+ * `.thinkandrich.ankiva.cc` while being served from localhost; a browser
+ * drops a cookie whose Domain does not cover the host that sent it, so the
+ * session silently never existed and /admin bounced straight back to the
+ * login page. Deriving the scope from the request host fixes that without
+ * requiring a second, easily-forgotten override in .dev.vars.
+ */
+export function sessionCookieDomain(
+  domain: string | undefined,
+  host: string | null | undefined
+): string | undefined {
+  const configured = domain?.trim().toLowerCase();
+  if (!configured) return undefined;
+
+  const hostname = host?.toLowerCase().split(":")[0];
+  if (!hostname) return undefined;
+
+  const bare = configured.startsWith(".") ? configured.slice(1) : configured;
+  return hostname === bare || hostname.endsWith(`.${bare}`) ? configured : undefined;
+}
+
+/**
  * Cookie options widened to a parent domain when SESSION_COOKIE_DOMAIN is set
- * (e.g. ".thinkandrich.ankiva.cc").
+ * (e.g. ".thinkandrich.ankiva.cc") and the request is actually being served
+ * from inside it.
  *
  * The console lives on its own hostname, but /mcp/authorize — the OAuth
  * consent screen — is served from the public one and has to see the same
- * admin session, so a host-only cookie would break that flow. Left unset the
- * cookie stays host-only, which is what local development wants.
+ * admin session, so a host-only cookie would break that flow.
  */
-export function sessionCookieOptions(domain?: string) {
-  return domain ? { ...SESSION_COOKIE_OPTIONS, domain } : SESSION_COOKIE_OPTIONS;
+export function sessionCookieOptions(domain?: string, host?: string | null) {
+  const scoped = sessionCookieDomain(domain, host);
+  return scoped ? { ...SESSION_COOKIE_OPTIONS, domain: scoped } : SESSION_COOKIE_OPTIONS;
 }

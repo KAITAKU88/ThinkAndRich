@@ -86,7 +86,7 @@ export function PostsTable({ posts, loading, onEdit, onDelete, onCreateNew }: Po
       {/* Drafts are the reason this exists: posts arriving over MCP land as
           drafts and need reviewing, which was impossible to see in a list
           mixing them with everything already published. */}
-      <div className="flex items-center gap-1 border-b border-border">
+      <div className="flex items-center gap-1 border-b border-border overflow-x-auto scrollbar-hide">
         {STATUS_TABS.map((statusTab) => {
           const active = statusFilter === statusTab.id;
           return (
@@ -94,7 +94,7 @@ export function PostsTable({ posts, loading, onEdit, onDelete, onCreateNew }: Po
               key={statusTab.id}
               onClick={() => setStatusFilter(statusTab.id)}
               className={cn(
-                "relative px-3 py-2 text-xs font-medium transition-colors -mb-px border-b-2",
+                "relative px-3 py-2 text-xs font-medium whitespace-nowrap shrink-0 transition-colors -mb-px border-b-2",
                 active
                   ? "border-primary text-foreground"
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -116,19 +116,19 @@ export function PostsTable({ posts, loading, onEdit, onDelete, onCreateNew }: Po
 
       <div className="flex flex-wrap items-center gap-2 justify-between">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Tìm theo tiêu đề..."
-              className="h-8 w-56 pl-8 text-xs"
+              className="h-8 w-full sm:w-56 pl-8 text-xs"
             />
           </div>
           <select
             value={pillarFilter}
             onChange={(e) => setPillarFilter(e.target.value as "ALL" | PillarType)}
-            className="h-8 text-xs bg-background border border-border rounded-lg px-2"
+            className="h-8 w-full sm:w-auto text-xs bg-background border border-border rounded-lg px-2"
           >
             <option value="ALL">Tất cả trụ cột</option>
             <option value="MENTAL_MODEL">Mô hình Tư duy</option>
@@ -136,13 +136,13 @@ export function PostsTable({ posts, loading, onEdit, onDelete, onCreateNew }: Po
             <option value="STARTUP_IDEA">Ý tưởng Khởi nghiệp</option>
           </select>
         </div>
-        <Button size="sm" className="h-8 text-xs gap-1.5" onClick={onCreateNew}>
+        <Button size="sm" className="h-8 w-full sm:w-auto text-xs gap-1.5" onClick={onCreateNew}>
           <PlusCircle className="w-3.5 h-3.5" /> Viết bài mới
         </Button>
       </div>
 
       <div className="border border-border rounded-xl overflow-x-auto">
-        <table className="w-full text-xs text-left">
+        <table className="w-full min-w-[900px] text-xs text-left">
           <thead className="uppercase bg-secondary/60 text-muted-foreground border-b border-border">
             <tr>
               <th className="px-4 py-2.5"><SortableHeader label="Bài viết" sortKey="title" activeSort={sortKey} dir={dir} onSort={handleSort} /></th>

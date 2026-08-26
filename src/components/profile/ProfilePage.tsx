@@ -25,11 +25,13 @@ import { timeAgo, cn } from "@/lib/utils";
 import type { PillarType, Post, ReadLog } from "@/lib/types";
 import { PILLARS_CONFIG } from "@/lib/data";
 import { getTranslation } from "@/lib/i18n/translations";
+import { UpgradeModal } from "@/components/upgrade/UpgradeModal";
 
 type ProfileTab = "saved" | "history" | "favorites" | "account";
 
 export function ProfilePage() {
   const [tab, setTab] = useState<ProfileTab>("saved");
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [savedPillar, setSavedPillar] = useState<"ALL" | PillarType>("ALL");
   const [favPillar, setFavPillar] = useState<"ALL" | PillarType>("ALL");
 
@@ -114,12 +116,12 @@ export function ProfilePage() {
   return (
     <div className="container mx-auto max-w-7xl px-3 sm:px-4 py-6 md:py-8">
       {/* Profile Header Card */}
-      <div className="p-6 md:p-8 rounded-3xl bg-card border border-border shadow-sm mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
+      <div className="p-4 sm:p-6 md:p-8 rounded-3xl bg-card border border-border shadow-sm mb-6 sm:mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
           <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-display text-2xl font-bold border border-primary/20 shrink-0">
             {user.name.charAt(0).toUpperCase()}
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">
                 {user.name}
@@ -137,7 +139,7 @@ export function ProfilePage() {
                 {user.tier === "PRO" ? t.profile.tierProLabel : user.tier === "PLUS" ? t.profile.tierPlusLabel : t.profile.tierFreeLabel}
               </Badge>
             </div>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">{user.email}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 break-all">{user.email}</p>
           </div>
         </div>
       </div>
@@ -167,6 +169,7 @@ export function ProfilePage() {
         </Button>
         <Button
           variant={tab === "account" ? "default" : "ghost"}
+          data-testid="profile-tab-account"
           className="rounded-full text-xs sm:text-sm font-semibold gap-1.5 shrink-0"
           onClick={() => setTab("account")}
         >
@@ -188,7 +191,7 @@ export function ProfilePage() {
                 {t.profile.historyEmpty}
               </div>
             ) : (
-              <table className="w-full text-xs sm:text-sm text-left">
+              <table className="w-full min-w-[680px] text-xs sm:text-sm text-left">
                 <thead className="text-[11px] uppercase bg-secondary/60 text-muted-foreground border-y border-border">
                   <tr>
                     <th className="px-4 py-3">{t.profile.colTitle}</th>
@@ -407,7 +410,7 @@ export function ProfilePage() {
                 </p>
               </div>
               <div className="pt-4 border-t border-border flex items-center gap-3">
-                <Button variant="destructive" className="rounded-full text-xs" onClick={logout}>
+                <Button variant="destructive" data-testid="logout-btn" className="rounded-full text-xs" onClick={logout}>
                   {t.profile.logoutBtn}
                 </Button>
               </div>
@@ -455,16 +458,30 @@ export function ProfilePage() {
               </div>
 
               {user.tier !== "PRO" && (
-                <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-between">
-                  <div>
+                <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex flex-col min-[420px]:flex-row min-[420px]:items-center justify-between gap-3">
+                  <div className="min-w-0">
                     <h4 className="font-bold text-amber-600 dark:text-amber-500 text-sm">{t.profile.upgradeTitle}</h4>
                     <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-1">
                       {t.profile.upgradeDesc}
                     </p>
                   </div>
-                  <Button size="sm" className="rounded-full shrink-0 shadow-sm" asChild>
-                    <Link href="/pricing">{t.profile.upgradeBtn}</Link>
-                  </Button>
+                  {/* A PLUS member is mid-term, so the price is not the list
+                      price — it is the PRO price less what their PLUS year is
+                      still worth, which only the server can quote. A FREE
+                      reader has nothing to credit and goes to the plans. */}
+                  {user.tier === "PLUS" ? (
+                    <Button
+                      size="sm"
+                      className="rounded-full shrink-0 shadow-sm self-end min-[420px]:self-auto"
+                      onClick={() => setUpgradeOpen(true)}
+                    >
+                      {t.profile.upgradeBtn}
+                    </Button>
+                  ) : (
+                    <Button size="sm" className="rounded-full shrink-0 shadow-sm self-end min-[420px]:self-auto" asChild>
+                      <Link href="/pricing">{t.profile.upgradeBtn}</Link>
+                    </Button>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -517,6 +534,7 @@ export function ProfilePage() {
           </Card>
         </div>
       )}
+      <UpgradeModal open={upgradeOpen} onOpenChange={setUpgradeOpen} />
     </div>
   );
 }
