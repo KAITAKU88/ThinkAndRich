@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { TagInput } from "@/components/admin/TagInput";
 import { READING_TEMPLATES, normalizeTemplate, type ReadingTemplateId } from "@/lib/reading-templates";
 import type { AdminPost } from "@/lib/admin/use-admin-posts";
 import type { CardDisplaySize, ContentAccessLevel, Post, PillarType } from "@/lib/types";
@@ -37,6 +38,9 @@ export function PostForm({ editingPost, onCreate, onUpdate, onDone }: PostFormPr
   const [readingTemplate, setReadingTemplate] = useState<ReadingTemplateId>(
     normalizeTemplate(editingPost?.readingTemplate)
   );
+
+  const [tags, setTags] = useState<string[]>(editingPost?.tags ?? []);
+  const [knownTags, setKnownTags] = useState<string[]>([]);
 
   const [postId, setPostId] = useState<string | null>(editingPost?.id ?? null);
   const [saving, setSaving] = useState(false);
@@ -90,7 +94,7 @@ export function PostForm({ editingPost, onCreate, onUpdate, onDone }: PostFormPr
       readingTemplate,
       category: pillar === "MENTAL_MODEL" ? "Mô hình Tư duy" : pillar === "BUSINESS_STRATEGY" ? "Chiến lược Kinh doanh" : "Ý tưởng Khởi nghiệp",
       author: "Think & Rich",
-      tags: editingPost?.tags ?? [],
+      tags,
       ...(nextStatus ? { status: nextStatus } : {}),
     };
 
@@ -111,6 +115,18 @@ export function PostForm({ editingPost, onCreate, onUpdate, onDone }: PostFormPr
     setDirty(false);
     setLastSavedAt(new Date());
   }
+
+  // The tag vocabulary already in use across the library. Fetched once:
+  // it only changes when a post is saved, and a stale entry costs nothing —
+  // the suggestion is a shortcut, not a constraint.
+  useEffect(() => {
+    fetch("/api/admin/tags")
+      .then((res) => res.json() as Promise<{ ok: boolean; tags?: string[] }>)
+      .then((data) => {
+        if (data.ok && data.tags) setKnownTags(data.tags);
+      })
+      .catch(() => setKnownTags([]));
+  }, []);
 
   // Autosave every 5 minutes while the form has unsaved changes — never
   // changes status, so a draft stays a draft and a published post stays
@@ -295,6 +311,12 @@ export function PostForm({ editingPost, onCreate, onUpdate, onDone }: PostFormPr
                 <option value="MEMBER_PRO">Chỉ Pro</option>
               </select>
             </div>
+
+            <TagInput
+              tags={tags}
+              onChange={markDirty(setTags)}
+              knownTags={knownTags}
+            />
 
             <div className="flex items-center justify-between text-xs pt-2 border-t border-border/60">
               <span className="text-muted-foreground">Thời gian đọc (tự động tính)</span>
