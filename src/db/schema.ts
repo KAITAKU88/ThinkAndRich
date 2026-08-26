@@ -267,3 +267,25 @@ export const mcpAuthCodes = sqliteTable(
   },
   (table) => [index("mcp_auth_codes_expires_idx").on(table.expiresAt)]
 );
+
+// Operator-editable configuration, so things like the bank account a
+// customer is told to transfer to can be corrected from the console instead
+// of a redeploy.
+//
+// A key/value shape rather than a column per setting: these are read one
+// group at a time by code that already knows what it is looking for, and a
+// new setting should not need a migration. Values are stored as text and
+// parsed by the reader (src/lib/server/settings.ts), which owns the
+// defaults — a missing row means "never configured", not an error.
+//
+// SECRETS DO NOT BELONG HERE. The SePay webhook secret, the Lemon Squeezy
+// API key and JWT_SECRET stay Worker secrets: this table is readable by
+// every admin and is dumped into backups, and its whole point is being
+// editable from a web form. What lives here is configuration a customer
+// sees anyway — the bank details printed on their transfer QR.
+export const appSettings = sqliteTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: text("updated_at").notNull(),
+  updatedBy: text("updated_by"), // admin email, for audit
+});

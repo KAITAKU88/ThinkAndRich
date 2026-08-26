@@ -1,11 +1,16 @@
 import { test, expect } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import { readDevVar, readOtpFromLocalKv, resetOtpThrottle } from "./helpers/otp";
+import { seedPaymentSettings } from "./helpers/settings";
 
 // Logging in, reading the OTP back out of KV and shelling out to wrangler all
 // cost real seconds under `next dev`; this is a money path, so it gets the
 // room it needs rather than a tighter budget and a flake.
 test.setTimeout(180_000);
+
+// The checkout assertions below read a real VietQR code, which only exists
+// once the bank details are configured (see the console's payment tab).
+test.beforeAll(() => seedPaymentSettings());
 
 /** Puts the signed-in account on PLUS, `days` into its term. */
 function makePlusMember(userId: string, days: number) {

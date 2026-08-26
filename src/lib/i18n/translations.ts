@@ -234,6 +234,8 @@ export interface TranslationDictionary {
     };
   };
   checkout: {
+    /** Shown instead of a QR when the bank details are not set up yet. */
+    paymentNotConfigured: string;
     badge: string;
     title: string;
     subtitle: string;
@@ -610,6 +612,8 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
       },
     },
     checkout: {
+      paymentNotConfigured:
+        "Cổng thanh toán trong nước chưa được cấu hình. Vui lòng liên hệ hỗ trợ — chúng tôi sẽ xử lý ngay.",
       badge: "Thanh toán An toàn & Tự động",
       title: "Xác nhận Nâng cấp",
       subtitle: "Kích hoạt tức thì quyền truy cập toàn bộ kho tàng tri thức Think & Rich.",
@@ -1061,6 +1065,8 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
       },
     },
     checkout: {
+      paymentNotConfigured:
+        "Local payment is not set up yet. Please contact support and we will sort it out right away.",
       badge: "Secure & Automated Checkout",
       title: "Confirm Your Upgrade",
       subtitle: "Instant activation for unlimited access to Think & Rich mental models.",

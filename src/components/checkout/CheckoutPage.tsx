@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
+  AlertTriangle,
   CheckCircle2,
   Crown,
   QrCode,
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { MembershipTier, CountryCode } from "@/lib/types";
+import type { PaymentSettings } from "@/lib/payment-settings";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +35,8 @@ function CheckoutContent() {
   // priced by /api/upgrade — the PRO price less what the member's PLUS term
   // is still worth. This page must settle that order, not open its own.
   const upgradeOrderId = searchParams.get("order");
+  const [payment, setPayment] = useState<PaymentSettings | null>(null);
+  const [paymentConfigured, setPaymentConfigured] = useState(false);
 
   const user = useSession((s) => s.user);
   const setAuthOpen = useSession((s) => s.setAuthOpen);
@@ -70,6 +74,18 @@ function CheckoutContent() {
   // returns its URL to redirect the user to. Switching the "simulate
   // country" selector changes the gateway, so an existing order for the
   // old country must be discarded to let this effect re-fire.
+  useEffect(() => {
+    fetch("/api/settings/payment")
+      .then((res) => res.json() as Promise<{ ok: boolean; payment?: PaymentSettings; configured?: boolean }>)
+      .then((data) => {
+        if (data.ok && data.payment) {
+          setPayment(data.payment);
+          setPaymentConfigured(Boolean(data.configured));
+        }
+      })
+      .catch(() => setPaymentConfigured(false));
+  }, []);
+
   useEffect(() => {
     setOrder(null);
     setLemonCheckoutUrl(null);
@@ -144,15 +160,23 @@ function CheckoutContent() {
 
   const memoCode = order ? order.id : t.common.loading;
 
-  // VietQR parameters for SePay
-  const bankAccount = "0987654321";
-  const bankName = "MBBank (Ngân hàng Quân Đội)";
-  const accountHolder = "THINK AND RICH CO LTD";
-  const vietQrUrl = order
-    ? `https://img.vietqr.io/image/MB-${bankAccount}-compact2.png?amount=${order.amount}&addInfo=${encodeURIComponent(
-        memoCode
-      )}&accountName=${encodeURIComponent(accountHolder)}`
-    : "";
+  // The bank details come from the console (Cấu hình Thanh toán), not from
+  // this file. They were constants here, including a placeholder account
+  // number, so every QR the site had ever drawn pointed somewhere nobody
+  // owned and fixing it meant a deploy.
+  const bankAccount = payment?.bankAccountNumber ?? "";
+  const bankName = payment?.bankName ?? "";
+  const accountHolder = payment?.bankAccountHolder ?? "";
+
+  // No QR at all until all four fields are set. Half-configured details
+  // produce a scannable code that sends money to the wrong place, which is
+  // far worse than a checkout that plainly says it is not ready.
+  const vietQrUrl =
+    order && paymentConfigured
+      ? `https://img.vietqr.io/image/${payment!.bankCode}-${bankAccount}-compact2.png?amount=${order.amount}&addInfo=${encodeURIComponent(
+          memoCode
+        )}&accountName=${encodeURIComponent(accountHolder)}`
+      : "";
 
   function handleCopy(text: string, key: string) {
     navigator.clipboard.writeText(text);
@@ -333,18 +357,31 @@ function CheckoutContent() {
                 </div>
               </div>
 
-              {/* VietQR Display */}
-              <div className="flex flex-col items-center p-4 rounded-2xl bg-white border border-border shadow-inner text-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={vietQrUrl}
-                  alt="VietQR SePay Transfer"
-                  className="w-full max-w-52 aspect-square object-contain rounded-xl"
-                />
-                <p className="text-[11px] text-slate-600 font-medium mt-2">
-                  {t.checkout.sepayDesc}
-                </p>
-              </div>
+              {/* VietQR Display. No bank details configured means no QR: a
+                  code drawn from half-filled details is scannable and sends
+                  money to the wrong account, which is worse than a checkout
+                  that says plainly it is not ready. */}
+              {paymentConfigured ? (
+                <div className="flex flex-col items-center p-4 rounded-2xl bg-white border border-border shadow-inner text-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={vietQrUrl}
+                    alt="VietQR SePay Transfer"
+                    className="w-full max-w-52 aspect-square object-contain rounded-xl"
+                  />
+                  <p className="text-[11px] text-slate-600 font-medium mt-2">
+                    {t.checkout.sepayDesc}
+                  </p>
+                </div>
+              ) : (
+                <div
+                  data-testid="payment-not-configured"
+                  className="flex items-start gap-2.5 p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-xs text-amber-700 dark:text-amber-400"
+                >
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-px" />
+                  <span>{t.checkout.paymentNotConfigured}</span>
+                </div>
+              )}
 
               {/* Transfer Details with Copy Buttons */}
               <div className="space-y-2.5 text-xs">

@@ -50,6 +50,13 @@
       "when": 1787724984709,
       "tag": "0006_wet_barracuda",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1787734062216,
+      "tag": "0007_flawless_lady_bullseye",
+      "breakpoints": true
     }
   ]
 }
