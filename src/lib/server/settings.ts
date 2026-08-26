@@ -54,12 +54,21 @@ export async function writePaymentSettings(
     ([field]) => input[field] !== undefined
   );
 
-  for (const [field, key] of entries) {
-    const value = (input[field] ?? "").trim();
-    await db
-      .insert(appSettings)
-      .values({ key, value, updatedAt: now, updatedBy })
-      .onConflictDoUpdate({ target: appSettings.key, set: { value, updatedAt: now, updatedBy } });
+  if (entries.length > 0) {
+    // One batch, not four awaited statements. These four values are a single
+    // setting — an account you can transfer to — and written one at a time a
+    // read landing mid-sequence sees a half-configured account: a bank code
+    // that no longer matches the account number it is paired with. Batching
+    // them means a reader sees the old account or the new one, never a
+    // mixture of both.
+    const statements = entries.map(([field, key]) => {
+      const value = (input[field] ?? "").trim();
+      return db
+        .insert(appSettings)
+        .values({ key, value, updatedAt: now, updatedBy })
+        .onConflictDoUpdate({ target: appSettings.key, set: { value, updatedAt: now, updatedBy } });
+    });
+    await db.batch(statements as unknown as Parameters<Db["batch"]>[0]);
   }
 
   return readPaymentSettings(db);
