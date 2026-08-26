@@ -63,7 +63,11 @@ export function AdminPage() {
       >
         <div className="h-14 flex items-center justify-between px-4 border-b border-border">
           <span className="font-display font-bold text-sm">Think & Rich Admin</span>
-          <button className="lg:hidden" onClick={() => setMobileMenuOpen(false)}>
+          <button
+            className="lg:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-label="Đóng menu quản trị"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -103,7 +107,11 @@ export function AdminPage() {
       {/* Main content — full width, no public header/footer/bottom nav */}
       <div className="flex-1 min-w-0">
         <header className="h-14 border-b border-border flex items-center justify-between px-4 lg:px-6">
-          <button className="lg:hidden" onClick={() => setMobileMenuOpen(true)}>
+          <button
+            className="lg:hidden"
+            onClick={() => setMobileMenuOpen(true)}
+            aria-label="Mở menu quản trị"
+          >
             <Menu className="w-5 h-5" />
           </button>
           <h1 className="font-display font-bold text-lg hidden lg:block">
@@ -126,7 +134,7 @@ export function AdminPage() {
           </div>
         </header>
 
-        <main className="p-4 lg:p-6">
+        <main className="p-3 sm:p-4 lg:p-6">
           {tab === "overview" && <OverviewTab postsCount={posts.length} />}
 
           {tab === "posts" &&
@@ -200,11 +208,11 @@ function OverviewTab({ postsCount }: { postsCount: number }) {
             <p className="px-4 py-6 text-sm text-muted-foreground text-center">Chưa có hoạt động nào.</p>
           ) : (
             recent.map((r) => (
-              <div key={r.id} className="px-4 py-2.5 text-sm flex items-center justify-between gap-3">
+              <div key={r.id} className="px-4 py-2.5 text-sm flex flex-col min-[420px]:flex-row min-[420px]:items-center justify-between gap-1 min-[420px]:gap-3">
                 <span className="text-foreground truncate">
                   <span className="font-medium">{r.userName}</span> đã đọc <span className="text-muted-foreground">{r.postTitle}</span>
                 </span>
-                <span className="text-xs text-muted-foreground shrink-0">{timeAgo(r.readAt)}</span>
+                <span className="text-xs text-muted-foreground shrink-0 self-end min-[420px]:self-auto">{timeAgo(r.readAt)}</span>
               </div>
             ))
           )}

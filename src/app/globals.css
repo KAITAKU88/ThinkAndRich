@@ -131,6 +131,8 @@ body {
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 }
 
 .font-display {
@@ -624,6 +626,18 @@ body {
 
   .prose-academic ul {
     padding-left: 1.1em;
+  }
+
+  .prose-academic pre,
+  .prose-academic table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+  }
+
+  .prose-academic iframe {
+    max-width: 100%;
   }
 }
 

@@ -187,7 +187,7 @@ export function PostDetailPage() {
         style={{ transform: `scaleX(${readProgress / 100})` }}
       />
 
-      <div className="container mx-auto max-w-4xl px-3 sm:px-6 py-6 md:py-10 pb-36">
+      <div className="container mx-auto max-w-4xl px-4 sm:px-6 py-6 md:py-10 pb-36">
         {/* Navigation & Breadcrumbs */}
         <div className="flex items-center justify-between mb-6 gap-2">
           <Link
@@ -239,7 +239,7 @@ export function PostDetailPage() {
               was migrated into full_content rather than dropped. */}
 
           {/* Author, Time, Metrics bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border/70 text-xs text-muted-foreground">
+          <div className="flex flex-col min-[420px]:flex-row min-[420px]:flex-wrap min-[420px]:items-center min-[420px]:justify-between gap-3 pt-3 border-t border-border/70 text-xs text-muted-foreground">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
                 <User className="w-3.5 h-3.5" />
@@ -339,7 +339,7 @@ export function PostDetailPage() {
         )}
 
         {/* FLOATING MOBILE READER DOCK */}
-        <div className="fixed bottom-16 sm:bottom-6 left-1/2 -translate-x-1/2 bg-card/95 backdrop-blur-md border border-border/80 rounded-full shadow-2xl px-4 sm:px-5 py-2 flex items-center gap-2 sm:gap-3 z-40">
+        <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] sm:bottom-6 left-1/2 -translate-x-1/2 bg-card/95 backdrop-blur-md border border-border/80 rounded-full shadow-2xl px-3 sm:px-5 py-2 flex items-center gap-1 sm:gap-3 z-40">
           <button
             type="button"
             onClick={async () => {

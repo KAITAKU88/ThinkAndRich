@@ -147,12 +147,12 @@ export function McpKeysPanel() {
           onChange={(e) => setLabel(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleCreate()}
           placeholder="Tên key (ví dụ: Claude.ai của tôi)"
-          className="flex-1 min-w-[220px] rounded-md border border-border bg-background px-3 py-2 text-sm"
+          className="w-full sm:flex-1 sm:min-w-[220px] rounded-md border border-border bg-background px-3 py-2 text-sm"
         />
         <button
           onClick={handleCreate}
           disabled={!label.trim() || creating}
-          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+          className="w-full sm:w-auto rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
           {creating ? "Đang tạo..." : "Tạo key mới"}
         </button>
@@ -167,7 +167,7 @@ export function McpKeysPanel() {
         <p className="text-sm text-muted-foreground">Chưa có key nào. Tạo key đầu tiên ở trên.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[760px] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
                 <th className="py-2 pr-4 font-medium">Tên</th>

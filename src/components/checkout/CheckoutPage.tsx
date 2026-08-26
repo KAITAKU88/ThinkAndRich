@@ -188,7 +188,7 @@ function CheckoutContent() {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-12">
+    <div className="container mx-auto max-w-4xl px-3 sm:px-4 py-8 sm:py-12">
       <div className="text-center mb-10 space-y-2">
         <Badge className="bg-primary/15 text-primary border-none text-xs">
           {t.checkout.badge}
@@ -204,7 +204,7 @@ function CheckoutContent() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
         {/* Left: Plan Summary & Currency Lock Info */}
         <div className="space-y-6">
-          <Card className="rounded-3xl border-border/80 bg-card p-6 space-y-6">
+          <Card className="rounded-3xl border-border/80 bg-card p-4 sm:p-6 space-y-6">
             <div>
               <div className="flex items-center gap-2 mb-2">
                 {isPro ? (
@@ -220,17 +220,17 @@ function CheckoutContent() {
             </div>
 
             <div className="p-4 rounded-2xl bg-muted/50 border border-border/60 space-y-3">
-              <div className="flex justify-between items-center text-xs">
+              <div className="flex justify-between items-start gap-3 text-xs">
                 <span className="text-muted-foreground">{t.checkout.duration}</span>
                 <span className="font-semibold text-foreground">{t.checkout.durationValue}</span>
               </div>
-              <div className="flex justify-between items-center text-xs">
+              <div className="flex justify-between items-start gap-3 text-xs">
                 <span className="text-muted-foreground">{t.checkout.readingLimit}</span>
                 <span className="font-semibold text-primary">{planLimitText}</span>
               </div>
               <div className="pt-2 border-t border-border/50 flex justify-between items-baseline">
                 <span className="text-sm font-semibold">{t.checkout.totalAmount}</span>
-                <span className="text-2xl font-extrabold text-primary">
+                <span className="text-xl min-[375px]:text-2xl font-extrabold text-primary text-right break-words">
                   {planPriceFormatted}
                 </span>
               </div>
@@ -241,13 +241,13 @@ function CheckoutContent() {
                 <Globe2 className="w-4 h-4 text-primary" />
                 <span>{t.checkout.currencyLockedNotice}</span>
               </div>
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-card border border-border">
+              <div className="flex flex-col min-[375px]:flex-row min-[375px]:items-center justify-between gap-2 p-2.5 rounded-xl bg-card border border-border">
                 <span>{t.checkout.regionDetectedLabel}</span>
                 <Badge variant="outline" className="font-bold">
                   {ppp.flag} {ppp.countryName} ({ppp.currency})
                 </Badge>
               </div>
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-card border border-border">
+              <div className="flex flex-col min-[375px]:flex-row min-[375px]:items-center justify-between gap-2 p-2.5 rounded-xl bg-card border border-border">
                 <span>{t.checkout.gatewayAutoLabel}</span>
                 <Badge
                   className={
@@ -261,7 +261,7 @@ function CheckoutContent() {
               </div>
             </div>
 
-            <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs">
+            <div className="pt-2 border-t border-border/60 flex flex-col min-[375px]:flex-row min-[375px]:items-center justify-between gap-2 text-xs">
               <span className="text-muted-foreground">{t.checkout.simulateCountryLabel}</span>
               <select
                 value={countryCode}
@@ -290,7 +290,7 @@ function CheckoutContent() {
         <div>
           {ppp.gateway === "sepay" ? (
             /* SEPAY GATEWAY (VIETNAM VNĐ) */
-            <Card className="rounded-3xl border-2 border-primary shadow-lg bg-card p-6 space-y-6">
+            <Card className="rounded-3xl border-2 border-primary shadow-lg bg-card p-4 sm:p-6 space-y-6">
               <div className="flex items-center justify-between">
                 <div>
                   <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-none text-[11px] font-semibold mb-1">
@@ -309,7 +309,7 @@ function CheckoutContent() {
                 <img
                   src={vietQrUrl}
                   alt="VietQR SePay Transfer"
-                  className="w-52 h-52 object-contain rounded-xl"
+                  className="w-full max-w-52 aspect-square object-contain rounded-xl"
                 />
                 <p className="text-[11px] text-slate-600 font-medium mt-2">
                   {t.checkout.sepayDesc}
@@ -318,8 +318,8 @@ function CheckoutContent() {
 
               {/* Transfer Details with Copy Buttons */}
               <div className="space-y-2.5 text-xs">
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/60 border border-border/50">
-                  <div>
+                <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-muted/60 border border-border/50">
+                  <div className="min-w-0">
                     <span className="text-muted-foreground block text-[10px]">{t.checkout.bankName}</span>
                     <span className="font-semibold text-foreground">{bankName}</span>
                   </div>
@@ -328,7 +328,7 @@ function CheckoutContent() {
                 <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/60 border border-border/50">
                   <div>
                     <span className="text-muted-foreground block text-[10px]">{t.checkout.accountNumber}</span>
-                    <span className="font-mono font-bold text-sm text-foreground">{bankAccount}</span>
+                    <span className="font-mono font-bold text-sm text-foreground break-all">{bankAccount}</span>
                   </div>
                   <Button
                     variant="outline"
@@ -348,12 +348,12 @@ function CheckoutContent() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30">
-                  <div>
+                <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                  <div className="min-w-0">
                     <span className="text-amber-700 dark:text-amber-400 block text-[10px] font-semibold">
                       {t.checkout.transferMemo}
                     </span>
-                    <span className="font-mono font-bold text-sm text-amber-600 dark:text-amber-400">
+                    <span className="font-mono font-bold text-sm text-amber-600 dark:text-amber-400 break-all">
                       {memoCode}
                     </span>
                   </div>
@@ -401,7 +401,7 @@ function CheckoutContent() {
                (src/app/api/webhooks/billing/route.ts?gateway=lemonsqueezy)
                flips the order to PAID the same way SePay's does, and this
                page polls for that exactly like the SePay branch above. */
-            <Card className="rounded-3xl border-2 border-primary shadow-lg bg-card p-6 space-y-6 text-center">
+            <Card className="rounded-3xl border-2 border-primary shadow-lg bg-card p-4 sm:p-6 space-y-6 text-center">
               <div className="w-12 h-12 rounded-2xl bg-blue-600/10 mx-auto flex items-center justify-center">
                 <CreditCard className="w-6 h-6 text-blue-600" />
               </div>

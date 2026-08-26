@@ -136,11 +136,11 @@ export function PostForm({ editingPost, onCreate, onUpdate, onDone }: PostFormPr
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col min-[480px]:flex-row min-[480px]:items-center justify-between gap-2">
         <Button variant="ghost" size="sm" className="h-8 text-xs gap-1.5 -ml-2" onClick={onDone}>
           <ArrowLeft className="w-3.5 h-3.5" /> Quay lại danh sách
         </Button>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 min-[480px]:gap-3 self-end min-[480px]:self-auto">
           {lastSavedAt && (
             <span className="text-[11px] text-muted-foreground">
               Đã lưu tự động lúc {lastSavedAt.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
@@ -163,7 +163,7 @@ export function PostForm({ editingPost, onCreate, onUpdate, onDone }: PostFormPr
             <Textarea id="post-summary" value={summarySnippet} onChange={(e) => markDirty(setSummarySnippet)(e.target.value)} placeholder="2-3 câu tóm tắt giá trị cốt lõi..." rows={2} />
           </div>
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <Label>Nội dung</Label>
               {/* Preview reads the editor's current document, so it works on
                   unsaved changes — the point is to check the writing before
@@ -199,7 +199,7 @@ export function PostForm({ editingPost, onCreate, onUpdate, onDone }: PostFormPr
                     sample. Selecting one only stages it; it is stored with the
                     post on the next save. */}
                 <div className="rounded-xl border border-border bg-secondary/30 p-3">
-                  <div className="flex items-center justify-between gap-3 mb-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-3 mb-2">
                     <span className="text-xs font-semibold">Kiểu dàn trang</span>
                     <span className="text-[11px] text-muted-foreground">
                       {READING_TEMPLATES.find((tpl) => tpl.id === readingTemplate)?.description}
@@ -249,7 +249,7 @@ export function PostForm({ editingPost, onCreate, onUpdate, onDone }: PostFormPr
               </div>
             ) : (
               <div className="border border-border rounded-xl overflow-hidden">
-                <div className="flex items-center gap-0.5 p-1.5 border-b border-border bg-secondary/40">
+                <div className="flex items-center gap-0.5 p-1.5 border-b border-border bg-secondary/40 overflow-x-auto scrollbar-hide">
                   <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => editor?.chain().focus().toggleBold().run()}><Bold className="w-3.5 h-3.5" /></Button>
                   <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => editor?.chain().focus().toggleItalic().run()}><Italic className="w-3.5 h-3.5" /></Button>
                   <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => editor?.chain().focus().toggleBulletList().run()}><List className="w-3.5 h-3.5" /></Button>

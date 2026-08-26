@@ -107,9 +107,9 @@ function HeroSection({ posts }: { posts: Post[] }) {
               {heroPosts.map((post, i) => (
                 <div
                   key={post.id}
-                  className="hero-card-float w-36 sm:w-44 lg:w-48 shrink-0"
+                  className="hero-card-float w-28 min-[375px]:w-36 sm:w-44 lg:w-48 shrink-0 [--fan-overlap:-2.5rem] min-[375px]:[--fan-overlap:-2.75rem]"
                   style={{
-                    marginLeft: i === 0 ? 0 : "-2.75rem",
+                    marginLeft: i === 0 ? 0 : "var(--fan-overlap)",
                     marginTop: lifts[i % lifts.length],
                     rotate: rotations[i % rotations.length],
                     zIndex: i,

@@ -57,13 +57,13 @@ export function UsersTable() {
 
   return (
     <div className="space-y-4">
-      <div className="relative w-64">
+      <div className="relative w-full sm:w-64">
         <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm theo email..." className="h-8 pl-8 text-xs" />
       </div>
 
       <div className="border border-border rounded-xl overflow-x-auto">
-        <table className="w-full text-xs text-left">
+        <table className="w-full min-w-[820px] text-xs text-left">
           <thead className="uppercase bg-secondary/60 text-muted-foreground border-b border-border">
             <tr>
               <th className="px-4 py-2.5"><SortableHeader label="Độc giả" sortKey="name" activeSort={sortKey} dir={dir} onSort={handleSort} /></th>

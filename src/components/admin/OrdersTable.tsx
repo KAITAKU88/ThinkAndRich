@@ -107,7 +107,7 @@ export function OrdersTable() {
       </div>
 
       <div className="border border-border rounded-xl overflow-x-auto">
-        <table className="w-full text-xs text-left">
+        <table className="w-full min-w-[720px] text-xs text-left">
           <thead className="uppercase bg-secondary/60 text-muted-foreground border-b border-border">
             <tr>
               <th className="px-4 py-2.5">Người dùng</th>

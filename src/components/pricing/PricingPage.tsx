@@ -115,12 +115,12 @@ export function PricingPage() {
 
       {/* GeoIP & Payment Routing Info Bar */}
       <div className="mb-12 p-4 rounded-2xl bg-card border border-border/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
-        <div className="flex items-center gap-3">
+        <div className="flex w-full md:w-auto items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
             <Globe2 className="w-5 h-5" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="font-semibold text-foreground">
                 {t.pricing.detectedRegion}
               </span>
@@ -144,12 +144,12 @@ export function PricingPage() {
         </div>
 
         {/* IP Simulator Switcher for Reviewing */}
-        <div className="flex items-center gap-2">
+        <div className="flex w-full md:w-auto flex-wrap items-center gap-2 shrink-0">
           <span className="text-muted-foreground hidden sm:inline">{t.pricing.ipSimulatorLabel}</span>
           <select
             value={countryCode}
             onChange={(e) => setCountryCode(e.target.value as CountryCode)}
-            className="text-xs bg-muted border border-border rounded-xl px-2.5 py-1.5 font-medium cursor-pointer"
+            className="min-w-0 flex-1 md:flex-none text-xs bg-muted border border-border rounded-xl px-2.5 py-1.5 font-medium cursor-pointer"
           >
 
             {COUNTRIES_LIST.map((c) => (
@@ -289,7 +289,7 @@ export function PricingPage() {
           </p>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left border-collapse">
+            <table className="w-full min-w-[760px] text-xs text-left border-collapse">
               <thead>
                 <tr className="border-b border-border bg-muted/50 font-semibold text-foreground">
                   <th className="p-3">{t.pricing.colMarket}</th>
