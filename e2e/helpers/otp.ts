@@ -23,6 +23,16 @@ export function readOtpFromLocalKv(email: string): string {
   return code;
 }
 
+/** Any value out of .dev.vars, for tests that have to act as a gateway. */
+export function readDevVar(name: string): string {
+  const fromEnv = process.env[name];
+  if (fromEnv) return fromEnv;
+  const envFile = readFileSync(join(process.cwd(), ".dev.vars"), "utf8");
+  const value = envFile.match(new RegExp(`^${name}=(.*)$`, "m"))?.[1]?.trim().replace(/^['"]|['"]$/g, "");
+  if (!value) throw new Error(`${name} must be set in .dev.vars for this test.`);
+  return value;
+}
+
 export function readConfiguredAdminEmail(): string {
   let configured: string | undefined = process.env.ADMIN_EMAILS;
   if (!configured) {

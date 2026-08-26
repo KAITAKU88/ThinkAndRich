@@ -29,6 +29,10 @@ import { getPppPricing, COUNTRIES_LIST } from "@/lib/geo-pricing";
 function CheckoutContent() {
   const searchParams = useSearchParams();
   const planId = (searchParams.get("plan") as MembershipTier) || "PRO";
+  // A mid-term upgrade arrives here with its order already created and
+  // priced by /api/upgrade — the PRO price less what the member's PLUS term
+  // is still worth. This page must settle that order, not open its own.
+  const upgradeOrderId = searchParams.get("order");
 
   const user = useSession((s) => s.user);
   const setAuthOpen = useSession((s) => s.setAuthOpen);
@@ -50,7 +54,15 @@ function CheckoutContent() {
   const isPro = planId === "PRO";
   const planName = isPro ? t.pricing.plans.proName : t.pricing.plans.plusName;
   const planLimitText = isPro ? t.pricing.plans.proLimit : t.pricing.plans.plusLimit;
-  const planPriceFormatted = isPro ? ppp.plans.PRO.formatted : ppp.plans.PLUS.formatted;
+  const listPriceFormatted = isPro ? ppp.plans.PRO.formatted : ppp.plans.PLUS.formatted;
+  // What the page shows has to be what the QR asks for. On an upgrade those
+  // differ by the member's remaining PLUS credit, and showing the list price
+  // next to a QR for a smaller amount is the kind of mismatch that gets a
+  // transfer typed in by hand for the wrong figure.
+  const planPriceFormatted =
+    upgradeOrderId && order
+      ? `${order.amount.toLocaleString("vi-VN")} ${order.currency}`
+      : listPriceFormatted;
 
   // Real PENDING order, created server-side (amount/currency computed from
   // the user's country there too — never trust a client-submitted price).
@@ -66,6 +78,24 @@ function CheckoutContent() {
 
   useEffect(() => {
     if (!user || order) return;
+
+    // Creating a second order here would charge the list price and strand
+    // the discounted one the member was quoted — they would pay the full
+    // PRO price for an upgrade they were promised a credit on.
+    if (upgradeOrderId) {
+      fetch(`/api/orders/${upgradeOrderId}`)
+        .then((res) => res.json() as Promise<{ ok: boolean; order?: { id: string; amount: number; currency: string; status: string }; message?: string }>)
+        .then((data) => {
+          if (data.ok && data.order && data.order.status === "PENDING") {
+            setOrder({ id: data.order.id, amount: data.order.amount, currency: data.order.currency });
+          } else {
+            setOrderError(data.message || t.checkout.genericOrderError);
+          }
+        })
+        .catch(() => setOrderError(t.checkout.genericConnError));
+      return;
+    }
+
     fetch(`/api/checkout?country=${countryCode}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -91,7 +121,7 @@ function CheckoutContent() {
         }
       })
       .catch(() => setOrderError(t.checkout.genericConnError));
-  }, [user, countryCode, planId, order, t.checkout.genericOrderError, t.checkout.genericConnError]);
+  }, [user, countryCode, planId, order, upgradeOrderId, t.checkout.genericOrderError, t.checkout.genericConnError]);
 
   // Poll for the webhook flipping the order to PAID — this page never
   // decides success itself (see src/app/api/webhooks/billing/route.ts).
