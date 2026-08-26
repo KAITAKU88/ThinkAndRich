@@ -23,13 +23,7 @@ test.describe("Admin gate", () => {
     await page.getByLabel("Mã xác thực OTP (6 chữ số)").fill(code);
     await page.getByRole("button", { name: /Xác nhận/ }).click();
 
-    // Same allowance as the redirect assertions below: the message is a
-    // persistent inline box (setDeniedReason in AdminLoginForm), not a toast,
-    // so the only thing being waited on is the verify-otp round trip, which
-    // regularly runs past 5s under `next dev`.
-    await expect(page.getByText("Tài khoản này không có quyền quản trị.")).toBeVisible({
-      timeout: 20_000,
-    });
+    await expect(page.getByText("Tài khoản này không có quyền quản trị.")).toBeVisible();
     await expect(page).toHaveURL(/\/admin\/login/);
   });
 
@@ -44,7 +38,7 @@ test.describe("Admin gate", () => {
     await page.getByLabel("Mã xác thực OTP (6 chữ số)").fill(code);
     await page.getByRole("button", { name: /Xác nhận/ }).click();
 
-    await expect(page).toHaveURL(/\/admin$/, { timeout: 20_000 });
+    await expect(page).toHaveURL(/\/admin$/);
     await expect(page.getByRole("button", { name: "Quản lý Bài viết" })).toBeVisible();
     // The admin console must not carry the public site's header/footer.
     await expect(page.getByText("Khai phóng tư duy")).toBeHidden();
@@ -61,7 +55,7 @@ test.describe("Admin content management", () => {
     const code = readOtpFromLocalKv(email);
     await page.getByLabel("Mã xác thực OTP (6 chữ số)").fill(code);
     await page.getByRole("button", { name: /Xác nhận/ }).click();
-    await expect(page).toHaveURL(/\/admin$/, { timeout: 20_000 });
+    await expect(page).toHaveURL(/\/admin$/);
 
     await page.getByRole("button", { name: "Quản lý Bài viết" }).click();
     await page.getByRole("button", { name: "Viết bài mới" }).click();
@@ -78,7 +72,7 @@ test.describe("Admin content management", () => {
 
     const publicPage = await page.context().newPage();
     await publicPage.goto("/explore");
-    await expect(publicPage.getByText(title)).toBeVisible({ timeout: 10000 });
+    await expect(publicPage.getByText(title)).toBeVisible();
     await publicPage.close();
   });
 });

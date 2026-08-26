@@ -177,7 +177,7 @@ test.describe("admin console on a phone", () => {
     await page.getByRole("button", { name: "Đăng nhập bằng Email OTP" }).click();
     await page.getByLabel("Mã xác thực OTP (6 chữ số)").fill(readOtpFromLocalKv(email));
     await page.getByRole("button", { name: /Xác nhận/ }).click();
-    await expect(page).toHaveURL(/\/admin$/, { timeout: 20_000 });
+    await expect(page).toHaveURL(/\/admin$/);
 
     // The sidebar collapses into a drawer below lg, and picking a tab closes
     // it again, so every tab is reached through the hamburger.
@@ -198,7 +198,7 @@ test.describe("admin console on a phone", () => {
     await page.getByRole("button", { name: "Đăng nhập bằng Email OTP" }).click();
     await page.getByLabel("Mã xác thực OTP (6 chữ số)").fill(readOtpFromLocalKv(email));
     await page.getByRole("button", { name: /Xác nhận/ }).click();
-    await expect(page).toHaveURL(/\/admin$/, { timeout: 20_000 });
+    await expect(page).toHaveURL(/\/admin$/);
 
     await page.getByRole("button", { name: "Mở menu quản trị" }).click();
     await page.getByRole("button", { name: "Quản lý Bài viết" }).click();
