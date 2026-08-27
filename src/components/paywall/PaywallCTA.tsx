@@ -1,102 +1,116 @@
 "use client";
 
 import Link from "next/link";
-import { Lock, Sparkles, Crown, Flame, ArrowRight } from "lucide-react";
+import { ArrowRight, Crown, Flame, Lock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useSession } from "@/store/session";
 import { getTranslation } from "@/lib/i18n/translations";
-import { getPppPricing } from "@/lib/geo-pricing";
+import type { MembershipTier } from "@/lib/types";
 
 interface PaywallCTAProps {
-  reason?: "AUTH_REQUIRED" | "PRO_REQUIRED" | "DAILY_LIMIT_REACHED";
+  reason?: "AUTH_REQUIRED" | "PLUS_REQUIRED" | "PRO_REQUIRED" | "DAILY_LIMIT_REACHED";
   limit?: number;
   currentReads?: number;
+  tier?: MembershipTier;
 }
 
 export function PaywallCTA({
   reason = "AUTH_REQUIRED",
   limit = 10,
   currentReads = 10,
+  tier,
 }: PaywallCTAProps) {
-  const setAuthOpen = useSession((s) => s.setAuthOpen);
-  const language = useSession((s) => s.language);
-  const countryCode = useSession((s) => s.countryCode);
-
+  const setAuthOpen = useSession((state) => state.setAuthOpen);
+  const language = useSession((state) => state.language);
   const t = getTranslation(language);
-  const ppp = getPppPricing(countryCode);
+
+  const requiredPlan = reason === "PLUS_REQUIRED" ? "PLUS" : "PRO";
+  const tierCopy =
+    requiredPlan === "PLUS"
+      ? {
+          badge: t.paywall.plusRequiredBadge,
+          title: t.paywall.plusRequiredTitle,
+          description: t.paywall.plusRequiredDesc,
+          button: t.paywall.plusUpgradeBtn,
+        }
+      : {
+          badge: t.paywall.memberRequiredBadge,
+          title: t.paywall.memberRequiredTitle,
+          description: t.paywall.memberRequiredDesc,
+          button: t.paywall.memberUpgradeBtn,
+        };
+
+  const freeLimitReached = tier === "FREE";
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 min-h-[75%] bg-gradient-to-t from-background via-background/95 to-transparent flex flex-col items-center justify-end pb-4 pt-28">
-      <Card className="max-w-lg w-full mx-3 border-primary/30 bg-card/95 backdrop-blur-md relative overflow-hidden shadow-2xl rounded-3xl">
-        <CardContent className="p-6 sm:p-8 text-center relative">
-          {reason === "PRO_REQUIRED" ? (
+    <div className="absolute inset-x-0 bottom-0 min-h-[72%] bg-gradient-to-t from-background via-background/95 to-transparent flex items-end justify-center px-3 pb-3 pt-24 sm:pb-5">
+      <Card className="w-full max-w-md overflow-hidden rounded-3xl border-primary/25 bg-card/95 shadow-xl backdrop-blur-md">
+        <CardContent className="px-5 py-5 text-center sm:px-7 sm:py-6">
+          {reason === "AUTH_REQUIRED" ? (
             <>
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-amber-500/10 text-amber-500">
-                <Crown className="w-7 h-7" />
+              <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <Lock className="size-5" />
               </div>
-              <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400 border-none text-xs px-3 py-1 mb-2 font-semibold">
-                {t.paywall.memberRequiredBadge}
-              </Badge>
-              <h3 className="font-display text-xl sm:text-2xl font-bold mb-2 text-foreground">
-                {t.paywall.memberRequiredTitle}
+              <h3 className="font-display text-lg font-bold text-foreground sm:text-xl">
+                {t.paywall.authRequiredTitle}
               </h3>
-              <p className="text-muted-foreground mb-6 text-xs sm:text-sm leading-relaxed max-w-sm mx-auto">
-                {t.paywall.memberRequiredDesc}
-              </p>
-              <div className="flex flex-col sm:flex-row items-center gap-2.5">
-                <Button size="lg" className="w-full font-semibold rounded-full shadow-md bg-amber-500 hover:bg-amber-600 text-white" asChild>
-                  <Link href="/pricing">
-                    <Crown className="w-4 h-4 mr-1.5" /> {t.paywall.memberUpgradeBtn} ({ppp.plans.PLUS.formatted} / {ppp.plans.PRO.formatted}) &rarr;
-                  </Link>
-                </Button>
-              </div>
-            </>
-          ) : reason === "DAILY_LIMIT_REACHED" ? (
-            <>
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-blue-600/10 text-blue-600">
-                <Flame className="w-7 h-7" />
-              </div>
-              <Badge className="bg-blue-600/15 text-blue-600 dark:text-blue-400 border-none text-xs px-3 py-1 mb-2 font-semibold">
-                {t.paywall.limitReachedBadge} ({limit})
-              </Badge>
-              <h3 className="font-display text-xl sm:text-2xl font-bold mb-2 text-foreground">
-                {t.paywall.limitReachedTitle} ({currentReads}/{limit})
-              </h3>
-              <p className="text-muted-foreground mb-6 text-xs sm:text-sm leading-relaxed max-w-sm mx-auto">
-                {t.paywall.limitReachedDesc}
-              </p>
-              <div className="flex flex-col sm:flex-row items-center gap-2.5">
-                <Button size="lg" className="w-full font-semibold rounded-full shadow-md" asChild>
-                  <Link href="/pricing">
-                    <Sparkles className="w-4 h-4 mr-1.5" /> {t.paywall.limitUpgradeBtn} ({ppp.plans.PRO.formatted}) <ArrowRight className="w-4 h-4 ml-1" />
-                  </Link>
-                </Button>
-              </div>
-            </>
-          ) : (
-
-
-            <>
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-primary/10 text-primary">
-                <Lock className="w-7 h-7" />
-              </div>
-              <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold mb-2">
-                Đăng nhập để đọc toàn bộ
-              </p>
-              <h3 className="font-display text-xl sm:text-2xl font-bold mb-2 text-foreground">
-                Xác thực Email OTP để mở khóa bài viết
-              </h3>
-              <p className="text-muted-foreground mb-6 text-xs sm:text-sm leading-relaxed max-w-sm mx-auto">
-                Nhập email của bạn để nhận mã OTP 6 chữ số và mở khóa nội dung bài viết, case study phân tích và video chuyên sâu.
+              <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                {t.paywall.authRequiredDesc}
               </p>
               <Button
-                size="lg"
-                className="w-full font-semibold rounded-full shadow-md"
+                className="mt-4 h-9 rounded-full px-5 text-sm font-semibold shadow-sm"
                 onClick={() => setAuthOpen(true)}
               >
-                <Sparkles className="w-4 h-4 mr-2" /> Đăng nhập nhận mã OTP miễn phí
+                <Lock className="mr-1.5 size-4" />
+                {t.paywall.authBtn}
+              </Button>
+            </>
+          ) : reason === "PLUS_REQUIRED" || reason === "PRO_REQUIRED" ? (
+            <>
+              <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                <Crown className="size-5" />
+              </div>
+              <Badge className="border-none bg-amber-500/15 px-3 py-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
+                {tierCopy.badge}
+              </Badge>
+              <h3 className="mt-3 font-display text-lg font-bold text-foreground sm:text-xl">
+                {tierCopy.title}
+              </h3>
+              <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                {tierCopy.description}
+              </p>
+              <Button
+                asChild
+                className="mt-4 h-9 rounded-full bg-amber-500 px-5 text-sm font-semibold text-white shadow-sm hover:bg-amber-600"
+              >
+                <Link href="/pricing#plans">
+                  {tierCopy.button}
+                  <ArrowRight className="ml-1.5 size-4" />
+                </Link>
+              </Button>
+            </>
+          ) : (
+            <>
+              <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-2xl bg-blue-600/10 text-blue-600">
+                <Flame className="size-5" />
+              </div>
+              <Badge className="border-none bg-blue-600/15 px-3 py-1 text-[11px] font-semibold text-blue-700 dark:text-blue-300">
+                {t.paywall.limitReachedBadge} ({limit})
+              </Badge>
+              <h3 className="mt-3 font-display text-lg font-bold text-foreground sm:text-xl">
+                {t.paywall.limitReachedTitle} ({currentReads}/{limit})
+              </h3>
+              <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                {freeLimitReached ? t.paywall.freeLimitReachedDesc : t.paywall.limitReachedDesc}
+              </p>
+              <Button asChild className="mt-4 h-9 rounded-full px-5 text-sm font-semibold shadow-sm">
+                <Link href="/pricing#plans">
+                  <Sparkles className="mr-1.5 size-4" />
+                  {freeLimitReached ? t.paywall.freeLimitUpgradeBtn : t.paywall.limitUpgradeBtn}
+                  <ArrowRight className="ml-1.5 size-4" />
+                </Link>
               </Button>
             </>
           )}

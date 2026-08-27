@@ -170,7 +170,7 @@ export function PricingPage() {
       </div>
 
       {/* Four access levels: Open, Free, Plus, Pro */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch mb-16">
+      <div id="plans" className="grid scroll-mt-24 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch mb-16">
         {plans.map((plan) => {
           const isCurrent = user && currentTier === plan.id;
           const isPro = plan.id === "PRO";
