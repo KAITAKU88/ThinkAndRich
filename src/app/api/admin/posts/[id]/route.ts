@@ -1,10 +1,17 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { drizzle } from "drizzle-orm/d1";
 import { eq } from "drizzle-orm";
-import { posts, bookmarks, reactions, readLogs, shareLogs } from "@/db/schema";
+import { posts, postRelations } from "@/db/schema";
 import { rowToPost } from "@/lib/server/post-row";
+import { deletePostCascade } from "@/lib/server/delete-post";
 import { requireAdmin } from "@/lib/api-auth";
 import type { Post } from "@/lib/types";
+import { validateRelatedPostIds } from "@/lib/related-posts";
+import {
+  findUnavailableRelatedPostIds,
+  loadRelatedPostIdMap,
+  relationRows,
+} from "@/lib/server/related-posts";
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const ctx = await requireAdmin(request);
@@ -12,11 +19,45 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   const { id } = await params;
   const body = (await request.json().catch(() => null)) as Partial<Post> | null;
-  if (!body) return NextResponse.json({ ok: false, message: "Payload không hợp lệ." }, { status: 400 });
+  if (!body) {
+    return NextResponse.json(
+      { ok: false, code: "INVALID_POST", message: "Payload không hợp lệ." },
+      { status: 400 }
+    );
+  }
 
   const db = drizzle(ctx.env.DB);
   const existing = await db.select().from(posts).where(eq(posts.id, id)).get();
-  if (!existing) return NextResponse.json({ ok: false, message: "Không tìm thấy bài viết." }, { status: 404 });
+  if (!existing) {
+    return NextResponse.json(
+      { ok: false, code: "POST_NOT_FOUND", message: "Không tìm thấy bài viết." },
+      { status: 404 }
+    );
+  }
+
+  const relationValidation = body.relatedPostIds === undefined
+    ? null
+    : validateRelatedPostIds(body.relatedPostIds, id);
+  if (relationValidation && !relationValidation.ok) {
+    return NextResponse.json(
+      { ok: false, code: relationValidation.code, message: relationValidation.message },
+      { status: 400 }
+    );
+  }
+  if (relationValidation?.ok) {
+    const unavailableIds = await findUnavailableRelatedPostIds(db, relationValidation.ids);
+    if (unavailableIds.length > 0) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "RELATED_POST_UNAVAILABLE",
+          message: "Bài viết liên quan phải tồn tại và đã được xuất bản.",
+          relatedPostIds: unavailableIds,
+        },
+        { status: 400 }
+      );
+    }
+  }
 
   const now = new Date().toISOString();
   const update: Record<string, unknown> = { updatedAt: now };
@@ -29,9 +70,31 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
   if (body.tags !== undefined) update.tags = JSON.stringify(body.tags);
 
-  await db.update(posts).set(update).where(eq(posts.id, id));
+  const updatePost = db.update(posts).set(update).where(eq(posts.id, id));
+  if (relationValidation?.ok) {
+    const relations = relationRows(id, relationValidation.ids, now);
+    const clearRelations = db.delete(postRelations).where(eq(postRelations.sourcePostId, id));
+    if (relations.length > 0) {
+      // D1 batch is transactional: article fields and the ordered editorial
+      // selection either update together or remain at their previous values.
+      await db.batch([updatePost, clearRelations, db.insert(postRelations).values(relations)]);
+    } else {
+      await db.batch([updatePost, clearRelations]);
+    }
+  } else {
+    await updatePost;
+  }
   const row = await db.select().from(posts).where(eq(posts.id, id)).get();
-  return NextResponse.json({ ok: true, post: rowToPost(row!) });
+  const relatedPostIds = relationValidation?.ok
+    ? relationValidation.ids
+    : (await loadRelatedPostIdMap(db)).get(id) ?? [];
+  return NextResponse.json({
+    ok: true,
+    post: {
+      ...rowToPost(row!),
+      relatedPostIds,
+    },
+  });
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -41,15 +104,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   const { id } = await params;
   const db = drizzle(ctx.env.DB);
 
-  // Explicit cleanup rather than relying on D1's FK cascade pragma (its
-  // enforcement under drizzle-orm/d1 hasn't been verified in this repo).
-  await db.batch([
-    db.delete(bookmarks).where(eq(bookmarks.postId, id)),
-    db.delete(reactions).where(eq(reactions.postId, id)),
-    db.delete(readLogs).where(eq(readLogs.postId, id)),
-    db.delete(shareLogs).where(eq(shareLogs.postId, id)),
-    db.delete(posts).where(eq(posts.id, id)),
-  ]);
+  await deletePostCascade(db, id);
 
   return NextResponse.json({ ok: true });
 }

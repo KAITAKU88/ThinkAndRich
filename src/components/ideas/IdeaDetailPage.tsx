@@ -66,13 +66,20 @@ export function PostDetailPage() {
   useEffect(() => {
     let cancelled = false;
     setNotFound(false);
+    setRecommendedPosts([]);
     fetch(`/api/posts/${id}`)
-      .then((res) => res.json() as Promise<{ ok: boolean; post?: Post; access?: AccessCheckResult }>)
+      .then((res) => res.json() as Promise<{
+        ok: boolean;
+        post?: Post;
+        relatedPosts?: Post[];
+        access?: AccessCheckResult;
+      }>)
       .then((data) => {
         if (cancelled) return;
         if (data.ok && data.post && data.access) {
           setPost(data.post);
           setAccess(data.access);
+          setRecommendedPosts(data.relatedPosts ?? []);
         } else {
           setNotFound(true);
         }
@@ -84,22 +91,6 @@ export function PostDetailPage() {
       cancelled = true;
     };
   }, [id, user?.id]);
-
-  useEffect(() => {
-    if (!post) return;
-    let cancelled = false;
-    fetch(`/api/posts?pillar=${post.pillar}&pageSize=3`)
-      .then((res) => res.json() as Promise<{ ok: boolean; posts?: Post[] }>)
-      .then((data) => {
-        if (!cancelled && data.ok && data.posts) {
-          setRecommendedPosts(data.posts.filter((p) => p.id !== post.id).slice(0, 2));
-        }
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [post]);
 
   // Record view exactly once per post ID
   const recordedPostIdRef = useRef<string | null>(null);
@@ -312,12 +303,14 @@ export function PostDetailPage() {
             </div>
           )}
 
-          {/* Next Recommended in same pillar */}
+          {/* Editorially curated continuations, in the exact order selected
+              in the admin editor. No same-pillar algorithm is mixed in: an
+              empty selection deliberately renders no recommendation rail. */}
           {recommendedPosts.length > 0 && (
             <div className="reading-ui mt-14 pt-8 border-t border-border space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-display text-lg sm:text-xl font-bold text-foreground">
-                  {t.detail.relatedInPillarTitle}
+                  {t.detail.relatedArticles}
                 </h3>
                 <Link href="/explore" className="text-xs text-primary font-semibold hover:underline">
                   {t.detail.viewAllLink} &rarr;

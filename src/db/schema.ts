@@ -34,6 +34,29 @@ export const posts = sqliteTable("posts", {
   updatedAt: text("updated_at").notNull(),
 });
 
+// Editorially curated reading paths. `position` preserves the order chosen
+// in the console; a composite primary key prevents the same destination from
+// appearing twice under one article. The application caps each source at
+// three rows so this stays a focused continuation, not another feed.
+export const postRelations = sqliteTable(
+  "post_relations",
+  {
+    sourcePostId: text("source_post_id")
+      .notNull()
+      .references(() => posts.id, { onDelete: "cascade" }),
+    relatedPostId: text("related_post_id")
+      .notNull()
+      .references(() => posts.id, { onDelete: "cascade" }),
+    position: integer("position").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.sourcePostId, table.relatedPostId] }),
+    uniqueIndex("post_relations_source_position_idx").on(table.sourcePostId, table.position),
+    index("post_relations_related_post_idx").on(table.relatedPostId),
+  ]
+);
+
 // Mirrors UserRecord in src/lib/types.ts, minus the flat
 // bookmarkedPosts/likedPosts/dislikedPosts arrays — those become the
 // bookmarks/reactions join tables below instead.

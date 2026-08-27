@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TiptapLink from "@tiptap/extension-link";
 import TiptapImage from "@tiptap/extension-image";
 import TiptapYoutube from "@tiptap/extension-youtube";
-import { Bold, Italic, List, ListOrdered, Quote, Image as ImageIcon, Video, ArrowLeft, Eye } from "lucide-react";
+import { Bold, Italic, List, ListOrdered, Quote, Image as ImageIcon, Video, ArrowLeft, Eye, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { ReadingColumn, ReadingSheet } from "@/components/reading/ReadingSheet";
 import { TagInput } from "@/components/admin/TagInput";
+import { RelatedPostPicker } from "@/components/admin/RelatedPostPicker";
 import { READING_TEMPLATES, normalizeTemplate, type ReadingTemplateId } from "@/lib/reading-templates";
 import type { AdminPost } from "@/lib/admin/use-admin-posts";
 import type { CardDisplaySize, ContentAccessLevel, Post, PillarType } from "@/lib/types";
@@ -23,12 +24,21 @@ const AVG_READING_WPM = 200;
 
 interface PostFormProps {
   editingPost: AdminPost | null;
+  availablePosts: AdminPost[];
   onCreate: (post: Partial<Post>) => Promise<{ ok: boolean; message?: string; post?: Post }>;
   onUpdate: (id: string, updates: Partial<Post>) => Promise<{ ok: boolean; message?: string; post?: Post }>;
   onDone: () => void;
 }
 
-export function PostForm({ editingPost, onCreate, onUpdate, onDone }: PostFormProps) {
+interface ArticleMentionState {
+  query: string;
+  from: number;
+  to: number;
+  left: number;
+  top: number;
+}
+
+export function PostForm({ editingPost, availablePosts, onCreate, onUpdate, onDone }: PostFormProps) {
   const [title, setTitle] = useState(editingPost?.title ?? "");
   const [summarySnippet, setSummarySnippet] = useState(editingPost?.summarySnippet ?? "");
   const [pillar, setPillar] = useState<PillarType>(editingPost?.pillar ?? "MENTAL_MODEL");
@@ -42,11 +52,45 @@ export function PostForm({ editingPost, onCreate, onUpdate, onDone }: PostFormPr
 
   const [tags, setTags] = useState<string[]>(editingPost?.tags ?? []);
   const [knownTags, setKnownTags] = useState<string[]>([]);
+  const [relatedPostIds, setRelatedPostIds] = useState<string[]>(editingPost?.relatedPostIds ?? []);
+  const [articleMention, setArticleMention] = useState<ArticleMentionState | null>(null);
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const editorShellRef = useRef<HTMLDivElement>(null);
 
   const [postId, setPostId] = useState<string | null>(editingPost?.id ?? null);
   const [saving, setSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [dirty, setDirty] = useState(false);
+
+  function syncArticleMention(activeEditor: Editor) {
+    const { selection } = activeEditor.state;
+    if (!selection.empty) {
+      setArticleMention(null);
+      return;
+    }
+
+    const { $from } = selection;
+    const textBeforeCursor = $from.parent.textBetween(0, $from.parentOffset, undefined, "\ufffc");
+    const match = /(?:^|\s)@([^@\n]*)$/.exec(textBeforeCursor);
+    if (!match) {
+      setArticleMention(null);
+      return;
+    }
+
+    const shell = editorShellRef.current;
+    if (!shell) return;
+    const cursor = activeEditor.view.coordsAtPos(selection.from);
+    const shellRect = shell.getBoundingClientRect();
+    const width = Math.min(320, Math.max(220, shellRect.width - 16));
+    setArticleMention({
+      query: match[1],
+      from: selection.from - match[1].length - 1,
+      to: selection.from,
+      left: Math.min(Math.max(8, cursor.left - shellRect.left), Math.max(8, shellRect.width - width - 8)),
+      top: cursor.bottom - shellRect.top + 6,
+    });
+    setMentionIndex(0);
+  }
 
   const editor = useEditor({
     extensions: [
@@ -62,8 +106,24 @@ export function PostForm({ editingPost, onCreate, onUpdate, onDone }: PostFormPr
         class: "prose-idea min-h-[280px] focus:outline-none p-4 text-sm leading-relaxed bg-background/50 rounded-b-xl border-t border-border",
       },
     },
-    onUpdate: () => setDirty(true),
+    onUpdate: ({ editor: activeEditor }) => {
+      setDirty(true);
+      syncArticleMention(activeEditor);
+    },
+    onSelectionUpdate: ({ editor: activeEditor }) => syncArticleMention(activeEditor),
   });
+
+  const mentionCandidates = useMemo(() => {
+    const query = articleMention?.query.trim().toLocaleLowerCase("vi") ?? "";
+    return availablePosts
+      .filter(
+        (post) =>
+          post.status === "PUBLISHED" &&
+          post.id !== postId &&
+          (!query || post.title.toLocaleLowerCase("vi").includes(query))
+      )
+      .slice(0, 6);
+  }, [articleMention?.query, availablePosts, postId]);
 
   const readingTimeMinutes = useMemo(() => {
     const text = editor?.getText() ?? "";
@@ -96,6 +156,7 @@ export function PostForm({ editingPost, onCreate, onUpdate, onDone }: PostFormPr
       category: pillar === "MENTAL_MODEL" ? "Mô hình Tư duy" : pillar === "BUSINESS_STRATEGY" ? "Chiến lược Kinh doanh" : "Ý tưởng Khởi nghiệp",
       author: "Think & Rich",
       tags,
+      relatedPostIds,
       ...(nextStatus ? { status: nextStatus } : {}),
     };
 
@@ -149,6 +210,50 @@ export function PostForm({ editingPost, onCreate, onUpdate, onDone }: PostFormPr
   function insertYoutube() {
     const url = window.prompt("Nhập URL video YouTube:");
     if (url) editor?.commands.setYoutubeVideo({ src: url });
+  }
+
+  function insertArticleLink(post: AdminPost) {
+    if (!editor || !articleMention) return;
+    editor
+      .chain()
+      .focus()
+      .insertContentAt(
+        { from: articleMention.from, to: articleMention.to },
+        [
+          {
+            type: "text",
+            text: post.title,
+            marks: [{ type: "link", attrs: { href: `/post/${post.slug || post.id}` } }],
+          },
+          { type: "text", text: " " },
+        ]
+      )
+      .run();
+    setArticleMention(null);
+    setDirty(true);
+  }
+
+  function handleEditorKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (!articleMention || event.nativeEvent.isComposing) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setArticleMention(null);
+      return;
+    }
+    if (event.key === "ArrowDown" && mentionCandidates.length > 0) {
+      event.preventDefault();
+      setMentionIndex((index) => (index + 1) % mentionCandidates.length);
+      return;
+    }
+    if (event.key === "ArrowUp" && mentionCandidates.length > 0) {
+      event.preventDefault();
+      setMentionIndex((index) => (index - 1 + mentionCandidates.length) % mentionCandidates.length);
+      return;
+    }
+    if (event.key === "Enter" && mentionCandidates[mentionIndex]) {
+      event.preventDefault();
+      insertArticleLink(mentionCandidates[mentionIndex]);
+    }
   }
 
   return (
@@ -261,7 +366,8 @@ export function PostForm({ editingPost, onCreate, onUpdate, onDone }: PostFormPr
                 </div>
               </div>
             ) : (
-              <div className="border border-border rounded-xl overflow-hidden">
+              <>
+              <div ref={editorShellRef} className="relative border border-border rounded-xl">
                 <div className="flex items-center gap-0.5 p-1.5 border-b border-border bg-secondary/40 overflow-x-auto scrollbar-hide">
                   <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => editor?.chain().focus().toggleBold().run()}><Bold className="w-3.5 h-3.5" /></Button>
                   <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => editor?.chain().focus().toggleItalic().run()}><Italic className="w-3.5 h-3.5" /></Button>
@@ -271,8 +377,55 @@ export function PostForm({ editingPost, onCreate, onUpdate, onDone }: PostFormPr
                   <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={insertImage}><ImageIcon className="w-3.5 h-3.5" /></Button>
                   <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={insertYoutube}><Video className="w-3.5 h-3.5" /></Button>
                 </div>
-                <EditorContent editor={editor} onKeyUp={() => setDirty(true)} />
+                <EditorContent editor={editor} onKeyDown={handleEditorKeyDown} onKeyUp={() => setDirty(true)} />
+                {articleMention && (
+                  <div
+                    data-testid="article-mention-menu"
+                    className="absolute z-40 w-[min(20rem,calc(100%-1rem))] overflow-hidden rounded-xl border border-border bg-popover shadow-xl"
+                    style={{ left: articleMention.left, top: articleMention.top }}
+                  >
+                    <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-[11px] text-muted-foreground">
+                      <Link2 className="h-3.5 w-3.5 text-primary" />
+                      <span className="truncate">
+                        {articleMention.query ? `Tìm “${articleMention.query}”` : "Chèn liên kết bài viết"}
+                      </span>
+                    </div>
+                    <div className="max-h-60 overflow-y-auto p-1">
+                      {mentionCandidates.length > 0 ? (
+                        mentionCandidates.map((post, index) => (
+                          <button
+                            key={post.id}
+                            type="button"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => insertArticleLink(post)}
+                            className={cn(
+                              "flex w-full items-start gap-2 rounded-lg px-2.5 py-2 text-left",
+                              index === mentionIndex ? "bg-secondary" : "hover:bg-secondary"
+                            )}
+                          >
+                            <Link2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                            <span className="min-w-0">
+                              <span className="block truncate text-xs font-medium">{post.title}</span>
+                              <span className="block text-[10px] text-muted-foreground">{post.category}</span>
+                            </span>
+                          </button>
+                        ))
+                      ) : (
+                        <p className="px-3 py-4 text-center text-xs text-muted-foreground">
+                          Không tìm thấy bài đã xuất bản phù hợp.
+                        </p>
+                      )}
+                    </div>
+                    <div className="border-t border-border px-3 py-1.5 text-[10px] text-muted-foreground">
+                      Enter để chèn · Esc để đóng
+                    </div>
+                  </div>
+                )}
               </div>
+              <p className="mt-1.5 text-[11px] text-muted-foreground">
+                Gõ @ trong nội dung để tìm và chèn tiêu đề bài viết dưới dạng liên kết.
+              </p>
+              </>
             )}
           </div>
         </div>
@@ -314,6 +467,15 @@ export function PostForm({ editingPost, onCreate, onUpdate, onDone }: PostFormPr
               onChange={markDirty(setTags)}
               knownTags={knownTags}
             />
+
+            <div className="border-t border-border/60 pt-4">
+              <RelatedPostPicker
+                posts={availablePosts}
+                currentPostId={postId}
+                selectedIds={relatedPostIds}
+                onChange={markDirty(setRelatedPostIds)}
+              />
+            </div>
 
             <div className="flex items-center justify-between text-xs pt-2 border-t border-border/60">
               <span className="text-muted-foreground">Thời gian đọc (tự động tính)</span>

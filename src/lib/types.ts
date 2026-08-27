@@ -59,6 +59,8 @@ export interface Post {
   dislikes: number;
   author: string;
   tags: string[];
+  /** Ordered editorial choices rendered below this article (maximum three). */
+  relatedPostIds?: string[];
   createdAt: string;
   updatedAt: string;
 

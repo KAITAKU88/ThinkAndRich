@@ -7,6 +7,7 @@ import { rowToPost } from "@/lib/server/post-row";
 import { requireSession } from "@/lib/api-auth";
 import { checkPostAccess, truncateHtmlContent } from "@/lib/server/access-control";
 import type { MembershipTier } from "@/lib/types";
+import { loadPublishedRelatedPosts } from "@/lib/server/related-posts";
 
 // Single post fetch, by slug (falling back to id for older links). This is
 // the server-side enforcement point for the paywall: fullContent is only
@@ -38,6 +39,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const responsePost = access.allowed
     ? post
     : { ...post, fullContent: truncateHtmlContent(post.fullContent, 0.3) };
+  const relatedPosts = await loadPublishedRelatedPosts(db, post.id);
 
-  return NextResponse.json({ ok: true, post: responsePost, access });
+  return NextResponse.json({ ok: true, post: responsePost, relatedPosts, access });
 }

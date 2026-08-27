@@ -144,6 +144,7 @@ export function AdminPage() {
             (editingPost ? (
               <PostForm
                 editingPost={editingPost === "new" ? null : editingPost}
+                availablePosts={posts}
                 onCreate={createPost}
                 onUpdate={updatePost}
                 onDone={() => setEditingPost(null)}

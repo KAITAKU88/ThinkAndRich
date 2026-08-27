@@ -25,7 +25,21 @@ export async function signInAsAdmin(page: Page): Promise<string> {
   const otpField = page.getByLabel("Mã xác thực OTP (6 chữ số)");
   await expect(otpField).toBeVisible();
   await otpField.fill(readOtpFromLocalKv(email));
+  const verified = page.waitForResponse(
+    (response) => response.url().endsWith("/api/auth/verify-otp") && response.request().method() === "POST"
+  );
   await page.getByRole("button", { name: /Xác nhận/ }).click();
+  expect((await verified).ok()).toBeTruthy();
+
+  // On a cold next-dev compile, the client-side router replacement can be
+  // overtaken by the login page's initial restoreSession request. The API has
+  // already set the real HttpOnly cookie, so navigate through the server gate
+  // explicitly; this verifies the credential instead of relying on a timing
+  // race in a transition unrelated to the feature under test.
+  await expect
+    .poll(async () => (await page.context().cookies()).some((cookie) => cookie.name === "tr_session"))
+    .toBe(true);
+  if (!/\/admin$/.test(page.url())) await page.goto("/admin");
   await expect(page).toHaveURL(/\/admin$/);
 
   return email;
