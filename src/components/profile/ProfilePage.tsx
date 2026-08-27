@@ -45,6 +45,16 @@ export function ProfilePage() {
   const language = useSession((s) => s.language);
   const t = getTranslation(language);
 
+  useEffect(() => {
+    const syncTabFromHash = () => {
+      if (window.location.hash === "#account") setTab("account");
+      if (window.location.hash === "#saved") setTab("saved");
+    };
+    syncTabFromHash();
+    window.addEventListener("hashchange", syncTabFromHash);
+    return () => window.removeEventListener("hashchange", syncTabFromHash);
+  }, []);
+
   // Real per-user data — fetched from D1-backed routes instead of read out
   // of a mock array. bookmarks/userReactions (store cache, ids only) still
   // drive the tab-header counts so those numbers update instantly on
