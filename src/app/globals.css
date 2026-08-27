@@ -28,6 +28,7 @@
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
+  --color-surface: var(--surface);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -54,20 +55,32 @@
   warm cream), primary is a deep ink-navy rather than flat black, and the
   three pillar hues (crimson / amber / jade) stay the only saturated colors
   in the system so they keep meaning "which pillar" instead of decoration.
+
+  Nothing in the light theme is pure white. Cards used to be #ffffff, and on
+  a page like Khám phá — which is almost entirely cards — that white won the
+  page back from the paper ground underneath it: the concept said reading
+  room, the screen said blank sheet. Every surface now sits within a few
+  percent of the #f4f4f1 ground, and the 1px border is what separates one
+  card from the next, the way a catalogue card is separated from the tray it
+  stands in rather than by glowing brighter than it.
 */
 :root {
   --radius: 0.75rem;
   --background: #f4f4f1;
   --foreground: #1a1c22;
-  --card: #ffffff;
+  --card: #f4f4f1;
   --card-foreground: #1a1c22;
-  --popover: #ffffff;
+  /* One step up from the ground, for the two things a flat card would read
+     wrong as: something floating free of the page (a menu, a dialog), and
+     a control you are meant to type into. Still nowhere near white. */
+  --popover: #fafaf7;
   --popover-foreground: #1a1c22;
+  --surface: #fafaf7;
   --primary: #21294a;
   --primary-foreground: #f6f6f3;
   --secondary: #eae8e1;
   --secondary-foreground: #1a1c22;
-  --muted: #ececE6;
+  --muted: #ecece6;
   --muted-foreground: #6b6a64;
   --accent: #eae8e1;
   --accent-foreground: #1a1c22;
@@ -98,6 +111,9 @@
   --card-foreground: #edeee9;
   --popover: #171a21;
   --popover-foreground: #edeee9;
+  /* The dark theme never had the white problem the light one did, so its
+     surfaces are left exactly where they were. */
+  --surface: #171a21;
   --primary: #e4e8f5;
   --primary-foreground: #171a21;
   --secondary: #1f232c;
@@ -206,12 +222,114 @@ body {
   overflow-wrap: break-word;
 }
 
-/* The column is held to the measure and stays flush with the left edge of
-   its container, so the article body shares one left margin with the title
-   above it. Centring the column independently split the page into two
-   different left edges. */
+/* The column is held to the measure. Inside a .reading-column the sheet is
+   already exactly this wide, so the declaration is what makes the body fill
+   its page rather than sitting narrower than the title above it. */
 .prose-academic {
   max-width: var(--reader-measure);
+}
+
+/* ==========================================================================
+   The sheet (.reading-column / .reading-sheet)
+
+   An article is set on a bordered page the way a page sits in a book: the
+   title, the standfirst and the body share one column, one left edge and
+   one right edge, so the eye runs from the headline into the prose without
+   stepping over anything on the way.
+
+   The width is derived, not fixed: the column is the measure the template
+   asks for plus the sheet's own padding, so picking a wider template widens
+   the page instead of leaving the prose rattling around inside a box of
+   some other size. That is also why the reader tokens are declared here as
+   well as on .prose-academic — the sheet has to know the measure to size
+   itself, and `ch` only means anything on an element set in the reading
+   font at the reading size, which is why both are restated below.
+
+   Everything *about* the article rather than *of* it — breadcrumb, pillar,
+   access badge, byline, reading time, view count — belongs on the rail
+   above the sheet, outside the page entirely. Those rows used to sit
+   between the standfirst and the first heading, which put a block of 11px
+   sans-serif UI text directly in the path of someone who had just started
+   reading.
+   ========================================================================== */
+
+.reading-column {
+  /* Defaults only; the [data-reading-template] rules further down override
+     them, which is why this block has to stay above that section. */
+  --reader-measure: 64ch;
+  --reader-rule: color-mix(in srgb, var(--border) 65%, transparent);
+  --sheet-pad: 1.25rem;
+
+  font-family: var(--reader-body, var(--font-display));
+  font-size: var(--reader-size, 1.1875rem);
+  width: 100%;
+  /* +2px for the sheet's own borders: box-sizing is border-box, so without
+     them the content box lands a measure short by exactly the frame. */
+  max-width: calc(var(--reader-measure) + 2 * var(--sheet-pad) + 2px);
+  margin-inline: auto;
+}
+
+/* Chrome that sits inside the column — the rail above the sheet, the tag
+   list and the related cards below it — is UI, not prose, so it opts back
+   out of the reading font and reading size it would otherwise inherit. */
+.reading-ui {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+}
+
+@media (min-width: 40rem) {
+  .reading-column {
+    --sheet-pad: 2.5rem;
+  }
+}
+
+.reading-sheet {
+  padding: 2.25rem var(--sheet-pad) 3rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--card);
+}
+
+.reading-sheet > h1 {
+  font-family: var(--reader-heading, var(--font-display));
+  /* Held down on a narrow screen: at the desktop size a long Vietnamese
+     title runs to five lines on a phone and pushes the article itself off
+     the first screen. */
+  font-size: 1.65em;
+  font-weight: 700;
+  line-height: 1.22;
+  letter-spacing: -0.015em;
+  color: var(--foreground);
+  /* A title is short enough that the browser can even the lines out; left
+     to itself it strands one or two words on a line of their own. */
+  text-wrap: balance;
+}
+
+@media (min-width: 40rem) {
+  .reading-sheet > h1 {
+    font-size: 2.25em;
+  }
+}
+
+/* Set in the reading font, one step down from the body and in the muted
+   ink: it reads as the article's own opening voice rather than as a
+   caption bolted above it. */
+.reading-lede {
+  margin-top: 0.95em;
+  font-family: var(--reader-body, var(--font-display));
+  font-size: 0.95em;
+  line-height: 1.72;
+  color: var(--muted-foreground);
+  text-wrap: pretty;
+}
+
+/* The one full-width rule on the page, and the only thing between the
+   standfirst and the first line of the article. */
+.reading-divider {
+  height: 1px;
+  margin: 2rem 0;
+  border: 0;
+  background: var(--reader-rule);
 }
 
 /* Content arrives wrapped in a div (dangerouslySetInnerHTML), so rules that
@@ -582,10 +700,10 @@ body {
    the templates that want the flourish can have it safely. */
 /* first-of-type, not first-child: an article that opens with a section
    heading should still get its initial on the paragraph that follows. */
-[data-reading-template="classic"] > div:first-child > p:first-of-type::first-letter,
-[data-reading-template="classic"] > p:first-of-type::first-letter,
-[data-reading-template="novel"] > div:first-child > p:first-of-type::first-letter,
-[data-reading-template="novel"] > p:first-of-type::first-letter {
+[data-reading-template="classic"].prose-academic > div:first-child > p:first-of-type::first-letter,
+[data-reading-template="classic"].prose-academic > p:first-of-type::first-letter,
+[data-reading-template="novel"].prose-academic > div:first-child > p:first-of-type::first-letter,
+[data-reading-template="novel"].prose-academic > p:first-of-type::first-letter {
   float: left;
   font-family: var(--reader-heading);
   font-size: 3.2em;

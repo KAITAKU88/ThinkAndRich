@@ -31,10 +31,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PaywallCTA } from "@/components/paywall/PaywallCTA";
+import { ReadingColumn, ReadingSheet } from "@/components/reading/ReadingSheet";
 import { InteractiveSquareCard } from "@/components/ideas/InteractiveSquareCard";
 import { useSession } from "@/store/session";
 import { cn, formatViews } from "@/lib/utils";
-import { normalizeTemplate } from "@/lib/reading-templates";
 import { PILLARS_CONFIG } from "@/lib/data";
 import { getTranslation } from "@/lib/i18n/translations";
 import type { AccessCheckResult } from "@/lib/server/access-control";
@@ -187,156 +187,149 @@ export function PostDetailPage() {
         style={{ transform: `scaleX(${readProgress / 100})` }}
       />
 
-      <div className="container mx-auto max-w-4xl px-4 sm:px-6 py-6 md:py-10 pb-36">
-        {/* Navigation & Breadcrumbs */}
-        <div className="flex items-center justify-between mb-6 gap-2">
-          <Link
-            href="/"
-            className="inline-flex items-center text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors group"
-          >
-            <ChevronLeft className="w-4 h-4 mr-0.5 transition-transform group-hover:-translate-x-1" />
-            {t.nav.home}
-          </Link>
+      {/* max-w-5xl, not 4xl: the column sizes itself from the template's
+          measure, and the two widest templates (Tạp chí, Cô đọng) were being
+          clipped back to the same width as the default by a 4xl container —
+          which made three different choices in the picker render identically. */}
+      <div className="container mx-auto max-w-5xl px-4 sm:px-6 py-6 md:py-10 pb-36">
+        <ReadingColumn template={post.readingTemplate} size={fontSize}>
+          {/* The rail. Everything here is *about* the article — where it sits
+              in the library, who wrote it, how long it runs, how often it has
+              been looked up — so none of it belongs on the page itself. The
+              byline and the metrics used to sit between the standfirst and
+              the first heading, which meant a block of small sans-serif UI
+              text stood directly in the path of someone who had just started
+              reading. */}
+          <div className="reading-ui mb-5 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Link
+                href="/"
+                className="inline-flex shrink-0 items-center whitespace-nowrap text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors group"
+              >
+                <ChevronLeft className="w-4 h-4 mr-0.5 transition-transform group-hover:-translate-x-1" />
+                {t.nav.home}
+              </Link>
 
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className={cn(
-              "inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md border",
-              pillarMeta.badgeBg,
-              pillarMeta.badgeText
-            )}>
-              <PillarIcon className="w-3 h-3" />
-              <span>{pillarMeta.titleVi}</span>
-            </span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className={cn(
+                  "inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md border",
+                  pillarMeta.badgeBg,
+                  pillarMeta.badgeText
+                )}>
+                  <PillarIcon className="w-3 h-3" />
+                  <span>{pillarMeta.titleVi}</span>
+                </span>
 
-            {(post.accessLevel === "MEMBER_PLUS" || post.accessLevel === "MEMBER_PRO") && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                <Lock className="w-2.5 h-2.5" /> {post.accessLevel === "MEMBER_PRO" ? t.detail.proOnlyBadge : "PLUS"}
-              </span>
-            )}
+                {(post.accessLevel === "MEMBER_PLUS" || post.accessLevel === "MEMBER_PRO") && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                    <Lock className="w-2.5 h-2.5" /> {post.accessLevel === "MEMBER_PRO" ? t.detail.proOnlyBadge : "PLUS"}
+                  </span>
+                )}
 
-            {post.accessLevel === "OPEN" && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                <Globe2 className="w-2.5 h-2.5" /> {t.detail.freeReadBadge}
-              </span>
-            )}
+                {post.accessLevel === "OPEN" && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                    <Globe2 className="w-2.5 h-2.5" /> {t.detail.freeReadBadge}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col min-[420px]:flex-row min-[420px]:flex-wrap min-[420px]:items-center min-[420px]:justify-between gap-3 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
+                  <User className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">{post.author}</p>
+                  <p className="text-[10px] text-muted-foreground">{t.detail.authorDeskLabel}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" /> {post.readingTimeMinutes || 5} {t.detail.minutesReadSuffix}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Eye className="w-3.5 h-3.5" /> {formatViews(post.views)} {t.detail.viewsSuffix}
+                </span>
+              </div>
+            </div>
           </div>
-        </div>
-
-        {/* Article Header */}
-        <header className="mb-8 space-y-4">
-          <h1 className="font-display text-2.5xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-foreground leading-[1.18]">
-            {post.title}
-          </h1>
-
-          <p className="text-base sm:text-lg md:text-xl text-muted-foreground leading-relaxed font-normal">
-            {post.summarySnippet || post.shortDescription}
-          </p>
 
           {/* The formula callout and takeaways box that used to sit here were
               folded into the article body: three stacked panels before a word
               of prose fragmented the page, and neither field could be edited
               from the console — only written by the MCP tools. Their content
-              was migrated into full_content rather than dropped. */}
+              was migrated into full_content rather than dropped. The vector
+              schematic box went the same way, except its SVG was not migrated:
+              TipTap's schema would strip raw <svg> on the next edit, so the
+              column is simply left unread — diagrams belong in the body as
+              images now. */}
+          <ReadingSheet
+            template={post.readingTemplate}
+            title={post.title}
+            lede={post.summarySnippet || post.shortDescription}
+          >
+            {hasAccess ? (
+              <div dangerouslySetInnerHTML={{ __html: post.fullContent }} />
+            ) : (
+              <div className="relative">
+                {/* Server already truncated fullContent to a ~30% teaser
+                    (src/app/api/posts/[slug]/route.ts) — the rest was never
+                    sent to the browser, so this just fades it out visually
+                    rather than hiding content that's already absent. */}
+                <div
+                  className="relative max-h-[220px] overflow-hidden pointer-events-none select-none"
+                  aria-hidden="true"
+                >
+                  <div dangerouslySetInnerHTML={{ __html: post.fullContent }} />
+                  <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-card to-transparent" />
+                </div>
 
-          {/* Author, Time, Metrics bar */}
-          <div className="flex flex-col min-[420px]:flex-row min-[420px]:flex-wrap min-[420px]:items-center min-[420px]:justify-between gap-3 pt-3 border-t border-border/70 text-xs text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
-                <User className="w-3.5 h-3.5" />
+                <PaywallCTA
+                  reason={access.reason}
+                  limit={access.limit}
+                  currentReads={access.currentReads}
+                />
               </div>
-              <div>
-                <p className="font-semibold text-foreground">{post.author}</p>
-                <p className="text-[10px] text-muted-foreground">{t.detail.authorDeskLabel}</p>
-              </div>
-            </div>
+            )}
+          </ReadingSheet>
 
-            <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" /> {post.readingTimeMinutes || 5} {t.detail.minutesReadSuffix}
+          {/* Tags and related reading line up with the sheet's edges but sit
+              outside its frame — they are the library talking, not the
+              article. */}
+          {post.tags && post.tags.length > 0 && hasAccess && (
+            <div className="reading-ui flex flex-wrap items-center gap-2 mt-8">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mr-1">
+                {t.detail.tagsLabel}
               </span>
-              <span className="flex items-center gap-1">
-                <Eye className="w-3.5 h-3.5" /> {formatViews(post.views)} {t.detail.viewsSuffix}
-              </span>
-            </div>
-          </div>
-        </header>
-
-        {/* The vector schematic box is gone for the same reason. Its SVG was
-            not migrated: TipTap's schema would strip raw <svg> on the next
-            edit, so the column is simply left unread — diagrams belong in the
-            body as images now. */}
-
-        {/* Article Body & Paywall Gate.
-            The reader's size control feeds --reader-size rather than Tailwind
-            text-* classes: everything inside .prose-academic is sized in em,
-            so one root value rescales the whole surface — headings, quotes,
-            captions and rhythm together — instead of resizing body copy while
-            the rest stays put. */}
-        <article
-          className="relative min-h-[300px] prose-academic"
-          data-reading-template={normalizeTemplate(post.readingTemplate)}
-          style={{
-            ["--reader-size" as string]:
-              fontSize === "large" ? "1.3125rem" : fontSize === "xlarge" ? "1.4375rem" : "1.1875rem",
-          }}
-        >
-          {hasAccess ? (
-            <div dangerouslySetInnerHTML={{ __html: post.fullContent }} />
-          ) : (
-            <div className="relative">
-              {/* Server already truncated fullContent to a ~30% teaser
-                  (src/app/api/posts/[slug]/route.ts) — the rest was never
-                  sent to the browser, so this just fades it out visually
-                  rather than hiding content that's already absent. */}
-              <div
-                className="relative max-h-[220px] overflow-hidden pointer-events-none select-none"
-                aria-hidden="true"
-              >
-                <div dangerouslySetInnerHTML={{ __html: post.fullContent }} />
-                <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background to-transparent" />
-              </div>
-
-              <PaywallCTA
-                reason={access.reason}
-                limit={access.limit}
-                currentReads={access.currentReads}
-              />
-            </div>
-          )}
-        </article>
-
-        {/* Tags Section */}
-        {post.tags && post.tags.length > 0 && hasAccess && (
-          <div className="flex flex-wrap items-center gap-2 pt-8 mt-10 border-t border-border">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mr-1">
-              {t.detail.tagsLabel}
-            </span>
-            {post.tags.map((tag) => (
-              <Badge key={tag} variant="secondary" className="rounded-full px-3 py-0.5 text-xs font-normal">
-                #{tag}
-              </Badge>
-            ))}
-          </div>
-        )}
-
-        {/* Next Recommended in same pillar */}
-        {recommendedPosts.length > 0 && (
-          <div className="mt-14 pt-8 border-t border-border space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-display text-lg sm:text-xl font-bold text-foreground">
-                {t.detail.relatedInPillarTitle}
-              </h3>
-              <Link href="/explore" className="text-xs text-primary font-semibold hover:underline">
-                {t.detail.viewAllLink} &rarr;
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {recommendedPosts.map((r) => (
-                <InteractiveSquareCard key={r.id} post={r} />
+              {post.tags.map((tag) => (
+                <Badge key={tag} variant="secondary" className="rounded-full px-3 py-0.5 text-xs font-normal">
+                  #{tag}
+                </Badge>
               ))}
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Next Recommended in same pillar */}
+          {recommendedPosts.length > 0 && (
+            <div className="reading-ui mt-14 pt-8 border-t border-border space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-display text-lg sm:text-xl font-bold text-foreground">
+                  {t.detail.relatedInPillarTitle}
+                </h3>
+                <Link href="/explore" className="text-xs text-primary font-semibold hover:underline">
+                  {t.detail.viewAllLink} &rarr;
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {recommendedPosts.map((r) => (
+                  <InteractiveSquareCard key={r.id} post={r} />
+                ))}
+              </div>
+            </div>
+          )}
+        </ReadingColumn>
 
         {/* FLOATING MOBILE READER DOCK */}
         <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] sm:bottom-6 left-1/2 -translate-x-1/2 bg-card/95 backdrop-blur-md border border-border/80 rounded-full shadow-2xl px-3 sm:px-5 py-2 flex items-center gap-1 sm:gap-3 z-40">

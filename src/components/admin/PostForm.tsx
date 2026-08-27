@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { ReadingColumn, ReadingSheet } from "@/components/reading/ReadingSheet";
 import { TagInput } from "@/components/admin/TagInput";
 import { READING_TEMPLATES, normalizeTemplate, type ReadingTemplateId } from "@/lib/reading-templates";
 import type { AdminPost } from "@/lib/admin/use-admin-posts";
@@ -240,27 +241,23 @@ export function PostForm({ editingPost, onCreate, onUpdate, onDone }: PostFormPr
                   </div>
                 </div>
 
-                <div className="border border-border rounded-xl bg-background px-5 py-8 sm:px-10 sm:py-12">
-                  <div className="mx-auto" style={{ maxWidth: "min(100%, 46rem)" }}>
-                    <h1 className="font-display text-3xl sm:text-4xl font-bold leading-[1.25] tracking-tight text-balance">
-                      {title.trim() || "Tiêu đề bài viết"}
-                    </h1>
-                    {summarySnippet.trim() && (
-                      <p className="mt-4 font-display text-lg leading-relaxed text-muted-foreground">
-                        {summarySnippet}
-                      </p>
-                    )}
-                    <div className="mt-8 h-px bg-border" />
-                    <article
-                      className="prose-academic mt-8"
-                      data-reading-template={readingTemplate}
-                      dangerouslySetInnerHTML={{ __html: editor?.getHTML() ?? "" }}
-                    />
-                  </div>
-                  <p className="mt-10 text-center text-[11px] text-muted-foreground">
-                    Bản xem trước dùng đúng kiểu chữ và dàn trang của trang đọc. Phần khung trang — điều hướng, nút chia
-                    sẻ, tường phí — không hiển thị ở đây.
-                  </p>
+                {/* The same two components the reading page is built from,
+                    not a copy of them: the preview is only worth trusting if
+                    it cannot drift from the page it claims to predict. */}
+                <div className="py-4">
+                  <ReadingColumn template={readingTemplate}>
+                    <ReadingSheet
+                      template={readingTemplate}
+                      title={title.trim() || "Tiêu đề bài viết"}
+                      lede={summarySnippet.trim() || null}
+                    >
+                      <div dangerouslySetInnerHTML={{ __html: editor?.getHTML() ?? "" }} />
+                    </ReadingSheet>
+                    <p className="reading-ui mt-6 text-center text-[11px] text-muted-foreground">
+                      Bản xem trước dùng đúng kiểu chữ và dàn trang của trang đọc. Phần khung trang — điều hướng, tên
+                      tác giả, nút chia sẻ, tường phí — không hiển thị ở đây.
+                    </p>
+                  </ReadingColumn>
                 </div>
               </div>
             ) : (
