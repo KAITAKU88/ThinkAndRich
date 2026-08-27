@@ -119,12 +119,16 @@ export function Header() {
       <header className="sticky top-0 z-50 w-full border-b border-border/80 bg-background/95 backdrop-blur-md transition-colors">
         <div className="container mx-auto max-w-[1600px] px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
           {/* 1. LEFT: LOGO, BRAND NAME, SLOGAN */}
-          <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group shrink-0">
+          <Link
+            href="/"
+            aria-label={settings.brandName || "Think & Rich"}
+            className="flex min-w-0 flex-1 items-center gap-2.5 sm:flex-none sm:gap-3 group"
+          >
             <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-xs transition-transform group-hover:scale-105">
               <Brain className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
-            <div className="hidden min-[375px]:flex flex-col min-w-0">
-              <span className="font-display font-bold text-base sm:text-lg tracking-tight leading-none text-foreground">
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate font-mono text-sm font-bold leading-none tracking-[-0.03em] text-foreground sm:font-display sm:text-lg sm:tracking-tight">
                 {settings.brandName || "Think & Rich"}
               </span>
               <span className="text-[10px] sm:text-[11px] text-muted-foreground font-medium hidden sm:inline leading-tight mt-0.5">
@@ -187,7 +191,7 @@ export function Header() {
             )}
           </nav>
 
-          {/* 3. RIGHT: [NÚT SEARCH] [NÚT THEME] [NÚT NGÔN NGỮ] [NÚT LOGIN/ACCOUNT] */}
+          {/* 3. RIGHT: [NÚT SEARCH] [NÚT THEME] [NÚT NGÔN NGỮ] [NÚT LOGIN DESKTOP] */}
           <div className="flex items-center gap-0.5 min-[375px]:gap-1 sm:gap-2 shrink-0">
             {/* Nút Search đặt ngay bên trái của Theme Toggle */}
             <Button
@@ -260,20 +264,20 @@ export function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Nút Đăng nhập — khi đã đăng nhập, mọi thứ về tài khoản (hồ sơ,
-                gói cước, đăng xuất) đã nằm trong "Khu vực cá nhân" ở menu
-                giữa header, nên không lặp lại ở đây nữa. */}
+            {/* Mobile chỉ giữ một điểm đăng nhập ở bottom nav để tránh lặp CTA
+                và dành khoảng trống header cho tên thương hiệu. Desktop không
+                có bottom nav nên vẫn cần nút này. */}
             {!user && (
               <Button
                 size="sm"
                 data-testid="login-cta"
                 aria-label={t.nav.login}
                 title={t.nav.login}
-                className="max-w-[9.25rem] rounded-full px-2 sm:px-4 h-8 sm:h-9 font-semibold text-xs shadow-xs bg-primary text-primary-foreground hover:bg-primary/90"
+                className="hidden sm:inline-flex max-w-[9.25rem] rounded-full px-4 h-9 font-semibold text-xs shadow-xs bg-primary text-primary-foreground hover:bg-primary/90"
                 onClick={() => setAuthOpen(true)}
               >
-                <Sparkles className="w-3.5 h-3.5 sm:mr-1" />
-                <span className="hidden sm:inline truncate">{t.nav.login}</span>
+                <Sparkles className="w-3.5 h-3.5 mr-1" />
+                <span className="truncate">{t.nav.login}</span>
               </Button>
             )}
           </div>
