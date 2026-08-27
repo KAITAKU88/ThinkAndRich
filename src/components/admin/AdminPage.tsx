@@ -60,7 +60,7 @@ export function AdminPage() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 w-64 border-r border-border bg-card flex flex-col transition-transform lg:translate-x-0 lg:static lg:shrink-0",
+          "fixed inset-y-0 left-0 z-40 w-64 border-r border-border bg-surface flex flex-col transition-transform lg:translate-x-0 lg:static lg:shrink-0",
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >

@@ -371,6 +371,10 @@ function CheckoutContent() {
                   money to the wrong account, which is worse than a checkout
                   that says plainly it is not ready. */}
               {paymentConfigured ? (
+                // The only pure white left in the light theme, and it is not
+                // a style choice: a QR code is read by contrast, and banking
+                // apps scan it off the screen. The paper tones every other
+                // surface now wears would eat into that margin.
                 <div className="flex flex-col items-center p-4 rounded-2xl bg-white border border-border shadow-inner text-center">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
