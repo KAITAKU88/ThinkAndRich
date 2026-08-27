@@ -290,6 +290,7 @@ export function PostDetailPage() {
                   reason={access.reason}
                   limit={access.limit}
                   currentReads={access.currentReads}
+                  tier={access.tier}
                 />
               </div>
             )}

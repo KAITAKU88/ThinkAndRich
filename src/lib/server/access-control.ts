@@ -11,7 +11,7 @@ import { quotaForTier, type TierQuota } from "@/lib/quota";
 // send `post.fullContent` to the client before calling this.
 export interface AccessCheckResult {
   allowed: boolean;
-  reason?: "AUTH_REQUIRED" | "PRO_REQUIRED" | "DAILY_LIMIT_REACHED";
+  reason?: "AUTH_REQUIRED" | "PLUS_REQUIRED" | "PRO_REQUIRED" | "DAILY_LIMIT_REACHED";
   limit?: number;
   currentReads?: number;
   tier?: MembershipTier;
@@ -109,7 +109,10 @@ export async function checkPostAccess(
   const level = post.accessLevel;
 
   // Levels above the reader's tier are shut regardless of any allowance.
-  if (tier === "FREE" && (level === "MEMBER_PLUS" || level === "MEMBER_PRO")) {
+  if (tier === "FREE" && level === "MEMBER_PLUS") {
+    return { allowed: false, reason: "PLUS_REQUIRED", tier: "FREE" };
+  }
+  if (tier === "FREE" && level === "MEMBER_PRO") {
     return { allowed: false, reason: "PRO_REQUIRED", tier: "FREE" };
   }
   if (tier === "PLUS" && level === "MEMBER_PRO") {
