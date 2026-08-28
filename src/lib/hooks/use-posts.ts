@@ -24,8 +24,9 @@ export function usePosts(filters: UsePostsFilters = {}, initialPosts?: Post[]) {
   const { pillar, q, sort, pageSize } = filters;
 
   useEffect(() => {
-    if (!initialPostsHandled.current && initialPosts !== undefined && !q) {
+    if (!q && initialPosts !== undefined) {
       initialPostsHandled.current = true;
+      setPosts(initialPosts);
       setLoading(false);
       return;
     }

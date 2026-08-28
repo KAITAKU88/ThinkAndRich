@@ -58,9 +58,9 @@ export async function checkPostAccess(
     return { allowed: false, reason: "AUTH_REQUIRED", creditCost };
   }
 
-  if (sessionUser.role === "ADMIN") {
-    return { allowed: true, creditCost };
-  }
+  // Admin is not a free pass on the public article page. Previewing and
+  // editing still go through /api/admin/posts; billed reads go through
+  // unlock like everyone else (CREDIT_PRICING_MODEL §3).
 
   if (await hasUnlockedPost(db, sessionUser.id, post.id)) {
     return { allowed: true, creditCost };

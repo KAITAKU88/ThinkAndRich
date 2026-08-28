@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Search,
   LayoutGrid,
@@ -111,6 +111,8 @@ const TAG_LIMIT = 16;
 
 function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const initialQ = searchParams.get("q") || "";
   const initialPillar = (searchParams.get("pillar") as PillarFilter) || "ALL";
 
@@ -140,15 +142,21 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
   const [numCols, setNumCols] = useState(4);
   const [page, setPage] = useState(1);
 
-  // A query arriving via ?q= (header search "Xem toàn bộ") should filter
-  // immediately — there's no dedicated search box on this page itself.
+  // A query arriving via ?q= (article tags, header search "Xem toàn bộ")
+  // should filter immediately — there's no dedicated search box here.
+  // Also follow the URL when q is *removed*, otherwise "Xóa bộ lọc" only
+  // cleared React state and the chip/effect snapped the keyword back.
   useEffect(() => {
-    const q = searchParams.get("q");
-    if (q) {
-      setSearchQuery(q);
-      setPage(1);
-    }
+    setSearchQuery(searchParams.get("q") || "");
+    setPage(1);
   }, [searchParams]);
+
+  function replaceExploreParams(mutate: (params: URLSearchParams) => void) {
+    const next = new URLSearchParams(searchParams.toString());
+    mutate(next);
+    const qs = next.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }
 
   // Packing (`numCols`) and CSS (`--cols` / `--cell`) must agree before paint.
   // Updating --cols in useEffect ran after the first frame, so desktop users
@@ -249,6 +257,10 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
     setSearchQuery("");
     setHideSavedPosts(false);
     setPage(1);
+    replaceExploreParams((params) => {
+      params.delete("q");
+      params.delete("pillar");
+    });
   }
 
   // 3. Pack the whole filtered list once, then cut only where the
@@ -500,6 +512,9 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
       onClick={() => {
         setSearchQuery("");
         setPage(1);
+        replaceExploreParams((params) => {
+          params.delete("q");
+        });
       }}
       className="inline-flex items-center gap-1.5 pl-2.5 pr-2 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-medium"
       title={t.search.clearKeywordTooltip}

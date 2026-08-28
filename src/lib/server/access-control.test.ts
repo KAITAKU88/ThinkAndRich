@@ -16,6 +16,18 @@ function post(creditCost: CreditCost) {
   return { id: `post-${creditCost}`, creditCost };
 }
 
+function noUnlockDb() {
+  return {
+    select: () => ({
+      from: () => ({
+        where: () => ({
+          get: async () => undefined,
+        }),
+      }),
+    }),
+  } as unknown as DrizzleD1Database;
+}
+
 describe("checkPostAccess", () => {
   it("allows Open articles without login", async () => {
     await expect(checkPostAccess(unusedDb, post(0), null)).resolves.toEqual({
@@ -35,9 +47,9 @@ describe("checkPostAccess", () => {
     }
   );
 
-  it("lets an admin through without an unlock lookup", async () => {
+  it("does not grant an admin free public reads", async () => {
     await expect(
-      checkPostAccess(unusedDb, post(5), { id: "admin-1", role: "ADMIN" })
-    ).resolves.toEqual({ allowed: true, creditCost: 5 });
+      checkPostAccess(noUnlockDb(), post(5), { id: "admin-1", role: "ADMIN" })
+    ).resolves.toEqual({ allowed: false, reason: "UNLOCK_REQUIRED", creditCost: 5 });
   });
 });
