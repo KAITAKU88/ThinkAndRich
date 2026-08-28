@@ -69,7 +69,7 @@ export function BottomNav() {
   ];
 
   return (
-    <nav className={cn(
+    <nav data-focus-shell="chrome" className={cn(
       "sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-md border-t border-border/80 px-1 min-[375px]:px-2 pt-1 pb-[calc(0.25rem+env(safe-area-inset-bottom,0px))] transition-transform duration-200",
       isPostPage ? "translate-y-0" : ""
     )}>

@@ -17,7 +17,7 @@ export function Footer() {
   const t = getTranslation(language);
 
   return (
-    <footer className="border-t border-border bg-card/60 mt-auto py-8">
+    <footer data-focus-shell="chrome" className="border-t border-border bg-card/60 mt-auto py-8">
       <div className="container mx-auto max-w-7xl px-4 flex flex-col md:flex-row items-center justify-between gap-6 text-sm text-muted-foreground">
         <div className="flex items-center gap-3">
           <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
@@ -48,5 +48,4 @@ export function Footer() {
     </footer>
   );
 }
-
 

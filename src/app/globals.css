@@ -151,6 +151,49 @@ body {
   padding-right: env(safe-area-inset-right, 0px);
 }
 
+[data-focus-shell="chrome"],
+[data-focus-dimmable="true"] {
+  transition:
+    filter 220ms ease,
+    opacity 220ms ease,
+    transform 220ms ease;
+}
+
+.focus-mode-page {
+  position: relative;
+  isolation: isolate;
+}
+
+.focus-mode-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at center, transparent 0 22rem, color-mix(in srgb, var(--background) 72%, transparent) 28rem),
+    color-mix(in srgb, var(--background) 48%, transparent);
+  backdrop-filter: blur(3px);
+}
+
+.focus-mode-keep-clear {
+  z-index: 60;
+}
+
+.focus-mode-sheet {
+  position: relative;
+  z-index: 60;
+  box-shadow: 0 28px 90px color-mix(in srgb, var(--foreground) 12%, transparent);
+}
+
+body.focus-mode-active [data-focus-shell="chrome"],
+body.focus-mode-active [data-focus-dimmable="true"] {
+  filter: blur(10px) saturate(0.8);
+  opacity: 0.16;
+  transform: scale(0.995);
+  pointer-events: none;
+  user-select: none;
+}
+
 .font-display {
   font-family: var(--font-display);
 }
@@ -258,7 +301,11 @@ body {
      them, which is why this block has to stay above that section. */
   --reader-measure: 64ch;
   --reader-rule: color-mix(in srgb, var(--border) 65%, transparent);
-  --sheet-pad: 1.25rem;
+  /* The border grows with this margin, while the column width grows by the
+     same amount. That preserves the title and prose measure exactly. */
+  --sheet-pad: 1.5rem;
+  --sheet-pad-block-start: 2.5rem;
+  --sheet-pad-block-end: 3.25rem;
 
   font-family: var(--reader-body, var(--font-display));
   font-size: var(--reader-size, 1.1875rem);
@@ -279,12 +326,14 @@ body {
 
 @media (min-width: 40rem) {
   .reading-column {
-    --sheet-pad: 2.5rem;
+    --sheet-pad: 3.5rem;
+    --sheet-pad-block-start: 3.5rem;
+    --sheet-pad-block-end: 4.25rem;
   }
 }
 
 .reading-sheet {
-  padding: 2.25rem var(--sheet-pad) 3rem;
+  padding: var(--sheet-pad-block-start) var(--sheet-pad) var(--sheet-pad-block-end);
   border: 1px solid var(--border);
   border-radius: 1rem;
   background: var(--card);

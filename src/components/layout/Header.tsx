@@ -116,7 +116,7 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b border-border/80 bg-background/95 backdrop-blur-md transition-colors">
+      <header data-focus-shell="chrome" className="sticky top-0 z-50 w-full border-b border-border/80 bg-background/95 backdrop-blur-md transition-colors">
         <div className="container mx-auto max-w-[1600px] px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
           {/* 1. LEFT: LOGO, BRAND NAME, SLOGAN */}
           <Link

@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
-  ChevronLeft,
   Eye,
   ThumbsUp,
   Bookmark,
@@ -44,6 +43,7 @@ export function PostDetailPage() {
   const id = String(params.id ?? "");
   const [fontSize, setFontSize] = useState<"normal" | "large" | "xlarge">("normal");
   const [readProgress, setReadProgress] = useState(0);
+  const [focusMode, setFocusMode] = useState(false);
 
   const bookmarks = useSession((s) => s.bookmarks);
   const userReactions = useSession((s) => s.userReactions);
@@ -115,6 +115,26 @@ export function PostDetailPage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    document.body.classList.toggle("focus-mode-active", focusMode);
+    return () => {
+      document.body.classList.remove("focus-mode-active");
+    };
+  }, [focusMode]);
+
+  useEffect(() => {
+    if (!focusMode) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setFocusMode(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [focusMode]);
+
   if (!post) {
     if (notFound) {
       return (
@@ -171,12 +191,30 @@ export function PostDetailPage() {
   }
 
   return (
-    <>
+    <div className="focus-mode-page" data-focus-active={focusMode ? "true" : "false"}>
       {/* Top Reading Progress Bar */}
       <div
-        className="fixed top-0 left-0 right-0 h-1 bg-primary z-50 transition-all duration-75 origin-left"
+        className="focus-mode-keep-clear fixed top-0 left-0 right-0 h-1 bg-primary z-50 transition-all duration-75 origin-left"
         style={{ transform: `scaleX(${readProgress / 100})` }}
       />
+
+      {focusMode ? <div aria-hidden="true" className="focus-mode-backdrop" /> : null}
+
+      {focusMode ? (
+        <div className="focus-mode-keep-clear fixed right-4 top-20 z-[70] sm:right-6 sm:top-24">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            data-testid="focus-mode-exit"
+            className="h-10 rounded-full border-border/80 bg-card/95 px-4 shadow-lg backdrop-blur-md"
+            onClick={() => setFocusMode(false)}
+          >
+            <Eye className="h-4 w-4" />
+            Exit Focus
+          </Button>
+        </div>
+      ) : null}
 
       {/* max-w-5xl, not 4xl: the column sizes itself from the template's
           measure, and the two widest templates (Tạp chí, Cô đọng) were being
@@ -191,17 +229,30 @@ export function PostDetailPage() {
               the first heading, which meant a block of small sans-serif UI
               text stood directly in the path of someone who had just started
               reading. */}
-          <div className="reading-ui mb-5 space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <Link
-                href="/"
-                className="inline-flex shrink-0 items-center whitespace-nowrap text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors group"
-              >
-                <ChevronLeft className="w-4 h-4 mr-0.5 transition-transform group-hover:-translate-x-1" />
-                {t.nav.home}
-              </Link>
+          <div className="reading-ui mb-5 flex flex-col gap-3" data-focus-dimmable="true">
+            <div className="flex flex-col min-[420px]:flex-row min-[420px]:flex-wrap min-[420px]:items-center min-[420px]:justify-between gap-3 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
+                  <User className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">{post.author}</p>
+                  <p className="text-[10px] text-muted-foreground">{t.detail.authorDeskLabel}</p>
+                </div>
+              </div>
 
-              <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" /> {post.readingTimeMinutes || 5} {t.detail.minutesReadSuffix}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Eye className="w-3.5 h-3.5" /> {formatViews(post.views)} {t.detail.viewsSuffix}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                 <span className={cn(
                   "inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md border",
                   pillarMeta.badgeBg,
@@ -223,27 +274,19 @@ export function PostDetailPage() {
                   </span>
                 )}
               </div>
-            </div>
 
-            <div className="flex flex-col min-[420px]:flex-row min-[420px]:flex-wrap min-[420px]:items-center min-[420px]:justify-between gap-3 text-xs text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
-                  <User className="w-3.5 h-3.5" />
-                </div>
-                <div>
-                  <p className="font-semibold text-foreground">{post.author}</p>
-                  <p className="text-[10px] text-muted-foreground">{t.detail.authorDeskLabel}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5" /> {post.readingTimeMinutes || 5} {t.detail.minutesReadSuffix}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Eye className="w-3.5 h-3.5" /> {formatViews(post.views)} {t.detail.viewsSuffix}
-                </span>
-              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                data-testid="focus-mode-toggle"
+                aria-pressed={focusMode}
+                className="h-8 shrink-0 rounded-full border-blue-700 bg-blue-600 px-3 text-xs font-bold text-white shadow-sm hover:bg-blue-700 hover:text-white focus-visible:ring-blue-600 dark:border-blue-400 dark:bg-blue-500 dark:hover:bg-blue-400"
+                onClick={() => setFocusMode(true)}
+              >
+                <Eye className="h-3.5 w-3.5" />
+                Focus Mode
+              </Button>
             </div>
           </div>
 
@@ -260,6 +303,7 @@ export function PostDetailPage() {
             template={post.readingTemplate}
             title={post.title}
             lede={post.summarySnippet || post.shortDescription}
+            className={cn(focusMode && "focus-mode-sheet")}
           >
             {hasAccess ? (
               <div dangerouslySetInnerHTML={{ __html: post.fullContent }} />
@@ -291,7 +335,7 @@ export function PostDetailPage() {
               outside its frame — they are the library talking, not the
               article. */}
           {post.tags && post.tags.length > 0 && hasAccess && (
-            <div className="reading-ui flex flex-wrap items-center gap-2 mt-8">
+            <div className="reading-ui flex flex-wrap items-center gap-2 mt-8" data-focus-dimmable="true">
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mr-1">
                 {t.detail.tagsLabel}
               </span>
@@ -307,7 +351,7 @@ export function PostDetailPage() {
               in the admin editor. No same-pillar algorithm is mixed in: an
               empty selection deliberately renders no recommendation rail. */}
           {recommendedPosts.length > 0 && (
-            <div className="reading-ui mt-14 pt-8 border-t border-border space-y-4">
+            <div className="reading-ui mt-14 pt-8 border-t border-border space-y-4" data-focus-dimmable="true">
               <div className="flex items-center justify-between">
                 <h3 className="font-display text-lg sm:text-xl font-bold text-foreground">
                   {t.detail.relatedArticles}
@@ -326,7 +370,7 @@ export function PostDetailPage() {
         </ReadingColumn>
 
         {/* FLOATING MOBILE READER DOCK */}
-        <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] sm:bottom-6 left-1/2 -translate-x-1/2 bg-card/95 backdrop-blur-md border border-border/80 rounded-full shadow-2xl px-3 sm:px-5 py-2 flex items-center gap-1 sm:gap-3 z-40">
+        <div className="focus-mode-keep-clear fixed bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] sm:bottom-6 left-1/2 -translate-x-1/2 bg-card/95 backdrop-blur-md border border-border/80 rounded-full shadow-2xl px-3 sm:px-5 py-2 flex items-center gap-1 sm:gap-3 z-40">
           <button
             type="button"
             onClick={async () => {
@@ -428,7 +472,7 @@ export function PostDetailPage() {
           </DropdownMenu>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
