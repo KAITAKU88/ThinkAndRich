@@ -180,7 +180,10 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
           // borderColor used to mix in the pillar accent and overrode the
           // Tailwind CREDIT_COST_BORDER class, so a 3C card wore a crimson
           // shelf-edge next to a violet label.
-          borderColor: `color-mix(in oklab, ${creditAccent} ${isHovered ? "85%" : "65%"}, var(--border))`,
+          borderColor:
+            creditCost === 0
+              ? `color-mix(in oklab, var(--credit-cost-0) ${isHovered ? "78%" : "58%"}, var(--border))`
+              : `color-mix(in oklab, ${creditAccent} ${isHovered ? "85%" : "65%"}, var(--border))`,
         }}
         className={cn(
           "relative flex flex-col justify-between w-full h-full p-3.5 sm:p-4.5 md:p-5 rounded-2xl md:rounded-3xl border-2 bg-card overflow-hidden",

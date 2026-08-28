@@ -316,6 +316,7 @@ export function PostDetailPage() {
                   shortfall={access.shortfall}
                   slug={post.slug || post.id}
                   onUnlocked={() => {
+                    void useSession.getState().refreshUserState();
                     fetch(`/api/posts/${id}`)
                       .then((res) => res.json() as Promise<{
                         ok: boolean;

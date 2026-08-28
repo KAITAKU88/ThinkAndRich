@@ -58,15 +58,24 @@ export async function checkPostAccess(
     return { allowed: false, reason: "AUTH_REQUIRED", creditCost };
   }
 
-  // Admin is not a free pass on the public article page. Previewing and
-  // editing still go through /api/admin/posts; billed reads go through
-  // unlock like everyone else (CREDIT_PRICING_MODEL §3).
+  const credits = await loadUserCredits(db, sessionUser.id);
+  const available = credits?.totalCredits ?? 0;
 
   if (await hasUnlockedPost(db, sessionUser.id, post.id)) {
-    return { allowed: true, creditCost };
+    return { allowed: true, creditCost, available };
   }
 
-  return { allowed: false, reason: "UNLOCK_REQUIRED", creditCost };
+  if (available < creditCost) {
+    return {
+      allowed: false,
+      reason: "INSUFFICIENT_CREDITS",
+      creditCost,
+      available,
+      shortfall: creditCost - available,
+    };
+  }
+
+  return { allowed: false, reason: "UNLOCK_REQUIRED", creditCost, available };
 }
 
 export interface UnlockResult {

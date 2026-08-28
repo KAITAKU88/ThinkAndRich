@@ -104,7 +104,8 @@
   --tier-pro: #b45309;
 
   /* Credit cost accent — one hue per unlock tier (see CREDIT_PRICING_MODEL.md). */
-  --credit-cost-0: oklch(1 0 0);
+  /* Open (0C) — neutral edge visible on paper ground and dark card alike. */
+  --credit-cost-0: #6f6d66;
   --credit-cost-1: #10b981;
   --credit-cost-2: #3b82f6;
   --credit-cost-3: #8b5cf6;
@@ -155,7 +156,7 @@
   --tier-plus: #93c5fd;
   --tier-pro: #fcd34d;
 
-  --credit-cost-0: oklch(0.25 0 0);
+  --credit-cost-0: #c2c6d0;
   --credit-cost-1: #34d399;
   --credit-cost-2: #60a5fa;
   --credit-cost-3: #a78bfa;
@@ -420,6 +421,21 @@ body.focus-mode-active [data-focus-dimmable="true"] {
   max-height: 14em;
   pointer-events: none;
   user-select: none;
+}
+
+/* First block in the teaser sits right under the sheet divider — drop the
+   section heading's usual 2.6em top margin (meant for mid-article h2s). */
+.paywall-body-preview > div > :first-child {
+  margin-top: 0;
+}
+
+.paywall-body-preview > div > h2:first-child,
+.paywall-body-preview > div > h3:first-child {
+  margin-top: 0;
+}
+
+.reading-sheet:has(.paywall-gate) .reading-divider {
+  margin-bottom: 1.25rem;
 }
 
 .paywall-body-fade {
@@ -889,9 +905,9 @@ body.focus-mode-active [data-focus-dimmable="true"] {
 }
 
 .credit-badge-0 {
-  background: color-mix(in oklab, var(--credit-cost-0) 12%, transparent);
+  background: color-mix(in oklab, var(--credit-cost-0) 12%, var(--card));
   color: var(--foreground);
-  border-color: color-mix(in oklab, var(--credit-cost-0) 40%, var(--border));
+  border-color: color-mix(in oklab, var(--credit-cost-0) 70%, var(--border));
 }
 .credit-badge-1 {
   background: color-mix(in oklab, var(--credit-cost-1) 15%, transparent);

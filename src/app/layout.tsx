@@ -62,7 +62,7 @@ export default function RootLayout({
       className={`${plexSans.variable} ${newsreader.variable} ${jetbrainsMono.variable}`}
     >
       <body className="antialiased">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <SiteShell>{children}</SiteShell>
         </ThemeProvider>
       </body>

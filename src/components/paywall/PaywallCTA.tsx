@@ -22,13 +22,14 @@ interface PaywallCTAProps {
 export function PaywallCTA({
   reason = "AUTH_REQUIRED",
   creditCost = 1,
+  available,
   slug,
   onUnlocked,
 }: PaywallCTAProps) {
   const setAuthOpen = useSession((state) => state.setAuthOpen);
   const unlockPost = useSession((state) => state.unlockPost);
   const user = useSession((state) => state.user);
-  const totalCredits = user?.totalCredits ?? 0;
+  const availableCredits = available ?? user?.totalCredits ?? 0;
 
   async function handleUnlock() {
     const result = await unlockPost(slug);
@@ -80,7 +81,7 @@ export function PaywallCTA({
                 Không đủ credit
               </h3>
               <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                Cần {creditCost} credit để mở khóa. Số dư hiện tại: {totalCredits}.
+                Cần {creditCost} credit để mở khóa. Số dư hiện tại: {availableCredits}.
               </p>
               <Button asChild variant="default" className="mt-4 h-9 rounded-full px-5 text-sm font-semibold shadow-sm">
                 <Link href="/pricing">
@@ -104,8 +105,8 @@ export function PaywallCTA({
                 {creditCost}
                 <CreditCoin className="h-4 w-4" />
               </div>
-              <p className="mt-2 text-[11px] text-muted-foreground">Số dư: {totalCredits}</p>
-              {totalCredits < creditCost ? (
+              <p className="mt-2 text-[11px] text-muted-foreground">Số dư: {availableCredits}</p>
+              {availableCredits < creditCost ? (
                 <Button asChild variant="default" className="mt-4 h-9 rounded-full px-5 text-sm font-semibold shadow-sm">
                   <Link href="/pricing">
                     Mua thêm credit

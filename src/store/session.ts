@@ -282,6 +282,9 @@ export const useSession = create<SessionState>()(
           post?: { id: string };
         };
         if (!data.ok) {
+          if (data.reason === "INSUFFICIENT_CREDITS") {
+            await get().refreshUserState();
+          }
           return {
             ok: false,
             message: data.message,
@@ -298,12 +301,20 @@ export const useSession = create<SessionState>()(
           user: state.user
             ? {
                 ...state.user,
-                totalCredits: data.totalCredits ?? state.user.totalCredits,
-                giftCreditBalance: data.giftCreditBalance ?? state.user.giftCreditBalance,
-                paidCreditBalance: data.paidCreditBalance ?? state.user.paidCreditBalance,
+                totalCredits:
+                  typeof data.totalCredits === "number" ? data.totalCredits : state.user.totalCredits,
+                giftCreditBalance:
+                  typeof data.giftCreditBalance === "number"
+                    ? data.giftCreditBalance
+                    : state.user.giftCreditBalance,
+                paidCreditBalance:
+                  typeof data.paidCreditBalance === "number"
+                    ? data.paidCreditBalance
+                    : state.user.paidCreditBalance,
               }
             : state.user,
         }));
+        await get().refreshUserState();
         return { ok: true, totalCredits: data.totalCredits };
       },
 

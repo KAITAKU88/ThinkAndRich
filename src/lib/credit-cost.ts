@@ -23,7 +23,7 @@ export const CREDIT_COST_ACCENT: Record<CreditCost, string> = {
 
 /** Border utility class per cost — see `.credit-border-*` in globals.css. */
 export const CREDIT_COST_BORDER: Record<CreditCost, string> = {
-  0: "credit-border-0 border-white dark:border-white/80",
+  0: "credit-border-0",
   1: "credit-border-1",
   2: "credit-border-2",
   3: "credit-border-3",

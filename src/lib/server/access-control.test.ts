@@ -50,6 +50,12 @@ describe("checkPostAccess", () => {
   it("does not grant an admin free public reads", async () => {
     await expect(
       checkPostAccess(noUnlockDb(), post(5), { id: "admin-1", role: "ADMIN" })
-    ).resolves.toEqual({ allowed: false, reason: "UNLOCK_REQUIRED", creditCost: 5 });
+    ).resolves.toEqual({
+      allowed: false,
+      reason: "INSUFFICIENT_CREDITS",
+      creditCost: 5,
+      available: 0,
+      shortfall: 5,
+    });
   });
 });
