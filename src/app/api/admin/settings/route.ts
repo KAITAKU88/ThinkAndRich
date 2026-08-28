@@ -3,22 +3,36 @@ import { drizzle } from "drizzle-orm/d1";
 import { requireAdmin } from "@/lib/api-auth";
 import { readPaymentSettings, writePaymentSettings } from "@/lib/server/settings";
 import {
-  isPaymentConfigured,
+  billingWebhookUrls,
+  isPaddleConfigured,
+  isSepayBankConfigured,
+  isSepayWebhookConfigured,
   validatePaymentSettings,
   type PaymentSettings,
 } from "@/lib/payment-settings";
 
-// Operator settings, admin only. Currently the SePay bank details a
-// customer is told to transfer to — previously hard-coded in the checkout
-// component, which meant correcting them took a deploy and getting them
-// wrong sent real money to a stranger.
+function publicOrigin(request: NextRequest, env: CloudflareEnv): string {
+  const host = request.headers.get("host") ?? "";
+  if (env.PUBLIC_HOST && env.ADMIN_HOST && host === env.ADMIN_HOST) {
+    return `https://${env.PUBLIC_HOST}`;
+  }
+  return request.nextUrl.origin;
+}
 
 export async function GET(request: NextRequest) {
   const ctx = await requireAdmin(request);
   if (!ctx) return NextResponse.json({ ok: false, message: "Forbidden" }, { status: 403 });
 
   const payment = await readPaymentSettings(drizzle(ctx.env.DB));
-  return NextResponse.json({ ok: true, payment, configured: isPaymentConfigured(payment) });
+  return NextResponse.json({
+    ok: true,
+    payment,
+    configured: isSepayBankConfigured(payment),
+    sepayBankConfigured: isSepayBankConfigured(payment),
+    sepayWebhookConfigured: isSepayWebhookConfigured(payment),
+    paddleConfigured: isPaddleConfigured(payment),
+    webhookUrls: billingWebhookUrls(publicOrigin(request, ctx.env)),
+  });
 }
 
 export async function PUT(request: NextRequest) {
@@ -35,10 +49,14 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ ok: false, message: invalid }, { status: 400 });
   }
 
-  const payment = await writePaymentSettings(
-    drizzle(ctx.env.DB),
-    body.payment,
-    ctx.session.email
-  );
-  return NextResponse.json({ ok: true, payment, configured: isPaymentConfigured(payment) });
+  const payment = await writePaymentSettings(drizzle(ctx.env.DB), body.payment, ctx.session.email);
+  return NextResponse.json({
+    ok: true,
+    payment,
+    configured: isSepayBankConfigured(payment),
+    sepayBankConfigured: isSepayBankConfigured(payment),
+    sepayWebhookConfigured: isSepayWebhookConfigured(payment),
+    paddleConfigured: isPaddleConfigured(payment),
+    webhookUrls: billingWebhookUrls(publicOrigin(request, ctx.env)),
+  });
 }

@@ -4,6 +4,8 @@ import { drizzle } from "drizzle-orm/d1";
 import { eq } from "drizzle-orm";
 import { users } from "@/db/schema";
 import { verifySession, SESSION_COOKIE } from "@/lib/session-token";
+import { loadUserCredits } from "@/lib/server/access-control";
+import { toSessionUser } from "@/lib/server/session-user";
 
 export async function GET(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
@@ -23,5 +25,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, message: "Không tìm thấy tài khoản." }, { status: 401 });
   }
 
-  return NextResponse.json({ ok: true, user });
+  const credits = await loadUserCredits(db, user.id);
+  const view = toSessionUser({ ...user, ...(credits ?? {}) });
+  return NextResponse.json({ ok: true, user: view });
 }

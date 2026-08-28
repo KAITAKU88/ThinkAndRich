@@ -38,7 +38,7 @@ const PRIVACY_CONTENT: Partial<Record<SupportedLanguage, PrivacyContent>> = {
       },
       {
         heading: "3. Chia sẻ dữ liệu",
-        body: "Chúng tôi không bán dữ liệu cá nhân cho bên thứ ba. Dữ liệu thanh toán được chia sẻ với SePay hoặc Lemon Squeezy chỉ trong phạm vi cần thiết để xử lý giao dịch của bạn.",
+        body: "Chúng tôi không bán dữ liệu cá nhân cho bên thứ ba. Dữ liệu thanh toán được chia sẻ với SePay hoặc Paddle chỉ trong phạm vi cần thiết để xử lý giao dịch của bạn.",
       },
       {
         heading: "4. Lưu trữ & bảo mật",
@@ -67,7 +67,7 @@ const PRIVACY_CONTENT: Partial<Record<SupportedLanguage, PrivacyContent>> = {
       },
       {
         heading: "3. Data sharing",
-        body: "We do not sell personal data to third parties. Payment data is shared with SePay or Lemon Squeezy only to the extent necessary to process your transaction.",
+        body: "We do not sell personal data to third parties. Payment data is shared with SePay or Paddle only to the extent necessary to process your transaction.",
       },
       {
         heading: "4. Storage & security",
@@ -96,7 +96,7 @@ const PRIVACY_CONTENT: Partial<Record<SupportedLanguage, PrivacyContent>> = {
       },
       {
         heading: "3. 数据共享",
-        body: "我们不会向第三方出售个人数据。支付数据仅在处理您交易所必需的范围内与 SePay 或 Lemon Squeezy 共享。",
+        body: "我们不会向第三方出售个人数据。支付数据仅在处理您交易所必需的范围内与 SePay 或 Paddle 共享。",
       },
       {
         heading: "4. 存储与安全",

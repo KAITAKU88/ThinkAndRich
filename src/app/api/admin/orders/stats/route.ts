@@ -23,12 +23,12 @@ export async function GET(request: NextRequest) {
     .groupBy(orders.status)
     .all();
 
-  const paidByTier = await db
-    .select({ tier: orders.tier, count: sql<number>`count(*)` })
+  const paidByPackage = await db
+    .select({ packageId: orders.packageId, count: sql<number>`count(*)` })
     .from(orders)
     .where(eq(orders.status, "PAID"))
-    .groupBy(orders.tier)
+    .groupBy(orders.packageId)
     .all();
 
-  return NextResponse.json({ ok: true, revenueByCurrency, countByStatus, paidByTier });
+  return NextResponse.json({ ok: true, revenueByCurrency, countByStatus, paidByPackage });
 }

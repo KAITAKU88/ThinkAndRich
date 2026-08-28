@@ -40,7 +40,7 @@ const TERMS_CONTENT: Partial<Record<SupportedLanguage, TermsContent>> = {
       },
       {
         heading: "4. Gói thành viên & thanh toán",
-        body: "Gói PLUS và PRO được tính phí theo chu kỳ đã chọn, với mức giá quy đổi theo khu vực (PPP) tại thời điểm đăng ký. Thanh toán được xử lý qua SePay (VietQR nội địa) hoặc Lemon Squeezy (thẻ quốc tế), tuỳ theo khu vực của bạn. Việc huỷ gói có hiệu lực từ chu kỳ thanh toán tiếp theo; các khoản đã thanh toán cho chu kỳ hiện tại không được hoàn lại trừ trường hợp lỗi hệ thống thuộc về chúng tôi.",
+        body: "Gói PLUS và PRO được tính phí theo chu kỳ đã chọn, với mức giá quy đổi theo khu vực (PPP) tại thời điểm đăng ký. Thanh toán được xử lý qua SePay (VietQR nội địa) hoặc Paddle (thẻ quốc tế), tuỳ theo khu vực của bạn. Việc huỷ gói có hiệu lực từ chu kỳ thanh toán tiếp theo; các khoản đã thanh toán cho chu kỳ hiện tại không được hoàn lại trừ trường hợp lỗi hệ thống thuộc về chúng tôi.",
       },
       {
         heading: "5. Giới hạn trách nhiệm",
@@ -71,7 +71,7 @@ const TERMS_CONTENT: Partial<Record<SupportedLanguage, TermsContent>> = {
       },
       {
         heading: "4. Membership & billing",
-        body: "PLUS and PRO plans are billed on the selected cycle, at the regionally-converted (PPP) price at the time of signup. Payments are processed via SePay (domestic VietQR) or Lemon Squeezy (international cards), depending on your region. Cancellation takes effect at the next billing cycle; amounts already paid for the current cycle are non-refundable except in the case of a system error on our part.",
+        body: "PLUS and PRO plans are billed on the selected cycle, at the regionally-converted (PPP) price at the time of signup. Payments are processed via SePay (domestic VietQR) or Paddle (international cards), depending on your region. Cancellation takes effect at the next billing cycle; amounts already paid for the current cycle are non-refundable except in the case of a system error on our part.",
       },
       {
         heading: "5. Limitation of liability",
@@ -102,7 +102,7 @@ const TERMS_CONTENT: Partial<Record<SupportedLanguage, TermsContent>> = {
       },
       {
         heading: "4. 会员方案与计费",
-        body: "PLUS 与 PRO 方案按所选周期计费，价格为注册时按地区换算（PPP）后的价格。支付通过 SePay（境内 VietQR）或 Lemon Squeezy（国际信用卡）处理，具体取决于您所在地区。取消订阅自下一计费周期起生效；当前周期已支付的费用不予退还，除非因我方系统错误所致。",
+        body: "PLUS 与 PRO 方案按所选周期计费，价格为注册时按地区换算（PPP）后的价格。支付通过 SePay（境内 VietQR）或 Paddle（国际信用卡）处理，具体取决于您所在地区。取消订阅自下一计费周期起生效；当前周期已支付的费用不予退还，除非因我方系统错误所致。",
       },
       {
         heading: "5. 责任限制",

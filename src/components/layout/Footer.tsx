@@ -42,7 +42,7 @@ export function Footer() {
         </div>
 
         <p className="text-xs text-muted-foreground text-center md:text-right">
-          © {new Date().getFullYear()} {brand}. {ppp.flag} {ppp.currency} ({ppp.gateway === "sepay" ? "SePay" : "Lemon Squeezy"})
+          © {new Date().getFullYear()} {brand}. {ppp.flag} {ppp.currency} ({ppp.gateway === "sepay" ? "SePay" : "Paddle"})
         </p>
       </div>
     </footer>

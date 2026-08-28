@@ -18,8 +18,8 @@ import {
   Globe2,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { MembershipTier, CountryCode } from "@/lib/types";
-import type { PaymentSettings } from "@/lib/payment-settings";
+import type { CountryCode, CreditPackageId } from "@/lib/types";
+import type { PublicPaymentSettings } from "@/lib/payment-settings";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,24 +27,29 @@ import { Card } from "@/components/ui/card";
 import { useSession } from "@/store/session";
 import { getTranslation } from "@/lib/i18n/translations";
 import { getPppPricing, COUNTRIES_LIST } from "@/lib/geo-pricing";
+import { isCreditPackageId, packageById } from "@/lib/credit-packages";
+import { CreditCoin } from "@/components/credits/CreditCoin";
 
 function CheckoutContent() {
   const searchParams = useSearchParams();
-  const planId = (searchParams.get("plan") as MembershipTier) || "PRO";
-  // A mid-term upgrade arrives here with its order already created and
-  // priced by /api/upgrade — the PRO price less what the member's PLUS term
-  // is still worth. This page must settle that order, not open its own.
-  const upgradeOrderId = searchParams.get("order");
-  const [payment, setPayment] = useState<PaymentSettings | null>(null);
+  const rawPackage = searchParams.get("package") || searchParams.get("plan");
+  const packageId: CreditPackageId = isCreditPackageId(rawPackage) ? rawPackage : "pack_2";
+  const pack = packageById(packageId);
+  const [payment, setPayment] = useState<PublicPaymentSettings | null>(null);
   const [paymentConfigured, setPaymentConfigured] = useState(false);
 
   const user = useSession((s) => s.user);
   const setAuthOpen = useSession((s) => s.setAuthOpen);
   const language = useSession((s) => s.language);
-  const countryCode = useSession((s) => s.countryCode);
+  const sessionCountry = useSession((s) => s.countryCode);
   const setCountryCode = useSession((s) => s.setCountryCode);
 
   const t = getTranslation(language);
+  const urlCountry = searchParams.get("country");
+  const countryCode: CountryCode =
+    urlCountry && COUNTRIES_LIST.some((c) => c.code === urlCountry)
+      ? (urlCountry as CountryCode)
+      : sessionCountry;
   const ppp = getPppPricing(countryCode);
 
   const [copied, setCopied] = useState<string | null>(null);
@@ -52,31 +57,25 @@ function CheckoutContent() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [order, setOrder] = useState<{ id: string; reference: string; amount: number; currency: string } | null>(null);
   const [orderError, setOrderError] = useState<string | null>(null);
-  const [lemonCheckoutUrl, setLemonCheckoutUrl] = useState<string | null>(null);
+  const [paddleCheckoutUrl, setPaddleCheckoutUrl] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const isPro = planId === "PRO";
-  const planName = isPro ? t.pricing.plans.proName : t.pricing.plans.plusName;
-  const planLimitText = isPro ? t.pricing.plans.proLimit : t.pricing.plans.plusLimit;
-  const listPriceFormatted = isPro ? ppp.plans.PRO.formatted : ppp.plans.PLUS.formatted;
-  // What the page shows has to be what the QR asks for. On an upgrade those
-  // differ by the member's remaining PLUS credit, and showing the list price
-  // next to a QR for a smaller amount is the kind of mismatch that gets a
-  // transfer typed in by hand for the wrong figure.
-  const planPriceFormatted =
-    upgradeOrderId && order
-      ? `${order.amount.toLocaleString("vi-VN")} ${order.currency}`
-      : listPriceFormatted;
+  const planName = `${pack.credits.toLocaleString("vi-VN")} credit`;
+  const planLimitText = "Hạn 365 ngày kể từ lần mua";
+  const listPriceFormatted = ppp.packages[packageId].formatted;
+  const planPriceFormatted = order
+    ? `${order.amount.toLocaleString("vi-VN")} ${order.currency}`
+    : listPriceFormatted;
 
   // Real PENDING order, created server-side (amount/currency computed from
   // the user's country there too — never trust a client-submitted price).
-  // For Lemon Squeezy this also opens a real hosted checkout session and
+  // For Paddle this also opens a real hosted checkout session and
   // returns its URL to redirect the user to. Switching the "simulate
   // country" selector changes the gateway, so an existing order for the
   // old country must be discarded to let this effect re-fire.
   useEffect(() => {
     fetch("/api/settings/payment")
-      .then((res) => res.json() as Promise<{ ok: boolean; payment?: PaymentSettings; configured?: boolean }>)
+      .then((res) => res.json() as Promise<{ ok: boolean; payment?: PublicPaymentSettings; configured?: boolean }>)
       .then((data) => {
         if (data.ok && data.payment) {
           setPayment(data.payment);
@@ -88,7 +87,7 @@ function CheckoutContent() {
 
   useEffect(() => {
     setOrder(null);
-    setLemonCheckoutUrl(null);
+    setPaddleCheckoutUrl(null);
     setOrderError(null);
   }, [countryCode]);
 
@@ -98,29 +97,10 @@ function CheckoutContent() {
     // Creating a second order here would charge the list price and strand
     // the discounted one the member was quoted — they would pay the full
     // PRO price for an upgrade they were promised a credit on.
-    if (upgradeOrderId) {
-      fetch(`/api/orders/${upgradeOrderId}`)
-        .then((res) => res.json() as Promise<{ ok: boolean; order?: { id: string; gatewayReference: string; amount: number; currency: string; status: string }; message?: string }>)
-        .then((data) => {
-          if (data.ok && data.order && data.order.status === "PENDING") {
-            setOrder({
-              id: data.order.id,
-              reference: data.order.gatewayReference,
-              amount: data.order.amount,
-              currency: data.order.currency,
-            });
-          } else {
-            setOrderError(data.message || t.checkout.genericOrderError);
-          }
-        })
-        .catch(() => setOrderError(t.checkout.genericConnError));
-      return;
-    }
-
     fetch(`/api/checkout?country=${countryCode}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tier: planId }),
+      body: JSON.stringify({ packageId }),
     })
       .then(
         (res) =>
@@ -137,13 +117,13 @@ function CheckoutContent() {
       .then((data) => {
         if (data.ok && data.orderId) {
           setOrder({ id: data.orderId, reference: data.reference!, amount: data.amount!, currency: data.currency! });
-          if (data.checkoutUrl) setLemonCheckoutUrl(data.checkoutUrl);
+          if (data.checkoutUrl) setPaddleCheckoutUrl(data.checkoutUrl);
         } else {
           setOrderError(data.message || t.checkout.genericOrderError);
         }
       })
       .catch(() => setOrderError(t.checkout.genericConnError));
-  }, [user, countryCode, planId, order, upgradeOrderId, t.checkout.genericOrderError, t.checkout.genericConnError]);
+  }, [user, countryCode, packageId, order, t.checkout.genericOrderError, t.checkout.genericConnError]);
 
   // Poll for the webhook flipping the order to PAID — this page never
   // decides success itself (see src/app/api/webhooks/billing/route.ts).
@@ -223,7 +203,7 @@ function CheckoutContent() {
           <div className="flex justify-between">
             <span className="text-muted-foreground">{t.checkout.successGatewayLabel}</span>
             <span className="font-semibold text-foreground">
-              {ppp.gateway === "sepay" ? "SePay (VietQR)" : "Lemon Squeezy (MoR)"}
+              {ppp.gateway === "sepay" ? "SePay (VietQR)" : "Paddle (MoR)"}
             </span>
           </div>
           <div className="flex justify-between">
@@ -270,15 +250,11 @@ function CheckoutContent() {
           <Card className="rounded-3xl border-border/80 bg-card p-4 sm:p-6 space-y-6">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                {isPro ? (
-                  <Crown className="w-5 h-5 text-amber-500" />
-                ) : (
-                  <Flame className="w-5 h-5 text-blue-600" />
-                )}
+                <CreditCoin className="w-5 h-5" />
                 <h3 className="font-display text-xl font-bold">{planName}</h3>
               </div>
               <p className="text-xs text-muted-foreground">
-                {isPro ? t.pricing.plans.proTagline : t.pricing.plans.plusTagline}
+                Cộng dồn vào số dư. Hạn dùng 365 ngày kể từ lần mua này.
               </p>
             </div>
 
@@ -334,7 +310,7 @@ function CheckoutContent() {
 
                 {COUNTRIES_LIST.map((c) => (
                   <option key={c.code} value={c.code}>
-                    {c.flag} {c.code} ({c.gateway === "sepay" ? "SePay" : "Lemon"})
+                    {c.flag} {c.code} ({c.gateway === "sepay" ? "SePay" : "Paddle"})
                   </option>
                 ))}
               </select>
@@ -349,7 +325,7 @@ function CheckoutContent() {
           </div>
         </div>
 
-        {/* Right: Payment Method (Dynamic Routing SePay vs Lemon Squeezy) */}
+        {/* Right: Payment Method (Dynamic Routing SePay vs Paddle) */}
         <div>
           {ppp.gateway === "sepay" ? (
             /* SEPAY GATEWAY (VIETNAM VNĐ) */
@@ -475,10 +451,10 @@ function CheckoutContent() {
               </Button>
             </Card>
           ) : (
-            /* LEMON SQUEEZY GATEWAY (INTERNATIONAL) — creates a real order
-               row and a real hosted LS checkout session (see
+            /* PADDLE GATEWAY (INTERNATIONAL) — creates a real order
+               row and a real hosted Paddle checkout session (see
                src/app/api/checkout/route.ts); the webhook
-               (src/app/api/webhooks/billing/route.ts?gateway=lemonsqueezy)
+               (src/app/api/webhooks/billing/route.ts?gateway=paddle)
                flips the order to PAID the same way SePay's does, and this
                page polls for that exactly like the SePay branch above. */
             <Card className="rounded-3xl border-2 border-primary shadow-lg bg-card p-4 sm:p-6 space-y-6 text-center">
@@ -494,18 +470,18 @@ function CheckoutContent() {
 
               {orderError && <p className="text-xs text-destructive">{orderError}</p>}
 
-              {!orderError && !lemonCheckoutUrl && (
+              {!orderError && !paddleCheckoutUrl && (
                 <p className="text-xs text-muted-foreground flex items-center justify-center gap-2">
                   <Sparkles className="w-3.5 h-3.5 animate-spin" /> {t.checkout.lemonInitializing}
                 </p>
               )}
 
-              {lemonCheckoutUrl && (
+              {paddleCheckoutUrl && (
                 <Button
                   size="lg"
                   className="w-full rounded-full font-semibold shadow-md bg-blue-600 hover:bg-blue-700 text-white"
                   onClick={() => {
-                    window.location.href = lemonCheckoutUrl;
+                    window.location.href = paddleCheckoutUrl;
                   }}
                 >
                   {t.checkout.lemonContinueBtn} <ArrowRight className="w-4 h-4 ml-2" />

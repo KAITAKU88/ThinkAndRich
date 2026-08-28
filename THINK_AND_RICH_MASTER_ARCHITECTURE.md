@@ -8,6 +8,12 @@
 
 ---
 
+> ⚠️ **LƯU Ý (2026-08-28) — Mô hình định giá trong tài liệu này đã LỖI THỜI.**
+> Toàn bộ phần liên quan đến `SubscriptionTier` (FREE/PLUS/PRO), `ContentAccessLevel`, bảng giá PPP theo tier (mục 6), và quy tắc truy cập/quota theo tier (mục 7) đã bị thay thế bởi **mô hình định giá theo Credit** (mở khóa từng bài, 0-5 credit/bài) — xem **`CREDIT_PRICING_MODEL.md`** ở gốc repo, đó mới là spec định giá hiện hành.
+> Ngoài ra: ngăn xếp DB/ORM thực tế đã chuyển từ PostgreSQL+Prisma sang **Cloudflare D1 + Drizzle ORM** từ lâu — schema Prisma ở mục 4 chỉ còn giá trị tham khảo lịch sử, không phản ánh code thật. Cổng thanh toán quốc tế cũng đã đổi từ **Lemon Squeezy sang Paddle** (xem `PAYMENT_ROADMAP.md`). Các phần về 3 trụ cột nội dung, ngôn ngữ thiết kế UI, và hệ thống thẻ vuông vẫn còn giá trị tham khảo.
+
+---
+
 ## 1\. TỔNG QUAN ĐỊNH HƯỚNG & 3 TRỤ CỘT TRI THỨC CỐT LÕI
 
 Dự án chuyển đổi toàn diện thành nền tảng xuất bản và tra cứu tri thức học thuật, phục vụ các đối tượng: **Nhà sáng lập (Founders), Nhà hoạch định chiến lược (Corporate Strategists), Nhà đầu tư và Giới nghiên cứu kinh doanh**.

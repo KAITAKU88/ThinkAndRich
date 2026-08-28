@@ -1,5 +1,6 @@
 import type { posts } from "@/db/schema";
-import type { Post } from "@/lib/types";
+import type { CreditCost, Post } from "@/lib/types";
+import { parseCreditCost } from "@/lib/credit-cost";
 
 export type PostRow = typeof posts.$inferSelect;
 
@@ -19,7 +20,7 @@ export function rowToPost(row: PostRow): Post {
     fullContent: row.fullContent,
     schematicSvg: row.schematicSvg ?? undefined,
     keyTakeaways: row.keyTakeaways ? (JSON.parse(row.keyTakeaways) as string[]) : undefined,
-    accessLevel: row.accessLevel as Post["accessLevel"],
+    creditCost: parseCreditCost(row.creditCost, 0),
     readingTimeMinutes: row.readingTimeMinutes,
     readingTemplate: row.readingTemplate ?? null,
     status: row.status as Post["status"],
@@ -35,9 +36,8 @@ export function rowToPost(row: PostRow): Post {
   };
 }
 
-export function postToInsertRow(
-  post: Post
-): typeof posts.$inferInsert {
+export function postToInsertRow(post: Post): typeof posts.$inferInsert {
+  const creditCost: CreditCost = parseCreditCost(post.creditCost, 0);
   return {
     id: post.id,
     slug: post.slug,
@@ -50,7 +50,7 @@ export function postToInsertRow(
     fullContent: post.fullContent,
     schematicSvg: post.schematicSvg ?? null,
     keyTakeaways: post.keyTakeaways ? JSON.stringify(post.keyTakeaways) : null,
-    accessLevel: post.accessLevel,
+    creditCost,
     readingTimeMinutes: post.readingTimeMinutes,
     readingTemplate: post.readingTemplate ?? null,
     status: post.status,

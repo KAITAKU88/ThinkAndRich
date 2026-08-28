@@ -10,7 +10,6 @@ import type {
 } from "@/lib/types";
 
 import { DEFAULT_SETTINGS } from "@/lib/data";
-import { quotaForTier } from "@/lib/quota";
 
 // Shape returned by the real /api/auth/* routes (src/db/schema.ts users
 // table via Drizzle) — maps it onto the SessionUser the rest of the app
@@ -20,11 +19,13 @@ interface ApiUser {
   email: string;
   name: string;
   role: string;
-  tier: string;
-  countryCode: string | null;
-  preferredLang: string | null;
-  dailyReadsDate: string | null;
-  dailyReadsCount: number;
+  countryCode?: string | null;
+  preferredLang?: string | null;
+  paidCreditBalance: number;
+  paidCreditExpiresAt: string | null;
+  giftCreditBalance: number;
+  giftGrantedThisMonth: number;
+  totalCredits: number;
 }
 
 function mapApiUser(u: ApiUser): SessionUser {
@@ -33,10 +34,13 @@ function mapApiUser(u: ApiUser): SessionUser {
     email: u.email,
     name: u.name,
     role: u.role as SessionUser["role"],
-    tier: u.tier as SessionUser["tier"],
     countryCode: u.countryCode ?? undefined,
     preferredLang: u.preferredLang ?? undefined,
-    dailyReads: u.dailyReadsDate ? { date: u.dailyReadsDate, count: u.dailyReadsCount } : undefined,
+    paidCreditBalance: u.paidCreditBalance,
+    paidCreditExpiresAt: u.paidCreditExpiresAt,
+    giftCreditBalance: u.giftCreditBalance,
+    giftGrantedThisMonth: u.giftGrantedThisMonth,
+    totalCredits: u.totalCredits,
   };
 }
 
@@ -49,10 +53,9 @@ interface SessionState {
   // login/restore — NOT the source of truth (the server is). Lets cards
   // show "is this saved/liked/read" without a fetch per card.
   bookmarks: string[];
-  userReactions: Record<string, "like" | "dislike">; // postId -> reaction
+  userReactions: Record<string, "like" | "dislike">;
   readPostIds: string[];
-  todayReadCount: number;
-  dailyLimit: number;
+  unlockedPostIds: string[];
 
   settings: AppSettings;
   authOpen: boolean;
@@ -72,8 +75,7 @@ interface SessionState {
   setAuthOpen: (open: boolean) => void;
 
   isPostRead: (postId: string) => boolean;
-  getTodayReadCount: () => number;
-  getDailyLimit: () => number;
+  isPostUnlocked: (postId: string) => boolean;
 
   // OTP Auth Flow — backed by the real /api/auth/* routes
   requestOtp: (email: string) => Promise<{ ok: boolean; message?: string }>;
@@ -87,6 +89,13 @@ interface SessionState {
 
   // Post Interactions & Metrics — real D1 writes now (src/app/api/posts/[slug]/*)
   recordPostView: (postId: string) => Promise<void>;
+  unlockPost: (slug: string) => Promise<{
+    ok: boolean;
+    message?: string;
+    reason?: string;
+    totalCredits?: number;
+    shortfall?: number;
+  }>;
   toggleReaction: (postId: string, type: "like" | "dislike") => Promise<{ ok: boolean; message?: string }>;
   toggleBookmark: (postId: string) => Promise<{ ok: boolean; message?: string }>;
 
@@ -109,8 +118,7 @@ export const useSession = create<SessionState>()(
       bookmarks: [],
       userReactions: {},
       readPostIds: [],
-      todayReadCount: 0,
-      dailyLimit: 10,
+      unlockedPostIds: [],
       settings: DEFAULT_SETTINGS,
       authOpen: false,
       hideSavedPosts: true,
@@ -151,8 +159,7 @@ export const useSession = create<SessionState>()(
       setAuthOpen: (open) => set({ authOpen: open }),
 
       isPostRead: (postId: string) => get().readPostIds.includes(postId),
-      getTodayReadCount: () => get().todayReadCount,
-      getDailyLimit: () => get().dailyLimit,
+      isPostUnlocked: (postId: string) => get().unlockedPostIds.includes(postId),
 
       requestOtp: async (email: string) => {
         const res = await fetch("/api/auth/request-otp", {
@@ -190,7 +197,7 @@ export const useSession = create<SessionState>()(
       restoreSession: async () => {
         const res = await fetch("/api/auth/me");
         if (!res.ok) {
-          set({ user: null, bookmarks: [], userReactions: {}, readPostIds: [], todayReadCount: 0, dailyLimit: 10 });
+          set({ user: null, bookmarks: [], userReactions: {}, readPostIds: [], unlockedPostIds: [] });
           return;
         }
         const data = (await res.json().catch(() => ({}))) as { ok?: boolean; user?: ApiUser };
@@ -198,33 +205,28 @@ export const useSession = create<SessionState>()(
           set({ user: mapApiUser(data.user) });
           await get().refreshUserState();
         } else {
-          set({ user: null, bookmarks: [], userReactions: {}, readPostIds: [], todayReadCount: 0, dailyLimit: 10 });
+          set({ user: null, bookmarks: [], userReactions: {}, readPostIds: [], unlockedPostIds: [] });
         }
       },
 
       logout: async () => {
         await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
-        set({ user: null, bookmarks: [], userReactions: {}, readPostIds: [], todayReadCount: 0, dailyLimit: 10 });
+        set({ user: null, bookmarks: [], userReactions: {}, readPostIds: [], unlockedPostIds: [] });
       },
 
       refreshUserState: async () => {
         const user = get().user;
         if (!user) return;
 
-        set({ dailyLimit: quotaForTier(user)?.limit ?? Infinity });
-
-        const [bookmarksRes, reactionsRes, readLogsRes] = await Promise.allSettled([
+        const [bookmarksRes, reactionsRes, readLogsRes, meRes] = await Promise.allSettled([
           fetch("/api/bookmarks").then((r) => r.json() as Promise<{ ok: boolean; posts?: { id: string }[] }>),
           fetch("/api/reactions/me").then(
             (r) => r.json() as Promise<{ ok: boolean; reactions?: Record<string, "like" | "dislike"> }>
           ),
           fetch("/api/read-logs/me").then(
-            (r) =>
-              r.json() as Promise<{
-                ok: boolean;
-                readLogs?: { postId: string; readAt: string; accessLevel?: string }[];
-              }>
+            (r) => r.json() as Promise<{ ok: boolean; readLogs?: { postId: string }[] }>
           ),
+          fetch("/api/auth/me").then((r) => r.json() as Promise<{ ok: boolean; user?: ApiUser }>),
         ]);
 
         if (bookmarksRes.status === "fulfilled" && bookmarksRes.value.ok && bookmarksRes.value.posts) {
@@ -234,26 +236,12 @@ export const useSession = create<SessionState>()(
           set({ userReactions: reactionsRes.value.reactions });
         }
         if (readLogsRes.status === "fulfilled" && readLogsRes.value.ok && readLogsRes.value.readLogs) {
-          const logs = readLogsRes.value.readLogs;
-          const today = new Date().toISOString().slice(0, 10);
-          // Only reads at the level this tier's allowance meters are counted,
-          // matching checkPostAccess exactly — otherwise the figure beside the
-          // limit disagrees with the limit actually being applied.
-          const quota = quotaForTier(user);
-          const todayPostIds = new Set(
-            logs
-              .filter(
-                (l) =>
-                  l.readAt.slice(0, 10) === today &&
-                  quota !== null &&
-                  l.accessLevel === quota.level
-              )
-              .map((l) => l.postId)
-          );
           set({
-            readPostIds: Array.from(new Set(logs.map((l) => l.postId))),
-            todayReadCount: todayPostIds.size,
+            readPostIds: Array.from(new Set(readLogsRes.value.readLogs.map((l) => l.postId))),
           });
+        }
+        if (meRes.status === "fulfilled" && meRes.value.ok && meRes.value.user) {
+          set({ user: mapApiUser(meRes.value.user) });
         }
       },
 
@@ -265,8 +253,49 @@ export const useSession = create<SessionState>()(
           set((state) => ({
             readPostIds: state.readPostIds.includes(postId) ? state.readPostIds : [...state.readPostIds, postId],
           }));
-          await get().refreshUserState();
         }
+      },
+
+      unlockPost: async (slug: string) => {
+        if (!get().user) {
+          set({ authOpen: true });
+          return { ok: false, reason: "AUTH_REQUIRED", message: "Vui lòng đăng nhập để mở khóa bài viết." };
+        }
+        const res = await fetch(`/api/posts/${slug}/unlock`, { method: "POST" });
+        const data = (await res.json().catch(() => ({}))) as {
+          ok?: boolean;
+          message?: string;
+          reason?: string;
+          totalCredits?: number;
+          giftCreditBalance?: number;
+          paidCreditBalance?: number;
+          shortfall?: number;
+          post?: { id: string };
+        };
+        if (!data.ok) {
+          return {
+            ok: false,
+            message: data.message,
+            reason: data.reason,
+            shortfall: data.shortfall,
+          };
+        }
+        set((state) => ({
+          unlockedPostIds: data.post?.id
+            ? state.unlockedPostIds.includes(data.post.id)
+              ? state.unlockedPostIds
+              : [...state.unlockedPostIds, data.post.id]
+            : state.unlockedPostIds,
+          user: state.user
+            ? {
+                ...state.user,
+                totalCredits: data.totalCredits ?? state.user.totalCredits,
+                giftCreditBalance: data.giftCreditBalance ?? state.user.giftCreditBalance,
+                paidCreditBalance: data.paidCreditBalance ?? state.user.paidCreditBalance,
+              }
+            : state.user,
+        }));
+        return { ok: true, totalCredits: data.totalCredits };
       },
 
       toggleReaction: async (postId: string, type: "like" | "dislike") => {
@@ -312,8 +341,8 @@ export const useSession = create<SessionState>()(
       },
     }),
     {
-      name: "think-and-rich-storage-v2",
-      version: 3,
+      name: "think-and-rich-storage-v4",
+      version: 4,
       // Server-render and the client's first render both need to see the
       // same (default, non-persisted) state — persist would otherwise
       // read localStorage synchronously while the client store is being
@@ -325,8 +354,7 @@ export const useSession = create<SessionState>()(
         bookmarks: state.bookmarks,
         userReactions: state.userReactions,
         readPostIds: state.readPostIds,
-        todayReadCount: state.todayReadCount,
-        dailyLimit: state.dailyLimit,
+        unlockedPostIds: state.unlockedPostIds,
         settings: state.settings,
         hideSavedPosts: state.hideSavedPosts,
       }),

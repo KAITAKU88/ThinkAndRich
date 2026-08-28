@@ -5,11 +5,8 @@ import type {
   UserRecord,
   ReadLog,
   AppSettings,
-  PricingPlan,
   PillarType,
   PillarMetadata,
-  PppPricingConfig,
-  ContentAccessLevel,
 } from "./types";
 
 export const PILLARS_CONFIG: Record<PillarType, PillarMetadata> = {
@@ -61,135 +58,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   seoDefaultTitle: "Think & Rich — Nền tảng Tri thức Học thuật & Chiến lược Chuyên sâu",
 };
 
-export const PPP_PRICING_CONFIGS: Record<string, PppPricingConfig> = {
-  VN: {
-    countryCode: "VN",
-    countryName: "Việt Nam",
-    flag: "🇻🇳",
-    currency: "VND",
-    currencySymbol: "₫",
-    gateway: "sepay",
-    pppFactorNote: "Bảng giá cơ sở ưu đãi thị trường Việt Nam (Thanh toán VietQR SePay tự động)",
-    plans: {
-      FREE: { price: 0, formatted: "0 ₫" },
-      PLUS: { price: 299000, formatted: "299.000 ₫/năm" },
-      PRO: { price: 499000, formatted: "499.000 ₫/năm" },
-    },
-  },
-  US: {
-    countryCode: "US",
-    countryName: "United States",
-    flag: "🇺🇸",
-    currency: "USD",
-    currencySymbol: "$",
-    gateway: "lemonsqueezy",
-    pppFactorNote: "US standard pricing tier (Credit Card / Apple Pay)",
-    plans: {
-      FREE: { price: 0, formatted: "$0" },
-      PLUS: { price: 49, formatted: "$49/yr" },
-      PRO: { price: 89, formatted: "$89/yr" },
-    },
-  },
-  EU: {
-    countryCode: "EU",
-    countryName: "European Union",
-    flag: "🇪🇺",
-    currency: "EUR",
-    currencySymbol: "€",
-    gateway: "lemonsqueezy",
-    pppFactorNote: "European regional PPP tier",
-    plans: {
-      FREE: { price: 0, formatted: "0 €" },
-      PLUS: { price: 39, formatted: "39 €/yr" },
-      PRO: { price: 75, formatted: "75 €/yr" },
-    },
-  },
-  JP: {
-    countryCode: "JP",
-    countryName: "Japan",
-    flag: "🇯🇵",
-    currency: "JPY",
-    currencySymbol: "¥",
-    gateway: "lemonsqueezy",
-    pppFactorNote: "Japan regional PPP tier",
-    plans: {
-      FREE: { price: 0, formatted: "0 ¥" },
-      PLUS: { price: 4980, formatted: "4.980 ¥/年" },
-      PRO: { price: 8980, formatted: "8.980 ¥/年" },
-    },
-  },
-  DEFAULT: {
-    countryCode: "DEFAULT",
-    countryName: "International",
-    flag: "🌐",
-    currency: "USD",
-    currencySymbol: "$",
-    gateway: "lemonsqueezy",
-    pppFactorNote: "Global standard international pricing",
-    plans: {
-      FREE: { price: 0, formatted: "$0" },
-      PLUS: { price: 39, formatted: "$39/yr" },
-      PRO: { price: 69, formatted: "$69/yr" },
-    },
-  },
-};
-
-export const PRICING_PLANS: PricingPlan[] = [
-  {
-    id: "FREE",
-    name: "Gói Free",
-    tagline: "Dành cho người mới bắt đầu tiếp cận các mô hình tư duy",
-    price: 0,
-    priceFormatted: "0 ₫",
-    dailyLimitText: "Đọc tối đa 10 bài viết Free / ngày",
-    features: [
-      "Đăng nhập xác thực nhanh bằng Email OTP (Passwordless)",
-      "Truy cập tối đa 10 bài viết Free mỗi ngày",
-      "Xem toàn bộ sơ đồ Vector SVG & Công thức tóm tắt",
-      "Lưu bài viết vào Tủ sách cá nhân (Bookmarks)",
-      "Không bao gồm các hồ sơ phân tích chuyên sâu Member",
-    ],
-    ctaText: "Đang sử dụng",
-  },
-  {
-    id: "PLUS",
-    name: "Gói Plus",
-    tagline: "Đọc 25 bài/ngày & Mở khóa toàn bộ bài viết Member Plus",
-    price: 299000,
-    priceFormatted: "299.000 ₫/năm",
-    dailyLimitText: "Đọc tối đa 25 bài viết / ngày",
-    badge: "Tiết kiệm",
-    psychologyNote: "Chỉ thêm 200k để nâng cấp lên gói Pro Toàn Diện",
-    features: [
-      "Mở khóa toàn bộ bài viết FREE và MEMBER_PLUS",
-      "Hạn mức đọc nâng lên 25 bài viết chuyên sâu mỗi ngày",
-      "Truy cập hồ sơ phân tích chiến lược & mô hình tư duy nâng cao",
-      "Tải sơ đồ tư duy vector độ phân giải cao",
-      "Lưu trữ không giới hạn tủ sách cá nhân",
-    ],
-    ctaText: "Nâng cấp Gói Plus (299k)",
-  },
-  {
-    id: "PRO",
-    name: "Gói Pro",
-    tagline: "Truy cập KHÔNG GIỚI HẠN toàn bộ kho tàng tri thức 3 trụ cột",
-    price: 499000,
-    priceFormatted: "499.000 ₫/năm",
-    dailyLimitText: "Đọc KHÔNG GIỚI HẠN mỗi ngày",
-    isPopular: true,
-    badge: "Khuyên dùng — Lựa chọn Tốt nhất",
-    psychologyNote: "Giá trị tri thức dài hạn cho Founders & Strategists",
-    features: [
-      "Đọc KHÔNG GIỚI HẠN toàn bộ 3 trụ cột tri thức",
-      "Mở khóa 100% hồ sơ Tear-down ý tưởng khởi nghiệp toàn cầu",
-      "Quyền truy cập các Playbook thực thi và Mô hình tài chính",
-      "Quyền truy cập sớm các nghiên cứu chuyên sâu mỗi tuần",
-      "Huy hiệu Thành viên Tinh hoa (Pro Member Badge)",
-    ],
-    ctaText: "Nâng cấp Gói Pro (499k)",
-  },
-];
-
 export const SEED_POSTS: Post[] = [
   // ----------------------------------------------------
   // TRỤ CỘT 1: MENTAL MODELS (MÔ HÌNH TƯ DUY)
@@ -234,7 +102,7 @@ export const SEED_POSTS: Post[] = [
         <li><strong>Tạo dựng giải pháp mới</strong>: Ghép nối lại từ nền móng mà không phụ thuộc quy trình cũ.</li>
       </ol>
     `,
-    accessLevel: "OPEN",
+    creditCost: 0,
     readingTimeMinutes: 6,
     status: "PUBLISHED",
     clicks: 0,
@@ -275,7 +143,7 @@ export const SEED_POSTS: Post[] = [
       <p>Charlie Munger cho rằng tránh né sai lầm ngớ ngẩn đem lại lợi thế sinh tồn lớn hơn nhiều so với việc cố trở nên thông thái:</p>
       <blockquote>"Tất cả những gì tôi muốn biết là nơi tôi sẽ chết, để tôi không bao giờ đến đó."</blockquote>
     `,
-    accessLevel: "FREE",
+    creditCost: 1,
     readingTimeMinutes: 4,
     status: "PUBLISHED",
     clicks: 0,
@@ -318,7 +186,7 @@ export const SEED_POSTS: Post[] = [
       <h2>2. Bài học từ Hiệu ứng Rắn hổ mang</h2>
       <p>Khi chính quyền thực dân Anh trả tiền thưởng cho mỗi con rắn chết nộp lên, người dân lập trang trại nuôi rắn để kiếm tiền. Khi chính sách bị bãi bỏ, hàng vạn con rắn được thả rông ra đường, biến thảm họa thành gấp bội.</p>
     `,
-    accessLevel: "MEMBER_PLUS",
+    creditCost: 3,
     readingTimeMinutes: 5,
     status: "PUBLISHED",
     clicks: 0,
@@ -358,7 +226,7 @@ export const SEED_POSTS: Post[] = [
       <h2>1. Khung toán học của Cân bằng Nash</h2>
       <p>John Nash chứng minh rằng trong bất kỳ trò chơi hữu hạn nào với thông tin hoàn hảo hoặc không hoàn hảo, luôn tồn tại ít nhất một điểm cân bằng nơi mọi người chơi đều tối ưu hóa lợi ích dựa trên kỳ vọng về đối phương.</p>
     `,
-    accessLevel: "MEMBER_PRO",
+    creditCost: 5,
     readingTimeMinutes: 7,
     status: "PUBLISHED",
     clicks: 0,
@@ -407,7 +275,7 @@ export const SEED_POSTS: Post[] = [
       <h2>2. Bản phác thảo khăn ăn của Jeff Bezos</h2>
       <p>Năm 2001, Bezos mô tả bánh đà Amazon: Trải nghiệm người dùng tốt thu hút Traffic -> Traffic thu hút người bán bên thứ 3 -> Tăng danh mục sản phẩm -> Tối ưu hóa quy mô và chi phí vận hành -> Giảm giá bán -> Cải thiện trải nghiệm người dùng!</p>
     `,
-    accessLevel: "OPEN",
+    creditCost: 0,
     readingTimeMinutes: 6,
     status: "PUBLISHED",
     clicks: 0,
@@ -446,7 +314,7 @@ export const SEED_POSTS: Post[] = [
       <h2>1. 7 Nguồn sức mạnh phòng thủ</h2>
       <p>Hamilton Helmer chỉ ra rằng 99% chiến lược tiếp thị thông thường chỉ tạo ra lợi thế ngắn hạn. Chỉ có 7 cấu trúc sức mạnh này mới bảo vệ được dòng tiền doanh nghiệp trong hàng thập kỷ.</p>
     `,
-    accessLevel: "MEMBER_PLUS",
+    creditCost: 3,
     readingTimeMinutes: 8,
     status: "PUBLISHED",
     clicks: 0,
@@ -484,7 +352,7 @@ export const SEED_POSTS: Post[] = [
       <h2>1. Phương trình toán học LTV</h2>
       <p>LTV (Customer Lifetime Value) = (ARPU × Gross Margin %) / Churn Rate. Khi tỷ lệ Churn giảm một nửa, LTV sẽ tăng gấp đôi mà không tốn thêm 1 đồng chi phí quảng cáo.</p>
     `,
-    accessLevel: "FREE",
+    creditCost: 1,
     readingTimeMinutes: 5,
     status: "PUBLISHED",
     clicks: 0,
@@ -523,7 +391,7 @@ export const SEED_POSTS: Post[] = [
       <h2>1. Nghịch lý Blitzscaling</h2>
       <p>Trong điều kiện bình thường, quản trị kinh doanh luôn hướng tới tối ưu hóa chi phí và hiệu quả. Nhưng trong thị trường có hiệu ứng mạng lưới khổng lồ, công ty đạt quy mô tới hạn trước tiên sẽ chiếm lĩnh toàn bộ giá trị.</p>
     `,
-    accessLevel: "MEMBER_PRO",
+    creditCost: 5,
     readingTimeMinutes: 7,
     status: "PUBLISHED",
     clicks: 0,
@@ -579,7 +447,7 @@ export const SEED_POSTS: Post[] = [
       <h2>3. Lộ trình Go-to-Market (GTM)</h2>
       <p>Tập trung tiếp cận các công ty công nghệ B2B chuẩn bị gọi vốn Series A/B cần hoàn tất hồ sơ Due Diligence pháp lý.</p>
     `,
-    accessLevel: "OPEN",
+    creditCost: 0,
     readingTimeMinutes: 7,
     status: "PUBLISHED",
     clicks: 0,
@@ -619,7 +487,7 @@ export const SEED_POSTS: Post[] = [
       <h2>1. Tại sao Vertical ERP là xu hướng thống trị thập kỷ mới?</h2>
       <p>Các giải pháp phần mềm tổng quát đã bão hòa. Cơ hội lớn nhất hiện nay thuộc về việc phục vụ sâu sắc một ngành nghề ngách có rào cản kỹ thuật cao.</p>
     `,
-    accessLevel: "MEMBER_PLUS",
+    creditCost: 3,
     readingTimeMinutes: 6,
     status: "PUBLISHED",
     clicks: 0,
@@ -658,7 +526,7 @@ export const SEED_POSTS: Post[] = [
       <h2>1. Bài toán hải quan xuyên biên giới</h2>
       <p>Nhà bán lẻ quốc tế mất tới 15% doanh thu vì các khoản phí ẩn và tiền phạt phân loại sai mã HS Code. Phần mềm tự động giải quyết dứt điểm vấn đề này bằng thị giác máy tính và cơ sở dữ liệu luật hải quan.</p>
     `,
-    accessLevel: "FREE",
+    creditCost: 1,
     readingTimeMinutes: 4,
     status: "PUBLISHED",
     clicks: 0,
@@ -698,7 +566,7 @@ export const SEED_POSTS: Post[] = [
       <h2>1. Thị trường sở hữu trí tuệ công nghệ cao</h2>
       <p>Hàng năm có hơn 3.5 triệu bằng sáng chế mới được nộp. Các công ty R&D lớn và quỹ DeepTech VC cần liên tục quét không gian giải pháp để bảo vệ sản phẩm trước những kẻ đầu cơ bằng sáng chế (Patent Trolls).</p>
     `,
-    accessLevel: "MEMBER_PRO",
+    creditCost: 5,
     readingTimeMinutes: 7,
     status: "PUBLISHED",
     clicks: 0,
@@ -721,7 +589,12 @@ export const SEED_USERS: UserRecord[] = [
     email: "admin@thinkandrich.com",
     name: "Admin Think & Rich",
     role: "ADMIN",
-    tier: "PRO",
+    paidCreditBalance: 0,
+    paidCreditExpiresAt: null,
+    giftCreditBalance: 5,
+    giftCreditDate: "2026-08-23",
+    giftGrantedThisMonth: 5,
+    giftMonth: "2026-08",
     countryCode: "VN",
     preferredLang: "vi",
     createdAt: "2026-08-01T00:00:00.000Z",
@@ -742,12 +615,16 @@ export const SEED_USERS: UserRecord[] = [
     email: "minhtri.founder@gmail.com",
     name: "Minh Trí",
     role: "USER",
-    tier: "FREE",
+    paidCreditBalance: 0,
+    paidCreditExpiresAt: null,
+    giftCreditBalance: 5,
+    giftCreditDate: "2026-08-23",
+    giftGrantedThisMonth: 20,
+    giftMonth: "2026-08",
     countryCode: "VN",
     preferredLang: "vi",
     createdAt: "2026-08-05T10:20:00.000Z",
     lastLoginAt: "2026-08-23T05:30:00.000Z",
-    dailyReads: { date: "2026-08-23", count: 4 },
     readPosts: [
       "first-principles-thinking",
       "inversion-principle",
@@ -822,8 +699,7 @@ const dummyPosts: Post[] = Array.from({ length: 50 }).map((_, i): Post => {
   const titleCategory = i % 3; // 0: ngắn, 1: vừa, 2: dài
   const titleBase = dummyTitles[titleCategory * 4 + (i % 4)] || dummyTitles[i % dummyTitles.length];
   const pillar: PillarType = i % 2 === 0 ? "MENTAL_MODEL" : "BUSINESS_STRATEGY";
-  const accessLevel: ContentAccessLevel =
-    i % 5 === 0 ? "OPEN" : i % 4 === 0 ? "MEMBER_PRO" : i % 3 === 0 ? "MEMBER_PLUS" : "FREE";
+  const creditCost = (i % 6) as 0 | 1 | 2 | 3 | 4 | 5;
   const rand = seededRandom(1000 + i);
 
   return {
@@ -837,7 +713,7 @@ const dummyPosts: Post[] = Array.from({ length: 50 }).map((_, i): Post => {
     keyTakeaways: ["Kiểm tra độ khít lưới", "Kiểm tra Container Queries font-size", "Kiểm tra sự đa dạng kích thước (Variety Rule)"],
     schematicSvg: "",
     fullContent: "<p>Nội dung thử nghiệm hiển thị chi tiết.</p>",
-    accessLevel,
+    creditCost,
     readingTimeMinutes: Math.floor(rand() * 10) + 1,
     status: "PUBLISHED",
     clicks: 0,

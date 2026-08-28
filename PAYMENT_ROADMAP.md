@@ -1,24 +1,26 @@
 # Thanh toán — trạng thái và việc còn lại
 
-*Cập nhật 2026-08-26. Tạm dừng ở đây để ưu tiên responsive + nội dung.*
+*Cập nhật 2026-08-26, ghi chú lại 2026-08-28 sau khi đổi mô hình định giá.*
 
-Chiến lược đã chốt: **SePay cho Việt Nam, Paddle cho quốc tế.** Một quy tắc tính giá dùng chung, hai cách thu tiền.
+Chiến lược cổng thanh toán vẫn giữ nguyên: **SePay cho Việt Nam, Paddle cho quốc tế.** Nhưng **cái được bán đã đổi** — xem `CREDIT_PRICING_MODEL.md`: không còn "nâng cấp tier" (FREE→PLUS→PRO), giờ là **mua gói credit** (3 gói bulk-discount, không có khái niệm proration giữa kỳ vì credit chỉ cộng dồn, không "nâng cấp" từ mức này sang mức khác).
 
 ---
 
-## Đã xong
+> ⚠️ **Phần dưới đây mô tả hạ tầng cho mô hình tier cũ — phần lớn đã lỗi thời.** Cơ chế thu tiền (VietQR, HMAC webhook, cấu hình admin) vẫn tái sử dụng được nguyên vẹn cho việc bán gói credit; phần **tính giá theo tier và proration thì không còn áp dụng**. Đánh dấu rõ ở từng mục bên dưới.
 
-### Nâng cấp giữa kỳ PLUS → PRO (thị trường VN)
+## Đã xong (hạ tầng thu tiền — vẫn dùng được)
 
-Chạy được trọn vòng, đã kiểm chứng end-to-end.
+### ~~Nâng cấp giữa kỳ PLUS → PRO (thị trường VN)~~ — LỖI THỜI, không còn khái niệm "nâng cấp tier"
 
-| Thành phần | Ở đâu |
-|---|---|
-| Công thức bù trừ (đường cong bậc 2) | `src/lib/upgrade-pricing.ts` |
-| Báo giá + tạo đơn | `src/app/api/upgrade/route.ts` |
-| Modal hiển thị cho khách | `src/components/upgrade/UpgradeModal.tsx` |
-| Cấp tier sau khi tiền về | `src/app/api/webhooks/billing/route.ts` |
-| Kỳ hạn gói | `users.plan_started_at` / `plan_expires_at` |
+Chạy được trọn vòng, đã kiểm chứng end-to-end **cho mô hình tier cũ**. Dưới mô hình credit, mua thêm credit chỉ là cộng dồn số dư — không có 2 mức để "bù trừ" giữa chúng, nên toàn bộ đường cong bậc 2 này **không cần port sang** mô hình mới:
+
+| Thành phần | Ở đâu | Số phận dưới mô hình credit |
+|---|---|---|
+| Công thức bù trừ (đường cong bậc 2) | `src/lib/upgrade-pricing.ts` | Xoá — không còn "nâng cấp" để tính bù trừ |
+| Báo giá + tạo đơn | `src/app/api/upgrade/route.ts` | Thay bằng route mua gói credit |
+| Modal hiển thị cho khách | `src/components/upgrade/UpgradeModal.tsx` | Thay bằng modal mua credit |
+| Cấp tier sau khi tiền về | `src/app/api/webhooks/billing/route.ts` | Đổi logic: cộng credit + đặt lại hạn 365 ngày, thay vì gán tier |
+| Kỳ hạn gói | `users.plan_started_at` / `plan_expires_at` | Đổi thành `paid_credit_balance` / `paid_credit_expires_at` |
 
 ### Cấu hình thanh toán trong admin
 
@@ -53,38 +55,23 @@ Không cần viết thêm code. Đây là việc cấu hình và nghiệm thu.
 
 **Chưa bắt đầu, có chủ đích.** Thiếu hai thứ, không có chúng thì mọi dòng code đều là phỏng đoán không kiểm chứng được.
 
-### Hai thứ chắn đường
+### Hai thứ chắn đường (nay chỉ còn 1)
 
-1. **Chưa có tài khoản Paddle / credentials sandbox.** Đây là đường tiền — viết code gọi API thanh toán chỉ dựa trên đọc tài liệu là đúng cách sinh ra loại lỗi thu sai tiền.
+1. **Chưa có tài khoản Paddle / credentials sandbox.** Đây là đường tiền — viết code gọi API thanh toán chỉ dựa trên đọc tài liệu là đúng cách sinh ra loại lỗi thu sai tiền. *(Vẫn còn chắn đường.)*
 
-2. **Chưa quyết mô hình vòng đời.** Paddle Billing xoay quanh subscription tự gia hạn; sản phẩm hiện bán gói 1 năm mua đứt.
-
-   > **Câu hỏi cần trả lời trước tiên: khách quốc tế có thành subscription tự gia hạn hàng năm không?**
-   >
-   > Câu trả lời quyết định cả schema lẫn cách webhook xử lý. Đoán sai là làm lại từ đầu.
+2. ~~Chưa quyết mô hình vòng đời.~~ **Đã tự giải quyết nhờ mô hình credit (2026-08-28).** Câu hỏi cũ "khách quốc tế có thành subscription tự gia hạn hàng năm không?" không còn ý nghĩa: mua credit luôn là **giao dịch một lần** (mua đứt N credit), không có khái niệm gia hạn subscription tự động. Paddle chỉ cần dùng ở chế độ **one-time checkout** cho từng gói credit — không cần Paddle Billing/subscription object nào cả, đơn giản hơn nhiều so với lo ngại ban đầu.
 
 ### Khi bắt đầu, làm theo thứ tự này
 
 1. Mở tài khoản Paddle + sandbox. Cần website có đủ Terms, Privacy, Pricing — repo đã có cả ba.
 2. Thêm `"paddle"` vào enum `gateway` trong `src/db/schema.ts`. Cột là `text` thường, **không ràng buộc CHECK ở DB**, nên chỉ là một dòng TypeScript.
-3. Bảng mới cho trạng thái subscription Paddle — **không đụng gì tới `users` hay luồng VN**.
-4. Nhánh webhook mới, xác thực chữ ký của Paddle.
-5. Nâng cấp: `proration_billing_mode: "do_not_bill"` + one-time charge với số tiền tự tính.
-6. Gỡ Lemon Squeezy: `src/lib/lemonsqueezy.ts`, nhánh LS trong `checkout/route.ts` và `webhooks/billing/route.ts`, 5 biến `LEMONSQUEEZY_*`.
+3. Checkout one-time cho từng gói credit (không cần bảng subscription riêng — không có gì để theo dõi vòng đời ngoài `paid_credit_balance`/`paid_credit_expires_at` đã có trên `users`).
+4. Nhánh webhook mới, xác thực chữ ký của Paddle — khi thanh toán xong: cộng credit vào `paid_credit_balance`, đặt lại `paid_credit_expires_at = now + 365 ngày`.
+5. Gỡ Lemon Squeezy: `src/lib/lemonsqueezy.ts`, nhánh LS trong `checkout/route.ts` và `webhooks/billing/route.ts`, 5 biến `LEMONSQUEEZY_*`.
 
-### ⚠️ Tuyệt đối không dùng proration sẵn có của Paddle
+### ~~⚠️ Tuyệt đối không dùng proration sẵn có của Paddle~~ — không còn áp dụng
 
-Paddle tính **tuyến tính theo thời gian**. Dùng nó là vứt bỏ đường cong bậc 2 — thứ sinh ra để chặn arbitrage nâng cấp sớm.
-
-Thiệt hại đo được ở giá VN:
-
-| Đã dùng | Paddle tuyến tính | Đường cong | Chênh |
-|---|---:|---:|---:|
-| 1 tháng | 224.575₫ | 249.239₫ | **+24.664₫** |
-| 6 tháng | 349.090₫ | 418.857₫ | **+69.767₫** |
-| 11 tháng | 473.605₫ | 494.942₫ | **+21.337₫** |
-
-Mất nhiều nhất ở giữa kỳ — đúng chỗ khách hay nâng cấp nhất.
+Toàn bộ mục này (đường cong bậc 2, bảng thiệt hại đo được ở giá VN) chỉ có ý nghĩa khi còn khái niệm "nâng cấp giữa kỳ từ PLUS lên PRO". Mô hình credit không có tier để nâng cấp — mua thêm credit chỉ là cộng dồn số dư — nên **không có gì cần proration nữa**, ở cả SePay lẫn Paddle. Giữ lại đoạn này trong lịch sử file để nhớ lý do quyết định "không dùng proration của Paddle" từng được đưa ra, dù bản thân vấn đề đã biến mất.
 
 ---
 
@@ -103,10 +90,10 @@ Mất nhiều nhất ở giữa kỳ — đúng chỗ khách hay nâng cấp nh�
 
 ## Lưu ý kỹ thuật dễ quên
 
-- **Đường cong `M(x)` phải clamp CẢ ĐẦU VÀO về [0, 12]**, không chỉ đầu ra về [0, 1]. Parabol đạt đỉnh ở x≈12,55 rồi đi xuống, âm từ x≈25,6 — chỉ clamp đầu ra thì gói PLUS giữ 2 năm được hoàn 100%.
-- **`plan_expires_at` được ghi nhưng CHƯA dùng để chặn truy cập.** Bật enforcement là tính năng riêng (gia hạn, thông báo trước hạn, hội viên hết hạn thấy gì) và bật ngay sẽ cắt quyền của mọi hội viên chưa có dấu thời gian.
-- **`orders.amount` là INTEGER đơn vị hiển thị** (49 cho $49, 299000 cho ₫299.000 — *không* phải cent, dù comment trong schema nói vậy). Mọi đồng tiền làm tròn về đơn vị nguyên; xem `CURRENCY_DECIMALS`.
-- **Tier chỉ được cấp bởi webhook**, không bao giờ lúc tạo đơn.
+- ~~Đường cong `M(x)` phải clamp CẢ ĐẦU VÀO về [0, 12]...~~ — hết áp dụng cùng với việc xoá proration (xem trên).
+- **`plan_expires_at` → `paid_credit_expires_at` sẽ kế thừa đúng cái bẫy tương tự**: phải thật sự dùng để chặn/reset số dư khi hết hạn (mô hình credit coi việc reset về 0 khi hết hạn là chủ đích, khác với tier cũ vốn ghi nhận nhưng chưa từng enforce) — xem mục 5 trong `CREDIT_PRICING_MODEL.md`.
+- **`orders.amount` là INTEGER đơn vị hiển thị** (49 cho $49, 299000 cho ₫299.000 — *không* phải cent, dù comment trong schema nói vậy). Mọi đồng tiền làm tròn về đơn vị nguyên; xem `CURRENCY_DECIMALS`. Vẫn đúng nguyên vẹn cho đơn hàng mua gói credit.
+- ~~Tier chỉ được cấp bởi webhook, không bao giờ lúc tạo đơn.~~ — đổi thành: **credit chỉ được cộng bởi webhook**, không bao giờ lúc tạo đơn (nguyên tắc giữ nguyên, chỉ đổi cái được cấp).
 
 ---
 

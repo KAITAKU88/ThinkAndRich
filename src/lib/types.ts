@@ -1,13 +1,13 @@
 export type Role = "USER" | "ADMIN";
 
-export type MembershipTier = "FREE" | "PLUS" | "PRO";
-export type SubscriptionTier = MembershipTier;
-
 export type PillarType = "MENTAL_MODEL" | "BUSINESS_STRATEGY" | "STARTUP_IDEA";
 
 export type CardDisplaySize = "SQUARE_SM" | "SQUARE_MD" | "SQUARE_LG";
 
-export type ContentAccessLevel = "OPEN" | "FREE" | "MEMBER_PLUS" | "MEMBER_PRO";
+/** Credits charged to unlock a post. 0 = Open (no login). */
+export type CreditCost = 0 | 1 | 2 | 3 | 4 | 5;
+
+export type CreditPackageId = "pack_1" | "pack_2" | "pack_3";
 
 export type PostCategory =
   | "Mô hình Tư duy"
@@ -41,14 +41,14 @@ export interface Post {
   pillar: PillarType;
   category: string;
   displaySize: CardDisplaySize;
-  
+
   academicFormula?: string;
   summarySnippet: string;
   fullContent: string;
   schematicSvg?: string;
   keyTakeaways?: string[];
 
-  accessLevel: ContentAccessLevel;
+  creditCost: CreditCost;
   readingTimeMinutes: number;
   readingTemplate?: string | null;
   status: PostStatus;
@@ -77,8 +77,6 @@ export interface Post {
   readTime?: string;
   thumbnailUrl?: string;
   videoUrl?: string;
-  isMemberOnly?: boolean;
-  isPro?: boolean;
   featured?: boolean;
 }
 
@@ -90,22 +88,26 @@ export interface Bookmark {
   post?: Post;
 }
 
-export interface UserRecord {
+export interface CreditWallet {
+  paidCreditBalance: number;
+  paidCreditExpiresAt: string | null;
+  giftCreditBalance: number;
+  giftCreditDate: string | null;
+  giftGrantedThisMonth: number;
+  giftMonth: string | null;
+}
+
+export interface UserRecord extends CreditWallet {
   id: string;
   email: string;
   name: string;
   role: Role;
-  tier: MembershipTier;
   avatar?: string;
   countryCode?: string;
   preferredLang?: string;
   createdAt: string;
   lastLoginAt: string;
-  dailyReads?: {
-    date: string; // YYYY-MM-DD
-    count: number;
-  };
-  readPosts: string[]; // List of post IDs read by this user
+  readPosts: string[];
   bookmarkedPosts?: string[];
   likedPosts: string[];
   dislikedPosts: string[];
@@ -129,13 +131,14 @@ export interface SessionUser {
   email: string;
   name: string;
   role: Role;
-  tier: MembershipTier;
   countryCode?: string;
   preferredLang?: string;
-  dailyReads?: {
-    date: string; // YYYY-MM-DD
-    count: number;
-  };
+  paidCreditBalance: number;
+  paidCreditExpiresAt: string | null;
+  giftCreditBalance: number;
+  giftGrantedThisMonth: number;
+  /** Gift + unexpired paid, after the daily grant has been applied. */
+  totalCredits: number;
 }
 
 export interface OtpSession {
@@ -150,20 +153,6 @@ export interface AppSettings {
   brandTagline: string;
   primaryColor: string;
   seoDefaultTitle: string;
-}
-
-export interface PricingPlan {
-  id: MembershipTier;
-  name: string;
-  tagline: string;
-  price: number;
-  priceFormatted: string;
-  dailyLimitText: string;
-  isPopular?: boolean;
-  badge?: string;
-  psychologyNote?: string;
-  features: string[];
-  ctaText: string;
 }
 
 export type SupportedLanguage =
@@ -192,7 +181,7 @@ export type CountryCode =
   | "CN"
   | "DEFAULT";
 
-export type PaymentGateway = "sepay" | "lemonsqueezy";
+export type PaymentGateway = "sepay" | "paddle";
 
 export type CurrencyCode =
   | "VND"
@@ -203,26 +192,29 @@ export type CurrencyCode =
   | "TWD"
   | "CNY";
 
-export interface PppPricingConfig {
+export interface PackagePrice {
+  price: number;
+  formatted: string;
+}
+
+export interface MarketPricing {
   countryCode: CountryCode;
   countryName: string;
   flag: string;
   currency: CurrencyCode;
   currencySymbol: string;
   gateway: PaymentGateway;
-  pppFactorNote: string;
-  plans: {
-    FREE: {
-      price: number;
-      formatted: string;
-    };
-    PLUS: {
-      price: number;
-      formatted: string;
-    };
-    PRO: {
-      price: number;
-      formatted: string;
-    };
-  };
+  pppMultiplier: number;
+  packages: Record<CreditPackageId, PackagePrice>;
+}
+
+export interface UsageSnapshot {
+  paidBalance: number;
+  paidExpiresAt: string | null;
+  daysRemaining: number | null;
+  giftRemainingToday: number;
+  giftGrantedThisMonth: number;
+  giftMonthlyCap: number;
+  creditsSpentThisTerm: number;
+  unlockedCount: number;
 }

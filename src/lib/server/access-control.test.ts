@@ -1,11 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
-import type { ContentAccessLevel, MembershipTier } from "@/lib/types";
 import { checkPostAccess } from "@/lib/server/access-control";
+import type { CreditCost } from "@/lib/types";
 
-// These access-level branches return before touching D1. A throwing stand-in
-// makes that contract explicit: deciding that login or a higher tier is
-// required must not depend on quota storage being available.
 const unusedDb = new Proxy(
   {},
   {
@@ -15,54 +12,32 @@ const unusedDb = new Proxy(
   }
 ) as DrizzleD1Database;
 
-function post(accessLevel: ContentAccessLevel) {
-  return { id: `post-${accessLevel.toLowerCase()}`, accessLevel };
+function post(creditCost: CreditCost) {
+  return { id: `post-${creditCost}`, creditCost };
 }
 
-function reader(tier: MembershipTier) {
-  return { id: `reader-${tier.toLowerCase()}`, role: "USER", tier };
-}
+describe("checkPostAccess", () => {
+  it("allows Open articles without login", async () => {
+    await expect(checkPostAccess(unusedDb, post(0), null)).resolves.toEqual({
+      allowed: true,
+      creditCost: 0,
+    });
+  });
 
-describe("checkPostAccess tier prompts", () => {
-  it.each(["FREE", "MEMBER_PLUS", "MEMBER_PRO"] as const)(
-    "requires login for a logged-out reader opening %s content",
-    async (accessLevel) => {
-      await expect(checkPostAccess(unusedDb, post(accessLevel), null)).resolves.toEqual({
+  it.each([1, 2, 3, 4, 5] as const)(
+    "requires login for a logged-out reader opening a %sC article",
+    async (cost) => {
+      await expect(checkPostAccess(unusedDb, post(cost), null)).resolves.toEqual({
         allowed: false,
         reason: "AUTH_REQUIRED",
+        creditCost: cost,
       });
     }
   );
 
-  it("allows OPEN content without login", async () => {
-    await expect(checkPostAccess(unusedDb, post("OPEN"), null)).resolves.toEqual({ allowed: true });
-  });
-
-  it("tells a FREE reader that a PLUS article requires PLUS", async () => {
-    await expect(checkPostAccess(unusedDb, post("MEMBER_PLUS"), reader("FREE"))).resolves.toEqual({
-      allowed: false,
-      reason: "PLUS_REQUIRED",
-      tier: "FREE",
-    });
-  });
-
-  it("tells FREE and PLUS readers that a PRO article requires PRO", async () => {
-    await expect(checkPostAccess(unusedDb, post("MEMBER_PRO"), reader("FREE"))).resolves.toEqual({
-      allowed: false,
-      reason: "PRO_REQUIRED",
-      tier: "FREE",
-    });
-    await expect(checkPostAccess(unusedDb, post("MEMBER_PRO"), reader("PLUS"))).resolves.toEqual({
-      allowed: false,
-      reason: "PRO_REQUIRED",
-      tier: "PLUS",
-    });
-  });
-
-  it("allows PRO and ADMIN readers through without a quota lookup", async () => {
-    await expect(checkPostAccess(unusedDb, post("MEMBER_PRO"), reader("PRO"))).resolves.toEqual({ allowed: true });
+  it("lets an admin through without an unlock lookup", async () => {
     await expect(
-      checkPostAccess(unusedDb, post("MEMBER_PRO"), { ...reader("FREE"), role: "ADMIN" })
-    ).resolves.toEqual({ allowed: true });
+      checkPostAccess(unusedDb, post(5), { id: "admin-1", role: "ADMIN" })
+    ).resolves.toEqual({ allowed: true, creditCost: 5 });
   });
 });

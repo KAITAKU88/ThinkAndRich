@@ -12,7 +12,7 @@ interface AdminUserRow {
   email: string;
   name: string;
   role: string;
-  tier: string;
+  paidCreditBalance: number;
   createdAt: string;
   lastLoginAt: string;
   savedCount: number;
@@ -91,12 +91,9 @@ export function UsersTable() {
                     <div className="flex items-center gap-1.5">
                       <Badge variant={u.role === "ADMIN" ? "default" : "secondary"} className="text-[10px]">{u.role}</Badge>
                       <Badge
-                        className={cn(
-                          "text-[10px] border-none",
-                          u.tier === "PRO" ? "bg-amber-500 text-white" : u.tier === "PLUS" ? "bg-blue-600 text-white" : "bg-secondary text-foreground"
-                        )}
+                        className={cn("text-[10px] border-none", "bg-secondary text-foreground")}
                       >
-                        {u.tier}
+                        {u.paidCreditBalance}C
                       </Badge>
                     </div>
                   </td>

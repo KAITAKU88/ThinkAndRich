@@ -10,7 +10,7 @@ import { READING_TEMPLATES } from "@/lib/reading-templates";
 
 const PILLAR_VALUES = ["MENTAL_MODEL", "BUSINESS_STRATEGY", "STARTUP_IDEA"] as const;
 const DISPLAY_SIZE_VALUES = ["SQUARE_SM", "SQUARE_MD", "SQUARE_LG"] as const;
-const ACCESS_LEVEL_VALUES = ["OPEN", "FREE", "MEMBER_PLUS", "MEMBER_PRO"] as const;
+const CREDIT_COST_VALUES = [0, 1, 2, 3, 4, 5] as const;
 const READING_TEMPLATE_VALUES = READING_TEMPLATES.map((t) => t.id) as [string, ...string[]];
 
 type Db = ReturnType<typeof drizzle>;
@@ -68,7 +68,7 @@ export function buildMcpServer(env: CloudflareEnv): McpServer {
     {
       title: "List pillars and categories",
       description:
-        "Reference tool — call this first. Returns the valid pillar/displaySize/accessLevel/readingTemplate enum values and the article categories already in use, so a new draft's taxonomy matches the rest of the site instead of inventing new category names.",
+        "Reference tool — call this first. Returns the valid pillar/displaySize/creditCost/readingTemplate enum values and the article categories already in use, so a new draft's taxonomy matches the rest of the site instead of inventing new category names.",
       inputSchema: z.object({}),
     },
     async () => {
@@ -77,7 +77,7 @@ export function buildMcpServer(env: CloudflareEnv): McpServer {
       return jsonResult({
         pillars: PILLAR_VALUES,
         displaySizes: DISPLAY_SIZE_VALUES,
-        accessLevels: ACCESS_LEVEL_VALUES,
+        creditCosts: CREDIT_COST_VALUES,
         readingTemplates: READING_TEMPLATE_VALUES,
         existingCategories,
       });
@@ -103,7 +103,7 @@ export function buildMcpServer(env: CloudflareEnv): McpServer {
           ),
         tags: z.array(z.string()).optional(),
         displaySize: z.enum(DISPLAY_SIZE_VALUES).optional(),
-        accessLevel: z.enum(ACCESS_LEVEL_VALUES).optional().describe("Defaults to FREE when omitted."),
+        creditCost: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).optional().describe("0 = Open (no login). 1–5 = credits to unlock. Defaults to 1 when omitted."),
         readingTimeMinutes: z.number().int().positive().optional(),
         readingTemplate: z.enum(READING_TEMPLATE_VALUES).optional().describe("Reading layout; defaults to academic."),
         author: z.string().optional(),
@@ -176,7 +176,7 @@ export function buildMcpServer(env: CloudflareEnv): McpServer {
           status: post.status,
           pillar: post.pillar,
           category: post.category,
-          accessLevel: post.accessLevel,
+          creditCost: post.creditCost,
           readingTimeMinutes: post.readingTimeMinutes,
           tags: post.tags,
           editable: post.status === "DRAFT",
@@ -228,7 +228,7 @@ export function buildMcpServer(env: CloudflareEnv): McpServer {
         category: z.string().optional(),
         pillar: z.enum(PILLAR_VALUES).optional(),
         displaySize: z.enum(DISPLAY_SIZE_VALUES).optional(),
-        accessLevel: z.enum(ACCESS_LEVEL_VALUES).optional(),
+        creditCost: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).optional(),
         readingTimeMinutes: z.number().int().positive().optional(),
         readingTemplate: z.enum(READING_TEMPLATE_VALUES).optional(),
         author: z.string().optional(),
@@ -248,7 +248,7 @@ export function buildMcpServer(env: CloudflareEnv): McpServer {
       if (patch.category !== undefined) updates.category = patch.category;
       if (patch.pillar !== undefined) updates.pillar = patch.pillar;
       if (patch.displaySize !== undefined) updates.displaySize = patch.displaySize;
-      if (patch.accessLevel !== undefined) updates.accessLevel = patch.accessLevel;
+      if (patch.creditCost !== undefined) updates.creditCost = patch.creditCost;
       if (patch.readingTimeMinutes !== undefined) updates.readingTimeMinutes = patch.readingTimeMinutes;
       if (patch.readingTemplate !== undefined) updates.readingTemplate = patch.readingTemplate;
       if (patch.author !== undefined) updates.author = patch.author;

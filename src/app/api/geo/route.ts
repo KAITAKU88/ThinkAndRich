@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getPppPricing } from "@/lib/geo-pricing";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { drizzle } from "drizzle-orm/d1";
+import { loadMarketPricing } from "@/lib/server/market-pricing";
 import type { CountryCode, SupportedLanguage } from "@/lib/types";
 
 const COUNTRY_TO_LANG_MAP: Record<CountryCode, SupportedLanguage> = {
@@ -32,7 +34,9 @@ export async function GET(request: NextRequest) {
     else countryCode = "DEFAULT";
   }
 
-  const pppConfig = getPppPricing(countryCode);
+  const { env } = getCloudflareContext();
+  const db = drizzle(env.DB);
+  const pppConfig = await loadMarketPricing(db, countryCode);
   const suggestedLang = COUNTRY_TO_LANG_MAP[countryCode] || "en";
 
   return NextResponse.json({
@@ -44,7 +48,7 @@ export async function GET(request: NextRequest) {
     currency_symbol: pppConfig.currencySymbol,
     gateway: pppConfig.gateway,
     suggested_lang: suggestedLang,
-    ppp_note: pppConfig.pppFactorNote,
-    pricing: pppConfig.plans,
+    ppp_note: `PPP x${pppConfig.pppMultiplier}`,
+    pricing: pppConfig.packages,
   });
 }

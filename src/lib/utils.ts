@@ -109,11 +109,6 @@ export function slugify(text: string): string {
     .trim();
 }
 
-// FREE = 10 reads/day, PLUS = 25, PRO/ADMIN = unlimited. Pure/sync on
-// purpose so both the client store (optimistic UI) and the server access
-// -control module (src/lib/server/access-control.ts, real enforcement)
-// import the exact same numbers instead of drifting.
-
 export function timeAgo(isoDate: string): string {
   const diff = Date.now() - new Date(isoDate).getTime();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));

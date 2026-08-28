@@ -27,6 +27,19 @@ export interface SkylineLayout {
   fillers: SpineFiller[];
 }
 
+/** Column count for the skyline bento grid — must stay in sync with ExplorePage. */
+export function readSkylineNumCols(viewportWidth = typeof window !== "undefined" ? window.innerWidth : 0): number {
+  if (viewportWidth < 640) return 4;
+  if (viewportWidth < 1024) return 8;
+  return 12;
+}
+
+export function skylineGapPx(numCols: number): number {
+  if (numCols >= 12) return 14;
+  if (numCols >= 8) return 12;
+  return 10;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Seeded PRNG — deterministic so layout never flickers on re-render
 // ─────────────────────────────────────────────────────────────────────────────

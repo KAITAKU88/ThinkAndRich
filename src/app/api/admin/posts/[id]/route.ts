@@ -63,7 +63,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const update: Record<string, unknown> = { updatedAt: now };
   const fields: (keyof Post)[] = [
     "title", "pillar", "category", "displaySize", "summarySnippet", "fullContent",
-    "accessLevel", "readingTimeMinutes", "readingTemplate", "status", "author",
+    "creditCost", "readingTimeMinutes", "readingTemplate", "status", "author",
   ];
   for (const f of fields) {
     if (body[f] !== undefined) update[f] = body[f];

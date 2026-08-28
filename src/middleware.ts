@@ -56,6 +56,39 @@ export async function middleware(request: NextRequest) {
   });
   const onAdminHost = surface === "console";
 
+  const isMaintenancePath = pathname === "/maintenance";
+  const skipMaintenance =
+    isAdminApi || isAdminPage || pathname === "/admin" || isMaintenancePath || pathname.startsWith("/api/cron") || pathname.startsWith("/api/webhooks");
+  if (!skipMaintenance) {
+    try {
+      const raw = await env.OTP_KV.get("maintenance:state");
+      if (raw) {
+        const state = JSON.parse(raw) as {
+          enabled?: boolean;
+          enabledAt?: string | null;
+          messageVi?: string | null;
+          messageEn?: string | null;
+        };
+        const enabledAt = state.enabledAt ? new Date(state.enabledAt).getTime() : 0;
+        const fresh = state.enabled && enabledAt > 0 && Date.now() - enabledAt <= 15 * 60 * 1000;
+        if (fresh) {
+          if (isApi) {
+            return NextResponse.json(
+              { ok: false, message: state.messageVi || "Hệ thống đang bảo trì. Vui lòng thử lại sau." },
+              { status: 503 }
+            );
+          }
+          const url = new URL("/maintenance", request.url);
+          if (state.messageVi) url.searchParams.set("vi", state.messageVi);
+          if (state.messageEn) url.searchParams.set("en", state.messageEn);
+          return NextResponse.rewrite(url);
+        }
+      }
+    } catch {
+      // Fail open: a KV hiccup must not take the public site down.
+    }
+  }
+
   function sendTo(targetHost: string) {
     const target = new URL(request.url);
     target.host = targetHost;

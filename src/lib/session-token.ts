@@ -7,7 +7,6 @@ export interface SessionPayload {
   sub: string; // user id
   email: string;
   role: string;
-  tier: string;
 }
 
 export async function signSession(payload: SessionPayload, secret: string): Promise<string> {
@@ -24,12 +23,11 @@ export async function verifySession(token: string, secret: string): Promise<Sess
     if (
       typeof payload.sub !== "string" ||
       typeof payload.email !== "string" ||
-      typeof payload.role !== "string" ||
-      typeof payload.tier !== "string"
+      typeof payload.role !== "string"
     ) {
       return null;
     }
-    return { sub: payload.sub, email: payload.email, role: payload.role, tier: payload.tier };
+    return { sub: payload.sub, email: payload.email, role: payload.role };
   } catch {
     return null;
   }

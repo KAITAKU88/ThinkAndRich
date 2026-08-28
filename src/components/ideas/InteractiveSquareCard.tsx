@@ -18,6 +18,9 @@ import type { Slot } from "@/lib/algorithms/skyline-packer";
 import { useSession } from "@/store/session";
 import { cn, formatViews, shareContent } from "@/lib/utils";
 import { getTranslation } from "@/lib/i18n/translations";
+import { CreditBadge } from "@/components/credits/CreditBadge";
+import { CREDIT_COST_BORDER } from "@/lib/credit-cost";
+import { parseCreditCost } from "@/lib/credit-cost";
 
 interface InteractiveSquareCardProps {
   post: Post;
@@ -60,6 +63,7 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
   // spare) or lets it run past a tiny card's actual space.
   const titleLineClamp = slotSize >= 4 ? 8 : slotSize === 3 ? 6 : 4;
 
+  const creditCost = parseCreditCost(post.creditCost, 0);
   const isNew = post.createdAt && (new Date().getTime() - new Date(post.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000);
 
   // 3D Tilt calculation: dampened on larger cards to ensure buttons never slip
@@ -185,7 +189,8 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
           borderColor: `color-mix(in oklab, ${pillarAccent} ${isHovered ? "72%" : "40%"}, var(--border))`,
         }}
         className={cn(
-          "relative flex flex-col justify-between w-full h-full p-3.5 sm:p-4.5 md:p-5 rounded-2xl md:rounded-3xl border-[1.5px] bg-card overflow-hidden",
+          "relative flex flex-col justify-between w-full h-full p-3.5 sm:p-4.5 md:p-5 rounded-2xl md:rounded-3xl border-2 bg-card overflow-hidden",
+          CREDIT_COST_BORDER[creditCost],
           "shadow-xs hover:shadow-xl",
           isHovered && "ring-1 ring-primary/20"
         )}
@@ -237,35 +242,7 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
               rendered, not hover-gated, so it's reachable on touch devices
               too, not just mouse hover. */}
           <div className="flex items-center gap-1.5 shrink-0">
-            <span
-              className={cn(
-                "text-[9px] sm:text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border shadow-xs select-none",
-                post.accessLevel === "MEMBER_PRO"
-                  ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30"
-                  : post.accessLevel === "MEMBER_PLUS"
-                  ? "bg-blue-600/15 text-blue-700 dark:text-blue-300 border-blue-500/30"
-                  : post.accessLevel === "OPEN"
-                  ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
-                  : "bg-secondary/80 text-muted-foreground border-border/70 font-medium"
-              )}
-              title={
-                post.accessLevel === "MEMBER_PRO"
-                  ? t.card.accessProTooltip
-                  : post.accessLevel === "MEMBER_PLUS"
-                  ? t.card.accessPlusTooltip
-                  : post.accessLevel === "OPEN"
-                  ? t.card.accessOpenTooltip
-                  : t.card.accessFreeTooltip
-              }
-            >
-              {post.accessLevel === "MEMBER_PRO"
-                ? "PRO"
-                : post.accessLevel === "MEMBER_PLUS"
-                ? "PLUS"
-                : post.accessLevel === "OPEN"
-                ? "OPEN"
-                : "FREE"}
-            </span>
+            <CreditBadge cost={creditCost} />
             <button
               type="button"
               onClick={handleShareClick}

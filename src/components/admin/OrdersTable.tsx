@@ -12,7 +12,7 @@ interface AdminOrderRow {
   userEmail: string;
   userName: string;
   gateway: string;
-  tier: string;
+  packageId: string;
   amount: number;
   currency: string;
   status: "PENDING" | "PAID" | "FAILED" | "CANCELED";
@@ -23,7 +23,7 @@ interface AdminOrderRow {
 interface OrderStats {
   revenueByCurrency: { currency: string; total: number; count: number }[];
   countByStatus: { status: string; count: number }[];
-  paidByTier: { tier: string; count: number }[];
+  paidByPackage: { packageId: string; count: number }[];
 }
 
 type SortKey = "createdAt" | "amount" | "status";
@@ -130,7 +130,7 @@ export function OrdersTable() {
                     <div className="text-[11px] text-muted-foreground">{o.userEmail}</div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="uppercase text-[11px] text-muted-foreground">{o.gateway}</span> · <span className="font-semibold">{o.tier}</span>
+                    <span className="uppercase text-[11px] text-muted-foreground">{o.gateway}</span> · <span className="font-semibold">{o.packageId}</span>
                   </td>
                   <td className="px-4 py-3 text-right font-mono tabular-nums">{o.amount.toLocaleString("vi-VN")} {o.currency}</td>
                   <td className="px-4 py-3">

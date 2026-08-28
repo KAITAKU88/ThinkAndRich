@@ -48,6 +48,12 @@ test.describe("Admin gate", () => {
     await expect(page.getByRole("button", { name: "Quản lý Bài viết" })).toBeVisible();
     // The admin console must not carry the public site's header/footer.
     await expect(page.getByText("Khai phóng tư duy")).toBeHidden();
+
+    const publicSiteLink = page.getByRole("link", { name: "Xem trang công khai" });
+    await expect(publicSiteLink).toHaveCount(1);
+    await expect(publicSiteLink).toHaveAttribute("href", "https://thinkandrich.ankiva.cc/");
+    await expect(publicSiteLink).toHaveAttribute("target", "_blank");
+    await expect(publicSiteLink).toHaveAttribute("rel", "noopener noreferrer");
   });
 });
 

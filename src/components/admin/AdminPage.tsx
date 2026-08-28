@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import {
   LayoutDashboard,
   BookOpen,
@@ -25,6 +24,7 @@ import { UsersTable } from "@/components/admin/UsersTable";
 import { OrdersTable } from "@/components/admin/OrdersTable";
 import { McpKeysPanel } from "@/components/admin/McpKeysPanel";
 import { PaymentSettingsPanel } from "@/components/admin/PaymentSettingsPanel";
+import { PricingRefreshPanel } from "@/components/admin/PricingRefreshPanel";
 import { cn, timeAgo } from "@/lib/utils";
 
 const SIDEBAR = [
@@ -33,12 +33,16 @@ const SIDEBAR = [
   { id: "users", label: "Quản lý Người dùng", icon: Users },
   { id: "orders", label: "Đơn hàng & Doanh thu", icon: Wallet },
   { id: "mcp", label: "MCP Connector", icon: Plug },
-  { id: "payment", label: "Cấu hình Thanh toán", icon: CreditCard },
+  { id: "payment", label: "Thanh toán & giá", icon: CreditCard },
 ] as const;
 
 type TabId = (typeof SIDEBAR)[number]["id"];
 
-export function AdminPage() {
+interface AdminPageProps {
+  publicSiteUrl: string;
+}
+
+export function AdminPage({ publicSiteUrl }: AdminPageProps) {
   const user = useSession((s) => s.user);
   const logout = useSession((s) => s.logout);
 
@@ -94,9 +98,6 @@ export function AdminPage() {
           ))}
         </nav>
         <div className="p-3 border-t border-border space-y-1">
-          <Link href="/" target="_blank" className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground">
-            <ExternalLink className="w-4 h-4" /> Xem trang thật
-          </Link>
           <button onClick={() => logout()} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground">
             <LogOut className="w-4 h-4" /> Đăng xuất
           </button>
@@ -120,19 +121,16 @@ export function AdminPage() {
           <h1 className="font-display font-bold text-lg hidden lg:block">
             {SIDEBAR.find((s) => s.id === tab)?.label}
           </h1>
-          {/* Also present at the foot of the sidebar, but styled like the
-              logout button down there and easy to miss — checking the live
-              site is frequent enough to deserve a spot in the header. */}
           <div className="ml-auto flex items-center gap-3">
-            <Link
-              href="/"
+            <a
+              href={publicSiteUrl}
               target="_blank"
-              rel="noopener"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-secondary"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[#002FA7] bg-[#002FA7] px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#001f6f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#002FA7] focus-visible:ring-offset-2"
             >
               <ExternalLink className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Xem trang công khai</span>
-            </Link>
+              <span>Xem trang công khai</span>
+            </a>
             <span className="text-xs text-muted-foreground hidden sm:inline">{user.email}</span>
           </div>
         </header>
@@ -163,7 +161,12 @@ export function AdminPage() {
           {tab === "orders" && <OrdersTable />}
           {tab === "mcp" && <McpKeysPanel />}
 
-          {tab === "payment" && <PaymentSettingsPanel />}
+          {tab === "payment" && (
+            <div className="space-y-6">
+              <PaymentSettingsPanel />
+              <PricingRefreshPanel />
+            </div>
+          )}
         </main>
       </div>
     </div>

@@ -109,6 +109,57 @@ export function McpKeysPanel() {
         </p>
       </div>
 
+      {/* Two connection methods — this app supports both a static bearer key
+          (kind: MANUAL, minted below) and full OAuth (kind: OAUTH, minted
+          automatically by /mcp/authorize when a client completes the dance).
+          Neither is "the" way to connect; which one an admin needs depends on
+          what the AI client's connector settings ask for. */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <details className="group rounded-lg border border-border bg-secondary/30 open:bg-secondary/50" open>
+          <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium flex items-center justify-between">
+            <span>Cách 1 — API Key thủ công</span>
+            <span className="text-xs text-muted-foreground group-open:hidden">Xem hướng dẫn</span>
+          </summary>
+          <ol className="px-4 pb-4 space-y-2 text-xs text-muted-foreground list-decimal list-inside">
+            <li>Đặt tên gợi nhớ ở ô bên dưới (ví dụ &quot;Claude.ai của tôi&quot;), bấm <strong>Tạo key mới</strong>.</li>
+            <li>Hệ thống hiện đúng một lần URL dạng <code className="text-[11px]">/api/mcp?key=…</code> — sao chép ngay.</li>
+            <li>
+              Trong khung thêm Custom Connector của Claude.ai / ChatGPT: dán nguyên URL đó vào ô{" "}
+              <strong>Remote MCP server URL</strong>, để trống các ô Client ID / Client Secret.
+            </li>
+            <li>Xong — client dùng thẳng key trong URL, không cần đăng nhập hay ủy quyền gì thêm.</li>
+            <li>Muốn ngắt kết nối: bấm <strong>Thu hồi</strong> ở bảng bên dưới — chặn ngay request kế tiếp.</li>
+          </ol>
+          <p className="px-4 pb-4 text-xs text-muted-foreground/80">
+            Phù hợp khi: chỉ dùng cho một client duy nhất, muốn thiết lập nhanh, không cần đăng nhập lại mỗi phiên.
+          </p>
+        </details>
+
+        <details className="group rounded-lg border border-border bg-secondary/30 open:bg-secondary/50">
+          <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium flex items-center justify-between">
+            <span>Cách 2 — OAuth (tự động)</span>
+            <span className="text-xs text-muted-foreground group-open:hidden">Xem hướng dẫn</span>
+          </summary>
+          <ol className="px-4 pb-4 space-y-2 text-xs text-muted-foreground list-decimal list-inside">
+            <li>
+              Trong khung thêm Custom Connector: dán URL gốc <code className="text-[11px]">/api/mcp</code> (không có{" "}
+              <code className="text-[11px]">?key=</code>) — để trống Client ID / Client Secret, client sẽ tự đăng ký.
+            </li>
+            <li>Client tự phát hiện endpoint OAuth của hệ thống và tự đăng ký (RFC 7591) — không cần thao tác gì.</li>
+            <li>
+              Trình duyệt mở màn hình <strong>Ủy quyền kết nối</strong>. Chưa đăng nhập Admin thì hệ thống bắt đăng
+              nhập trước, rồi quay lại đúng chỗ.
+            </li>
+            <li>Đọc kỹ quyền được cấp (chỉ bài nháp — không xuất bản, không xóa), bấm <strong>Cho phép kết nối</strong>.</li>
+            <li>Xong — kết nối này tự xuất hiện trong bảng bên dưới với nhãn <strong>OAuth</strong>, thu hồi y hệt cách 1.</li>
+          </ol>
+          <p className="px-4 pb-4 text-xs text-muted-foreground/80">
+            Phù hợp khi: client yêu cầu OAuth thay vì nhận URL/key thủ công, hoặc muốn mỗi kết nối được cấp quyền
+            riêng, không dùng chung 1 secret.
+          </p>
+        </details>
+      </div>
+
       {/* One-time reveal */}
       {freshKey && (
         <div className="rounded-lg border border-primary/40 bg-primary/5 p-4 space-y-3">
@@ -167,10 +218,11 @@ export function McpKeysPanel() {
         <p className="text-sm text-muted-foreground">Chưa có key nào. Tạo key đầu tiên ở trên.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-sm">
+          <table className="w-full min-w-[860px] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
                 <th className="py-2 pr-4 font-medium">Tên</th>
+                <th className="py-2 pr-4 font-medium">Loại</th>
                 <th className="py-2 pr-4 font-medium">Key</th>
                 <th className="py-2 pr-4 font-medium">Tạo bởi</th>
                 <th className="py-2 pr-4 font-medium">Dùng lần cuối</th>
@@ -182,6 +234,18 @@ export function McpKeysPanel() {
               {keys.map((k) => (
                 <tr key={k.id} className={cn("border-b border-border/60", k.revokedAt && "opacity-50")}>
                   <td className="py-2.5 pr-4 font-medium">{k.label}</td>
+                  <td className="py-2.5 pr-4">
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-xs",
+                        k.kind === "OAUTH"
+                          ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                          : "bg-secondary text-muted-foreground"
+                      )}
+                    >
+                      {k.kind === "OAUTH" ? "OAuth" : "API Key"}
+                    </span>
+                  </td>
                   <td className="py-2.5 pr-4 font-mono text-xs text-muted-foreground">{k.tokenPrefix}…</td>
                   <td className="py-2.5 pr-4 text-xs text-muted-foreground">{k.createdBy}</td>
                   <td className="py-2.5 pr-4 text-xs text-muted-foreground">

@@ -37,14 +37,14 @@ statements.push(
     [
       "id", "slug", "title", "pillar", "category", "display_size",
       "academic_formula", "summary_snippet", "full_content", "schematic_svg",
-      "key_takeaways", "access_level", "reading_time_minutes", "status",
+      "key_takeaways", "credit_cost", "reading_time_minutes", "status",
       "views", "likes", "dislikes", "author", "tags", "created_at", "updated_at",
     ],
     SEED_POSTS.map((p) => [
       p.id, p.slug, p.title, p.pillar, p.category, p.displaySize,
       p.academicFormula ?? null, p.summarySnippet, p.fullContent, p.schematicSvg ?? null,
       p.keyTakeaways ? JSON.stringify(p.keyTakeaways) : null,
-      p.accessLevel, p.readingTimeMinutes, p.status,
+      p.creditCost, p.readingTimeMinutes, p.status,
       p.views, p.likes, p.dislikes, p.author,
       p.tags ? JSON.stringify(p.tags) : null, p.createdAt, p.updatedAt,
     ])
@@ -55,14 +55,16 @@ statements.push(
   insert(
     "users",
     [
-      "id", "email", "name", "role", "tier", "avatar", "country_code",
-      "preferred_lang", "created_at", "last_login_at", "daily_reads_date",
-      "daily_reads_count",
+      "id", "email", "name", "role", "avatar", "country_code",
+      "preferred_lang", "created_at", "last_login_at",
+      "paid_credit_balance", "paid_credit_expires_at",
+      "gift_credit_balance", "gift_credit_date", "gift_granted_this_month", "gift_month",
     ],
     SEED_USERS.map((u) => [
-      u.id, u.email, u.name, u.role, u.tier, u.avatar ?? null,
+      u.id, u.email, u.name, u.role, u.avatar ?? null,
       u.countryCode ?? null, u.preferredLang ?? null, u.createdAt, u.lastLoginAt,
-      u.dailyReads?.date ?? null, u.dailyReads?.count ?? 0,
+      u.paidCreditBalance, u.paidCreditExpiresAt ?? null,
+      u.giftCreditBalance, u.giftCreditDate ?? null, u.giftGrantedThisMonth, u.giftMonth ?? null,
     ])
   )
 );

@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { posts } from "@/db/schema";
 import { postToInsertRow } from "@/lib/server/post-row";
 import { slugify } from "@/lib/utils";
+import { parseCreditCost } from "@/lib/credit-cost";
 import type { Post } from "@/lib/types";
 
 export interface CreatePostInput {
@@ -15,7 +16,7 @@ export interface CreatePostInput {
   fullContent?: string;
   schematicSvg?: string;
   keyTakeaways?: string[];
-  accessLevel?: Post["accessLevel"];
+  creditCost?: Post["creditCost"];
   readingTimeMinutes?: number;
   readingTemplate?: string | null;
   status?: Post["status"];
@@ -23,9 +24,6 @@ export interface CreatePostInput {
   tags?: string[];
 }
 
-// Shared by the admin Posts API (src/app/api/admin/posts/route.ts) and the
-// MCP content-authoring tools (src/lib/mcp/server.ts) — one place for the
-// slug-uniqueness loop and field defaults so the two callers can't drift.
 export async function createPost(db: ReturnType<typeof drizzle>, input: CreatePostInput): Promise<Post> {
   const now = new Date().toISOString();
   const baseSlug = slugify(input.title) || `bai-viet-${Date.now()}`;
@@ -48,11 +46,9 @@ export async function createPost(db: ReturnType<typeof drizzle>, input: CreatePo
     fullContent: input.fullContent || "<p></p>",
     schematicSvg: input.schematicSvg,
     keyTakeaways: input.keyTakeaways,
-    accessLevel: input.accessLevel || "FREE",
+    creditCost: parseCreditCost(input.creditCost, 1),
     readingTimeMinutes: input.readingTimeMinutes ?? 3,
     readingTemplate: input.readingTemplate ?? null,
-    // Always DRAFT unless the caller explicitly asked to publish — matches
-    // the admin create/edit form's own default-to-Draft behavior.
     status: input.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT",
     views: 0,
     clicks: 0,

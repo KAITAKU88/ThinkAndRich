@@ -6,6 +6,8 @@ import { users } from "@/db/schema";
 import { signSession, SESSION_COOKIE, sessionCookieOptions } from "@/lib/session-token";
 import { peekRateLimit, recordRateLimitHit, tooManyRequests } from "@/lib/server/rate-limit";
 import { otpKey } from "@/lib/server/otp";
+import { loadUserCredits } from "@/lib/server/access-control";
+import { toSessionUser } from "@/lib/server/session-user";
 
 const VERIFY_ATTEMPTS = { limit: 8, windowSeconds: 15 * 60 };
 
@@ -65,20 +67,17 @@ export async function POST(request: NextRequest) {
       email,
       name,
       role: isAllowlistedAdmin ? "ADMIN" : "USER",
-      tier: isAllowlistedAdmin ? "PRO" : "FREE",
       avatar: null,
       countryCode: null,
       preferredLang: null,
       createdAt: now,
       lastLoginAt: now,
-      dailyReadsDate: null,
-      dailyReadsCount: 0,
-      // No paid term: this account has bought nothing yet. An allowlisted
-      // admin lands here as PRO without a term too, which is right — they
-      // were granted the tier, they did not purchase a year of it, so there
-      // is nothing for an upgrade quote to credit them for.
-      planStartedAt: null,
-      planExpiresAt: null,
+      paidCreditBalance: 0,
+      paidCreditExpiresAt: null,
+      giftCreditBalance: 0,
+      giftCreditDate: null,
+      giftGrantedThisMonth: 0,
+      giftMonth: null,
     };
     await db.insert(users).values(user);
   } else if (isAllowlistedAdmin && user.role !== "ADMIN") {
@@ -86,18 +85,20 @@ export async function POST(request: NextRequest) {
     // though their account already exists as a plain reader. Only ever
     // promotes: demotion stays a deliberate action in the admin console, so a
     // mistyped allowlist cannot lock everyone out.
-    user = { ...user, role: "ADMIN", tier: "PRO" };
-    await db.update(users).set({ role: "ADMIN", tier: "PRO", lastLoginAt: now }).where(eq(users.id, user.id));
+    user = { ...user, role: "ADMIN" };
+    await db.update(users).set({ role: "ADMIN", lastLoginAt: now }).where(eq(users.id, user.id));
   } else {
     await db.update(users).set({ lastLoginAt: now }).where(eq(users.id, user.id));
   }
 
   const token = await signSession(
-    { sub: user.id, email: user.email, role: user.role, tier: user.tier },
+    { sub: user.id, email: user.email, role: user.role },
     env.JWT_SECRET
   );
 
-  const res = NextResponse.json({ ok: true, user });
+  const credits = await loadUserCredits(db, user.id);
+  const view = toSessionUser({ ...user, ...(credits ?? {}) });
+  const res = NextResponse.json({ ok: true, user: view });
   res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(env.SESSION_COOKIE_DOMAIN, request.headers.get("host")));
   return res;
 }

@@ -1,48 +1,48 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Crown, Flame, Lock, Sparkles } from "lucide-react";
+import { ArrowRight, Lock } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useSession } from "@/store/session";
-import { getTranslation } from "@/lib/i18n/translations";
-import type { MembershipTier } from "@/lib/types";
+import { CreditCoin } from "@/components/credits/CreditCoin";
+import type { AccessReason } from "@/lib/server/access-control";
+import type { CreditCost } from "@/lib/types";
 
 interface PaywallCTAProps {
-  reason?: "AUTH_REQUIRED" | "PLUS_REQUIRED" | "PRO_REQUIRED" | "DAILY_LIMIT_REACHED";
-  limit?: number;
-  currentReads?: number;
-  tier?: MembershipTier;
+  reason?: AccessReason;
+  creditCost?: CreditCost;
+  available?: number;
+  shortfall?: number;
+  slug: string;
+  onUnlocked?: () => void;
 }
 
 export function PaywallCTA({
   reason = "AUTH_REQUIRED",
-  limit = 10,
-  currentReads = 10,
-  tier,
+  creditCost = 1,
+  slug,
+  onUnlocked,
 }: PaywallCTAProps) {
   const setAuthOpen = useSession((state) => state.setAuthOpen);
-  const language = useSession((state) => state.language);
-  const t = getTranslation(language);
+  const unlockPost = useSession((state) => state.unlockPost);
+  const user = useSession((state) => state.user);
+  const totalCredits = user?.totalCredits ?? 0;
 
-  const requiredPlan = reason === "PLUS_REQUIRED" ? "PLUS" : "PRO";
-  const tierCopy =
-    requiredPlan === "PLUS"
-      ? {
-          badge: t.paywall.plusRequiredBadge,
-          title: t.paywall.plusRequiredTitle,
-          description: t.paywall.plusRequiredDesc,
-          button: t.paywall.plusUpgradeBtn,
-        }
-      : {
-          badge: t.paywall.memberRequiredBadge,
-          title: t.paywall.memberRequiredTitle,
-          description: t.paywall.memberRequiredDesc,
-          button: t.paywall.memberUpgradeBtn,
-        };
-
-  const freeLimitReached = tier === "FREE";
+  async function handleUnlock() {
+    const result = await unlockPost(slug);
+    if (result.ok) {
+      toast.success("Đã mở khóa bài viết.");
+      onUnlocked?.();
+      return;
+    }
+    if (result.reason === "INSUFFICIENT_CREDITS") {
+      toast.error(result.message || "Không đủ credit.");
+      return;
+    }
+    if (result.message) toast.error(result.message);
+  }
 
   return (
     <div className="absolute inset-x-0 bottom-0 min-h-[72%] bg-gradient-to-t from-background via-background/95 to-transparent flex items-end justify-center px-3 pb-3 pt-24 sm:pb-5">
@@ -54,64 +54,72 @@ export function PaywallCTA({
                 <Lock className="size-5" />
               </div>
               <h3 className="font-display text-lg font-bold text-foreground sm:text-xl">
-                {t.paywall.authRequiredTitle}
+                Đăng nhập để mở khóa
               </h3>
               <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                {t.paywall.authRequiredDesc}
+                Bài viết này tốn {creditCost} credit. Đăng nhập để mở khóa vĩnh viễn.
               </p>
+              <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-400/10 px-3 py-1 text-sm font-bold tabular-nums">
+                {creditCost}
+                <CreditCoin className="h-4 w-4" />
+              </div>
               <Button
                 className="mt-4 h-9 rounded-full px-5 text-sm font-semibold shadow-sm"
                 onClick={() => setAuthOpen(true)}
               >
                 <Lock className="mr-1.5 size-4" />
-                {t.paywall.authBtn}
+                Đăng nhập
               </Button>
             </>
-          ) : reason === "PLUS_REQUIRED" || reason === "PRO_REQUIRED" ? (
+          ) : reason === "INSUFFICIENT_CREDITS" ? (
             <>
-              <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                <Crown className="size-5" />
+              <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600">
+                <CreditCoin className="h-6 w-6" />
               </div>
-              <Badge className="border-none bg-amber-500/15 px-3 py-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
-                {tierCopy.badge}
-              </Badge>
-              <h3 className="mt-3 font-display text-lg font-bold text-foreground sm:text-xl">
-                {tierCopy.title}
+              <h3 className="font-display text-lg font-bold text-foreground sm:text-xl">
+                Không đủ credit
               </h3>
               <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                {tierCopy.description}
+                Cần {creditCost} credit để mở khóa. Số dư hiện tại: {totalCredits}.
               </p>
-              <Button
-                asChild
-                className="mt-4 h-9 rounded-full bg-amber-500 px-5 text-sm font-semibold text-white shadow-sm hover:bg-amber-600"
-              >
-                <Link href="/pricing#plans">
-                  {tierCopy.button}
+              <Button asChild className="mt-4 h-9 rounded-full px-5 text-sm font-semibold shadow-sm">
+                <Link href="/pricing">
+                  Mua thêm credit
                   <ArrowRight className="ml-1.5 size-4" />
                 </Link>
               </Button>
             </>
           ) : (
             <>
-              <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-2xl bg-blue-600/10 text-blue-600">
-                <Flame className="size-5" />
+              <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600">
+                <CreditCoin className="h-6 w-6" />
               </div>
-              <Badge className="border-none bg-blue-600/15 px-3 py-1 text-[11px] font-semibold text-blue-700 dark:text-blue-300">
-                {t.paywall.limitReachedBadge} ({limit})
-              </Badge>
-              <h3 className="mt-3 font-display text-lg font-bold text-foreground sm:text-xl">
-                {t.paywall.limitReachedTitle} ({currentReads}/{limit})
+              <h3 className="font-display text-lg font-bold text-foreground sm:text-xl">
+                Mở khóa bài viết
               </h3>
               <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                {freeLimitReached ? t.paywall.freeLimitReachedDesc : t.paywall.limitReachedDesc}
+                Trừ credit một lần, đọc vĩnh viễn — không bị thu hồi khi credit hết hạn.
               </p>
-              <Button asChild className="mt-4 h-9 rounded-full px-5 text-sm font-semibold shadow-sm">
-                <Link href="/pricing#plans">
-                  <Sparkles className="mr-1.5 size-4" />
-                  {freeLimitReached ? t.paywall.freeLimitUpgradeBtn : t.paywall.limitUpgradeBtn}
-                  <ArrowRight className="ml-1.5 size-4" />
-                </Link>
-              </Button>
+              <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-400/10 px-3 py-1 text-sm font-bold tabular-nums">
+                {creditCost}
+                <CreditCoin className="h-4 w-4" />
+              </div>
+              <p className="mt-2 text-[11px] text-muted-foreground">Số dư: {totalCredits}</p>
+              {totalCredits < creditCost ? (
+                <Button asChild className="mt-4 h-9 rounded-full px-5 text-sm font-semibold shadow-sm">
+                  <Link href="/pricing">
+                    Mua thêm credit
+                    <ArrowRight className="ml-1.5 size-4" />
+                  </Link>
+                </Button>
+              ) : (
+                <Button
+                  className="mt-4 h-9 rounded-full px-5 text-sm font-semibold shadow-sm"
+                  onClick={() => void handleUnlock()}
+                >
+                  Mở khóa
+                </Button>
+              )}
             </>
           )}
         </CardContent>

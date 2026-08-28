@@ -44,7 +44,7 @@ const FAQ_CONTENT: Partial<Record<SupportedLanguage, FaqContent>> = {
       {
         question: "Thanh toán bằng cách nào?",
         answer:
-          "Người dùng tại Việt Nam thanh toán qua SePay (VietQR nội địa). Người dùng ở khu vực khác thanh toán qua Lemon Squeezy (thẻ quốc tế, Apple Pay). Cổng thanh toán được định tuyến tự động theo khu vực của bạn.",
+          "Người dùng tại Việt Nam thanh toán qua SePay (VietQR nội địa). Người dùng ở khu vực khác thanh toán qua Paddle (thẻ quốc tế, Apple Pay). Cổng thanh toán được định tuyến tự động theo khu vực của bạn.",
       },
       {
         question: "\"Đọc sau\" hoạt động như thế nào?",
@@ -86,7 +86,7 @@ const FAQ_CONTENT: Partial<Record<SupportedLanguage, FaqContent>> = {
       {
         question: "How can I pay?",
         answer:
-          "Users in Vietnam pay via SePay (domestic VietQR). Users elsewhere pay via Lemon Squeezy (international cards, Apple Pay). The payment gateway is routed automatically based on your region.",
+          "Users in Vietnam pay via SePay (domestic VietQR). Users elsewhere pay via Paddle (international cards, Apple Pay). The payment gateway is routed automatically based on your region.",
       },
       {
         question: "How does \"Read Later\" work?",
@@ -128,7 +128,7 @@ const FAQ_CONTENT: Partial<Record<SupportedLanguage, FaqContent>> = {
       {
         question: "可以用什么方式支付？",
         answer:
-          "越南用户通过 SePay（境内 VietQR）支付；其他地区用户通过 Lemon Squeezy（国际信用卡、Apple Pay）支付。支付网关会根据您所在地区自动路由。",
+          "越南用户通过 SePay（境内 VietQR）支付；其他地区用户通过 Paddle（国际信用卡、Apple Pay）支付。支付网关会根据您所在地区自动路由。",
       },
       {
         question: "「稍后阅读」功能是如何运作的？",

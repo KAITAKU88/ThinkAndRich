@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Check,
@@ -27,11 +27,12 @@ import { useSession } from "@/store/session";
 import { cn } from "@/lib/utils";
 import { getTranslation } from "@/lib/i18n/translations";
 import {
-  PPP_PRICING_MAP,
   COUNTRIES_LIST,
   getPppPricing,
 } from "@/lib/geo-pricing";
-import type { CountryCode } from "@/lib/types";
+import { CREDIT_PACKAGES, getMarket } from "@/lib/credit-packages";
+import type { CountryCode, CreditPackageId, MarketPricing } from "@/lib/types";
+import { CreditCoin } from "@/components/credits/CreditCoin";
 
 
 export function PricingPage() {
@@ -42,61 +43,30 @@ export function PricingPage() {
   const setCountryCode = useSession((s) => s.setCountryCode);
 
   const [showPppTable, setShowPppTable] = useState(false);
+  const [markets, setMarkets] = useState<Record<CountryCode, MarketPricing> | null>(null);
 
   const t = getTranslation(language);
-  const currentPpp = getPppPricing(countryCode);
-  const currentTier = user?.tier || "FREE";
+  const currentPpp = markets?.[countryCode] ?? getPppPricing(countryCode);
 
-  // OPEN leads the list because it is what a visitor gets before doing
-  // anything at all — it is an access level rather than something to buy, so
-  // it carries no price suffix and sends people to the library instead of to
-  // checkout.
-  const plans = [
-    {
-      id: "OPEN" as const,
-      name: t.pricing.plans.openName,
-      tagline: t.pricing.plans.openTagline,
-      priceFormatted: currentPpp.plans.FREE.formatted,
-      dailyLimitText: t.pricing.plans.openLimit,
-      isPro: false,
-      badge: undefined,
-      features: t.pricing.plans.openFeatures,
-      ctaText: t.pricing.startFree,
-    },
-    {
-      id: "FREE" as const,
-      name: t.pricing.plans.freeName,
-      tagline: t.pricing.plans.freeTagline,
-      priceFormatted: currentPpp.plans.FREE.formatted,
-      dailyLimitText: t.pricing.plans.freeLimit,
-      isPro: false,
-      badge: undefined,
-      features: t.pricing.plans.freeFeatures,
-      ctaText: t.pricing.startFree,
-    },
-    {
-      id: "PLUS" as const,
-      name: t.pricing.plans.plusName,
-      tagline: t.pricing.plans.plusTagline,
-      priceFormatted: `${currentPpp.plans.PLUS.formatted} ${t.pricing.yearSuffix}`,
-      dailyLimitText: t.pricing.plans.plusLimit,
-      isPro: false,
-      badge: t.pricing.planBadgePlus,
-      features: t.pricing.plans.plusFeatures,
-      ctaText: t.pricing.upgradePlus,
-    },
-    {
-      id: "PRO" as const,
-      name: t.pricing.plans.proName,
-      tagline: t.pricing.plans.proTagline,
-      priceFormatted: `${currentPpp.plans.PRO.formatted} ${t.pricing.yearSuffix}`,
-      dailyLimitText: t.pricing.plans.proLimit,
-      isPro: true,
-      badge: t.pricing.planBadgePro,
-      features: t.pricing.plans.proFeatures,
-      ctaText: t.pricing.upgradePro,
-    },
-  ];
+  useEffect(() => {
+    fetch("/api/pricing")
+      .then((res) => res.json() as Promise<{ ok: boolean; markets?: Record<CountryCode, MarketPricing> }>)
+      .then((data) => {
+        if (data.ok && data.markets) setMarkets(data.markets);
+      })
+      .catch(() => {});
+  }, []);
+
+  const packages = CREDIT_PACKAGES.map((pack, i) => {
+    const price = currentPpp.packages[pack.id];
+    const perCredit = pack.credits > 0 ? price.price / pack.credits : 0;
+    return {
+      id: pack.id,
+      credits: pack.credits,
+      priceFormatted: price.formatted,
+      popular: i === 1,
+    };
+  });
 
   return (
     <div className="container mx-auto max-w-6xl px-4 py-12 md:py-16">
@@ -138,7 +108,7 @@ export function PricingPage() {
               </Badge>
             </div>
             <p className="text-muted-foreground mt-0.5">
-              {t.pricing.pppFactorPrefix} <em>{currentPpp.pppFactorNote}</em>. {t.pricing.currencyLockSuffix}
+              {t.pricing.pppFactorPrefix} x{currentPpp.pppMultiplier}. {t.pricing.currencyLockSuffix}
             </p>
           </div>
         </div>
@@ -154,7 +124,7 @@ export function PricingPage() {
 
             {COUNTRIES_LIST.map((c) => (
               <option key={c.code} value={c.code}>
-                {c.flag} {c.code} - {c.gateway === "sepay" ? "SePay (VNĐ)" : "Lemon Squeezy"}
+                {c.flag} {c.code} - {c.gateway === "sepay" ? "SePay (VNĐ)" : "Paddle"}
               </option>
             ))}
           </select>
@@ -169,110 +139,51 @@ export function PricingPage() {
         </div>
       </div>
 
-      {/* Four access levels: Open, Free, Plus, Pro */}
-      <div id="plans" className="grid scroll-mt-24 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch mb-16">
-        {plans.map((plan) => {
-          const isCurrent = user && currentTier === plan.id;
-          const isPro = plan.id === "PRO";
-
-          return (
-            <Card
-              key={plan.id}
-              className={cn(
-                "relative flex flex-col justify-between transition-all duration-300 rounded-3xl overflow-hidden",
-                isPro
-                  ? "border-2 border-primary shadow-xl bg-card scale-102 lg:scale-105 z-10"
-                  : "border-border/80 bg-card hover:border-primary/40 shadow-sm"
+      <div id="plans" className="grid scroll-mt-24 grid-cols-1 sm:grid-cols-3 gap-6 items-stretch mb-16">
+        {packages.map((pack) => (
+          <Card
+            key={pack.id}
+            className={cn(
+              "relative flex flex-col justify-between transition-all duration-300 rounded-3xl overflow-hidden",
+              pack.popular
+                ? "border-2 border-primary shadow-xl bg-card z-10"
+                : "border-border/80 bg-card hover:border-primary/40 shadow-sm"
+            )}
+          >
+            {pack.popular && (
+              <div className="absolute top-0 inset-x-0 bg-gradient-to-r from-primary via-blue-600 to-indigo-600 text-white text-[11px] font-bold py-1.5 text-center uppercase tracking-wider">
+                Chiết khấu tốt nhất theo số lượng
+              </div>
+            )}
+            <CardHeader className={cn("text-center pb-4", pack.popular && "pt-8")}>
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mx-auto mb-3 bg-amber-400/15">
+                <CreditCoin className="w-7 h-7" />
+              </div>
+              <CardTitle className="text-xl font-display font-bold tabular-nums">
+                {pack.credits.toLocaleString("vi-VN")} credit
+              </CardTitle>
+              <div className="mt-4 pt-3 border-t border-border/50">
+                <div className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">
+                  {pack.priceFormatted}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="flex-1 text-sm text-muted-foreground text-center">
+              Cộng dồn vào số dư. Hạn dùng 365 ngày kể từ lần mua gần nhất.
+            </CardContent>
+            <CardFooter className="pt-4 border-t border-border/50">
+              {!user ? (
+                <Button className="w-full rounded-full font-semibold" onClick={() => setAuthOpen(true)}>
+                  Đăng nhập để mua
+                </Button>
+              ) : (
+                <Button className="w-full rounded-full font-semibold shadow-md" size="lg" asChild>
+                  <Link href={`/checkout?package=${pack.id}`}>Mua gói này</Link>
+                </Button>
               )}
-            >
-              {/* Highlight Badge */}
-              {plan.badge && (
-                <div className="absolute top-0 inset-x-0 bg-gradient-to-r from-primary via-blue-600 to-indigo-600 text-white text-[11px] font-bold py-1.5 text-center uppercase tracking-wider">
-                  {plan.badge}
-                </div>
-              )}
-
-              <CardHeader className={cn("text-center pb-4", plan.badge && "pt-8")}>
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mx-auto mb-3 bg-muted">
-                  {plan.id === "FREE" && <Zap className="w-6 h-6 text-muted-foreground" />}
-                  {plan.id === "PLUS" && <Flame className="w-6 h-6 text-blue-600" />}
-                  {plan.id === "PRO" && <Crown className="w-6 h-6 text-amber-500" />}
-                </div>
-
-                <CardTitle className="text-xl font-display font-bold">
-                  {plan.name}
-                </CardTitle>
-                <p className="text-xs text-muted-foreground mt-1 min-h-[32px]">
-                  {plan.tagline}
-                </p>
-
-                <div className="mt-4 pt-3 border-t border-border/50">
-                  <div className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">
-                    {plan.priceFormatted}
-                  </div>
-                  <Badge variant="outline" className="mt-2 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                    {plan.dailyLimitText}
-                  </Badge>
-                </div>
-              </CardHeader>
-
-              <CardContent className="space-y-4 flex-1">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {t.pricing.featuresIncluded}
-                </p>
-                <ul className="space-y-3 text-xs sm:text-sm text-foreground/90">
-                  {plan.features.map((feature, idx) => (
-                    <li key={idx} className="flex items-start gap-2.5">
-                      <Check className={cn("w-4 h-4 mt-0.5 shrink-0", isPro ? "text-primary" : "text-emerald-500")} />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-
-              <CardFooter className="pt-4 border-t border-border/50">
-                {isCurrent ? (
-                  <Button variant="outline" disabled className="w-full rounded-full font-semibold">
-                    ✓ {t.pricing.currentPlan}
-                  </Button>
-                ) : plan.id === "OPEN" ? (
-                  <Button variant="outline" className="w-full rounded-full font-semibold" asChild>
-                    <Link href="/explore">{t.pricing.startFree} &rarr;</Link>
-                  </Button>
-                ) : plan.id === "FREE" ? (
-                  user ? (
-                    <Button variant="outline" className="w-full rounded-full" asChild>
-                      <Link href="/explore">{t.pricing.startFree} &rarr;</Link>
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      className="w-full rounded-full font-semibold"
-                      onClick={() => setAuthOpen(true)}
-                    >
-                      {t.auth.getOtpBtn}
-                    </Button>
-                  )
-                ) : (
-                  <Button
-                    className={cn(
-                      "w-full rounded-full font-semibold shadow-md",
-                      isPro
-                        ? "bg-primary hover:bg-primary/90 text-primary-foreground"
-                        : "bg-foreground hover:bg-foreground/90 text-background"
-                    )}
-                    size="lg"
-                    asChild
-                  >
-                    <Link href={`/checkout?plan=${plan.id}`}>
-                      {plan.ctaText} &rarr;
-                    </Link>
-                  </Button>
-                )}
-              </CardFooter>
-            </Card>
-          );
-        })}
+            </CardFooter>
+          </Card>
+        ))}
       </div>
 
       {/* FULL PPP COMPARISON TABLE (SECTION 4 OF PRD) */}
@@ -294,27 +205,29 @@ export function PricingPage() {
                 <tr className="border-b border-border bg-muted/50 font-semibold text-foreground">
                   <th className="p-3">{t.pricing.colMarket}</th>
                   <th className="p-3">{t.pricing.colGateway}</th>
-                  <th className="p-3">{t.pricing.colFree}</th>
-                  <th className="p-3">{t.pricing.colPlus}</th>
-                  <th className="p-3">{t.pricing.colPro}</th>
-                  <th className="p-3">{t.pricing.colNote}</th>
+                  <th className="p-3">1.500C</th>
+                  <th className="p-3">4.500C</th>
+                  <th className="p-3">10.000C</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
-                {Object.values(PPP_PRICING_MAP).map((row) => (
+                {(COUNTRIES_LIST.map((c) => c.code) as CountryCode[]).map((code) => {
+                  const row = markets?.[code] ?? getMarket(code);
+                  const prices = markets?.[code]?.packages ?? getPppPricing(code).packages;
+                  return (
                   <tr
-                    key={row.countryCode}
+                    key={code}
                     className={
-                      countryCode === row.countryCode
+                      countryCode === code
                         ? "bg-primary/10 font-medium"
                         : "hover:bg-muted/30"
                     }
                   >
-                    <td className="p-3 font-semibold flex items-center gap-1.5">
-                      <span>{row.flag}</span>
+                    <td className="p-3 font-semibold">
+                      <span>{row.flag}</span>{" "}
                       <span>{row.countryName} ({row.countryCode})</span>
-                      {countryCode === row.countryCode && (
-                        <Badge className="text-[9px] px-1 py-0 bg-primary">{t.pricing.currentRowBadge}</Badge>
+                      {countryCode === code && (
+                        <Badge className="ml-1.5 text-[9px] px-1 py-0 bg-primary">{t.pricing.currentRowBadge}</Badge>
                       )}
                     </td>
                     <td className="p-3">
@@ -329,12 +242,12 @@ export function PricingPage() {
                         {row.gateway === "sepay" ? t.pricing.gatewaySepayShort : t.pricing.gatewayLemonShort}
                       </Badge>
                     </td>
-                    <td className="p-3">{row.plans.FREE.formatted}</td>
-                    <td className="p-3 font-semibold text-foreground">{row.plans.PLUS.formatted}</td>
-                    <td className="p-3 font-bold text-primary">{row.plans.PRO.formatted}</td>
-                    <td className="p-3 text-muted-foreground italic">{row.pppFactorNote}</td>
+                    <td className="p-3">{prices.pack_1.formatted}</td>
+                    <td className="p-3 font-semibold text-foreground">{prices.pack_2.formatted}</td>
+                    <td className="p-3 font-bold text-primary">{prices.pack_3.formatted}</td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

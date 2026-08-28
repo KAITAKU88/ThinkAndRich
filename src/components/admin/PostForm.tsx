@@ -18,7 +18,7 @@ import { TagInput } from "@/components/admin/TagInput";
 import { RelatedPostPicker } from "@/components/admin/RelatedPostPicker";
 import { READING_TEMPLATES, normalizeTemplate, type ReadingTemplateId } from "@/lib/reading-templates";
 import type { AdminPost } from "@/lib/admin/use-admin-posts";
-import type { CardDisplaySize, ContentAccessLevel, Post, PillarType } from "@/lib/types";
+import type { CardDisplaySize, CreditCost, Post, PillarType } from "@/lib/types";
 
 const AVG_READING_WPM = 200;
 
@@ -43,7 +43,7 @@ export function PostForm({ editingPost, availablePosts, onCreate, onUpdate, onDo
   const [summarySnippet, setSummarySnippet] = useState(editingPost?.summarySnippet ?? "");
   const [pillar, setPillar] = useState<PillarType>(editingPost?.pillar ?? "MENTAL_MODEL");
   const [displaySize, setDisplaySize] = useState<CardDisplaySize>(editingPost?.displaySize ?? "SQUARE_SM");
-  const [accessLevel, setAccessLevel] = useState<ContentAccessLevel>(editingPost?.accessLevel ?? "FREE");
+  const [creditCost, setCreditCost] = useState<CreditCost>(editingPost?.creditCost ?? 1);
   const [status, setStatus] = useState<Post["status"]>(editingPost?.status ?? "DRAFT");
   const [previewing, setPreviewing] = useState(false);
   const [readingTemplate, setReadingTemplate] = useState<ReadingTemplateId>(
@@ -149,7 +149,7 @@ export function PostForm({ editingPost, availablePosts, onCreate, onUpdate, onDo
       summarySnippet,
       pillar,
       displaySize,
-      accessLevel,
+      creditCost,
       fullContent: editor?.getHTML() ?? "<p></p>",
       readingTimeMinutes,
       readingTemplate,
@@ -453,12 +453,14 @@ export function PostForm({ editingPost, availablePosts, onCreate, onUpdate, onDo
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs">Quyền truy cập</Label>
-              <select value={accessLevel} onChange={(e) => markDirty(setAccessLevel)(e.target.value as ContentAccessLevel)} className="w-full h-9 text-sm bg-background border border-border rounded-lg px-2">
-                <option value="OPEN">Đọc tự do (OPEN)</option>
-                <option value="FREE">Miễn phí (cần đăng nhập)</option>
-                <option value="MEMBER_PLUS">Chỉ Plus</option>
-                <option value="MEMBER_PRO">Chỉ Pro</option>
+              <Label className="text-xs">Giá credit</Label>
+              <select value={creditCost} onChange={(e) => markDirty(setCreditCost)(Number(e.target.value) as CreditCost)} className="w-full h-9 text-sm bg-background border border-border rounded-lg px-2">
+                <option value={0}>Open — đọc tự do, không cần đăng nhập</option>
+                <option value={1}>1 credit</option>
+                <option value={2}>2 credit</option>
+                <option value={3}>3 credit</option>
+                <option value={4}>4 credit</option>
+                <option value={5}>5 credit</option>
               </select>
             </div>
 

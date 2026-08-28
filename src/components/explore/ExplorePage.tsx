@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Search,
@@ -27,6 +27,8 @@ import {
   assignPostsToSkylineSlots,
   paginateSkylineRows,
   MIN_CARDS_PER_PAGE,
+  readSkylineNumCols,
+  skylineGapPx,
   type SlottedPost,
 } from "@/lib/algorithms/skyline-packer";
 import {
@@ -44,18 +46,10 @@ import { cn } from "@/lib/utils";
 import { getTranslation, type TranslationDictionary } from "@/lib/i18n/translations";
 
 type PillarFilter = "ALL" | PillarType;
-type AccessFilter = "ALL" | "OPEN" | "FREE" | "PLUS" | "PRO";
+type AccessFilter = "ALL" | "OPEN" | "PAID";
 type SortOption = "DATE_DESC" | "DATE_ASC" | "VIEWS_DESC" | "VIEWS_ASC" | "LIKES_DESC" | "LIKES_ASC";
 type ReadStatusFilter = "ALL" | "UNREAD" | "READ";
 
-// Post.accessLevel stores "MEMBER_PLUS"/"MEMBER_PRO"; the filter UI speaks
-// the shorter "PLUS"/"PRO" people actually recognize from the pricing page.
-const ACCESS_LEVEL_MAP: Record<Exclude<AccessFilter, "ALL">, Post["accessLevel"]> = {
-  OPEN: "OPEN",
-  FREE: "FREE",
-  PLUS: "MEMBER_PLUS",
-  PRO: "MEMBER_PRO",
-};
 
 // The noun in "Có N ..." tracks which trụ cột is selected, so the count
 // reads as "25 chiến lược kinh doanh" rather than a generic "25 hồ sơ" once
@@ -107,9 +101,9 @@ function pillarStyle(t: TranslationDictionary): Record<
 // from the --tier-plus / --tier-pro tokens in globals.css so the dropdown
 // and the badges never drift out of sync. FREE has no entry on purpose:
 // it stays neutral, same as the badge.
-const TIER_ACCENT_VAR: Record<"PLUS" | "PRO", string> = {
-  PLUS: "var(--tier-plus)",
-  PRO: "var(--tier-pro)",
+const CREDIT_ACCENT: Record<"OPEN" | "PAID", string> = {
+  OPEN: "var(--pillar-jade)",
+  PAID: "var(--pillar-amber)",
 };
 
 // How many topic-tag chips the "Thẻ chủ đề" filter shows at once.
@@ -126,8 +120,6 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
   const hideSavedPosts = useSession((s) => s.hideSavedPosts);
   const setHideSavedPosts = useSession((s) => s.setHideSavedPosts);
   const isPostRead = useSession((s) => s.isPostRead);
-  const getTodayReadCount = useSession((s) => s.getTodayReadCount);
-  const getDailyLimit = useSession((s) => s.getDailyLimit);
   const language = useSession((s) => s.language);
   const t = getTranslation(language);
   const PILLAR_STYLE = pillarStyle(t);
@@ -138,17 +130,15 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
   const [readStatusFilter, setReadStatusFilter] = useState<ReadStatusFilter>("ALL");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState(initialQ);
-  // SSR must agree with the narrow-screen CSS default. Starting at 12 made
-  // the server emit cards on grid lines 9-12 while CSS exposed only 4
-  // columns, so the first non-hydrated paint overflowed before the resize
-  // effect could correct it. Wider screens move to 8/12 immediately after
-  // hydration; mobile is correct from the HTML response onward.
+  // The packing algorithm and the CSS grid must agree on column count. CSS
+  // media queries used to bump --cols to 12 on desktop while this state
+  // stayed at 4 until a resize effect ran, so cards were placed for a
+  // 4-column skyline into a 12-column grid — huge gaps and broken rows.
+  // numCols is synced in useLayoutEffect before paint; the grid itself
+  // waits for that so SSR never emits slot coordinates for the wrong width.
   const [numCols, setNumCols] = useState(4);
+  const [gridReady, setGridReady] = useState(false);
   const [page, setPage] = useState(1);
-
-  const todayReadCount = user ? getTodayReadCount() : 0;
-  const dailyLimit = user ? getDailyLimit() : 10;
-  const isLimitInfinite = dailyLimit === Infinity;
 
   // A query arriving via ?q= (header search "Xem toàn bộ") should filter
   // immediately — there's no dedicated search box on this page itself.
@@ -160,17 +150,15 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
     }
   }, [searchParams]);
 
-  // Responsive column count for the bento micro-grid, by viewport breakpoint.
-  useEffect(() => {
-    function updateCols() {
-      const w = window.innerWidth;
-      if (w < 640) setNumCols(4);
-      else if (w < 1024) setNumCols(8);
-      else setNumCols(12);
+  // Responsive column count — must match --cols on the grid element (set below).
+  useLayoutEffect(() => {
+    function syncCols() {
+      setNumCols(readSkylineNumCols());
     }
-    updateCols();
-    window.addEventListener("resize", updateCols);
-    return () => window.removeEventListener("resize", updateCols);
+    syncCols();
+    setGridReady(true);
+    window.addEventListener("resize", syncCols);
+    return () => window.removeEventListener("resize", syncCols);
   }, []);
 
   // Cell size for the bento grid, measured from the grid's own actual
@@ -185,10 +173,14 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
 
     function applyCellSize() {
       if (!el) return;
-      const gap = parseFloat(getComputedStyle(el).columnGap) || 0;
+      const cols = readSkylineNumCols();
+      const gap = skylineGapPx(cols);
+      el.style.setProperty("--cols", String(cols));
+      el.style.setProperty("--gap", `${gap}px`);
+      const gapPx = parseFloat(getComputedStyle(el).columnGap) || gap;
       const width = el.clientWidth;
       if (width > 0) {
-        const cell = (width - gap * (numCols - 1)) / numCols;
+        const cell = (width - gapPx * (cols - 1)) / cols;
         el.style.setProperty("--cell", `${cell}px`);
       }
     }
@@ -197,7 +189,7 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
     const observer = new ResizeObserver(applyCellSize);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [numCols]);
+  }, [numCols, gridReady]);
 
   // 1. Pillar / access / hide-saved — what the tag cloud below is computed
   // from, so a chosen tag never dead-ends into 0 results, and what every
@@ -206,7 +198,8 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
     let list = posts.filter((p) => p.status === "PUBLISHED");
     if (hideSavedPosts && user) list = list.filter((p) => !bookmarks.includes(p.id));
     if (pillarFilter !== "ALL") list = list.filter((p) => p.pillar === pillarFilter);
-    if (accessFilter !== "ALL") list = list.filter((p) => p.accessLevel === ACCESS_LEVEL_MAP[accessFilter]);
+    if (accessFilter === "OPEN") list = list.filter((p) => p.creditCost === 0);
+    if (accessFilter === "PAID") list = list.filter((p) => p.creditCost > 0);
     return list;
   }, [posts, hideSavedPosts, user, bookmarks, pillarFilter, accessFilter]);
 
@@ -327,7 +320,7 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
     .map((f) => ({ ...f, row: f.row - rowStart }));
 
   const bentoGrid =
-    pageSlottedPosts.length > 0 ? (
+    gridReady && pageSlottedPosts.length > 0 ? (
       <div className="skyline-grid pb-4" ref={gridRef}>
         {pageSlottedPosts.map((item, idx) => (
           <InteractiveSquareCard
@@ -439,30 +432,8 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
         >
           Open
         </DropdownMenuRadioItem>
-        <DropdownMenuRadioItem value="FREE" className={cn(accessFilter === "FREE" && "bg-secondary font-semibold")}>
-          Free
-        </DropdownMenuRadioItem>
-        <DropdownMenuRadioItem
-          value="PLUS"
-          className={cn(accessFilter === "PLUS" && "font-semibold")}
-          style={
-            accessFilter === "PLUS"
-              ? { backgroundColor: "color-mix(in oklab, var(--tier-plus) 12%, var(--card))", color: "var(--tier-plus)" }
-              : undefined
-          }
-        >
-          Plus
-        </DropdownMenuRadioItem>
-        <DropdownMenuRadioItem
-          value="PRO"
-          className={cn(accessFilter === "PRO" && "font-semibold")}
-          style={
-            accessFilter === "PRO"
-              ? { backgroundColor: "color-mix(in oklab, var(--tier-pro) 12%, var(--card))", color: "var(--tier-pro)" }
-              : undefined
-          }
-        >
-          Pro
+        <DropdownMenuRadioItem value="PAID" className={cn(accessFilter === "PAID" && "bg-secondary font-semibold")}>
+          1–5 credit
         </DropdownMenuRadioItem>
       </DropdownMenuRadioGroup>
     );
@@ -583,15 +554,8 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
             </div>
             <div>
               <div className="flex items-center gap-1.5 font-semibold text-foreground">
-                <span>{t.explore.todayLabel}</span>
-                <span className="text-primary font-bold">
-                  {isLimitInfinite
-                    ? `${todayReadCount} ${t.explore.todayCountSuffix} ${t.explore.todayUnlimited}`
-                    : `${todayReadCount}/${dailyLimit} ${t.explore.todayCountSuffix}`}
-                </span>
-                {user.tier === "PRO" && (
-                  <Badge className="bg-amber-500 text-white text-[9px] px-1 py-0 border-none font-bold">PRO</Badge>
-                )}
+                <span>Credit</span>
+                <span className="text-primary font-bold">{user.totalCredits}</span>
               </div>
             </div>
           </div>
@@ -651,17 +615,17 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
                 variant="outline"
                 className="h-8 gap-2 rounded-full text-xs font-semibold shadow-sm"
                 style={
-                  accessFilter === "PLUS" || accessFilter === "PRO"
+                  accessFilter === "PAID"
                     ? {
-                        color: TIER_ACCENT_VAR[accessFilter],
-                        borderColor: `color-mix(in oklab, ${TIER_ACCENT_VAR[accessFilter]} 40%, var(--border))`,
-                        backgroundColor: `color-mix(in oklab, ${TIER_ACCENT_VAR[accessFilter]} 10%, var(--card))`,
+                        color: CREDIT_ACCENT.PAID,
+                        borderColor: `color-mix(in oklab, ${CREDIT_ACCENT.PAID} 40%, var(--border))`,
+                        backgroundColor: `color-mix(in oklab, ${CREDIT_ACCENT.PAID} 10%, var(--card))`,
                       }
                     : undefined
                 }
               >
-                {accessFilter === "ALL" ? t.explore.accessAllPlans : `${t.explore.accessPlanPrefix} ${accessFilter}`}
-                <ChevronDown className={cn("w-3 h-3", accessFilter === "ALL" || accessFilter === "FREE" ? "text-muted-foreground" : "opacity-70")} />
+                {accessFilter === "ALL" ? t.explore.accessAllPlans : accessFilter === "OPEN" ? "Open" : "1–5 credit"}
+                <ChevronDown className={cn("w-3 h-3", accessFilter === "ALL" ? "text-muted-foreground" : "opacity-70")} />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-32">
@@ -815,6 +779,8 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
           {bentoGrid}
           {paginationControls}
         </div>
+      ) : !gridReady && filteredPosts.length > 0 ? (
+        <div className="py-16 text-center text-sm text-muted-foreground">{t.explore.loadingLibrary}</div>
       ) : (
         <div className="text-center py-20 bg-card rounded-3xl border border-dashed border-border p-8 max-w-md mx-auto">
           <Brain className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />

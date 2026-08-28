@@ -11,7 +11,8 @@ import {
   Sparkles,
   CheckCircle2,
 } from "lucide-react";
-import { PILLARS_CONFIG, PRICING_PLANS } from "@/lib/data";
+import { PILLARS_CONFIG } from "@/lib/data";
+import { CREDIT_PACKAGES, SEEDED_PACKAGE_PRICES } from "@/lib/credit-packages";
 import { InteractiveSquareCard } from "@/components/ideas/InteractiveSquareCard";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/store/session";
@@ -229,8 +230,7 @@ function StatsStrip({ posts }: { posts: Post[] }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// PRICING TEASER — real plan copy from data.ts, condensed; full detail
-// stays on /pricing.
+// PRICING TEASER — three credit packages; full PPP detail stays on /pricing.
 // ─────────────────────────────────────────────────────────────────────────
 function PricingTeaserSection() {
   const language = useSession((s) => s.language);
@@ -251,39 +251,22 @@ function PricingTeaserSection() {
         </div>
 
         <div className="grid sm:grid-cols-3 gap-4 sm:gap-5">
-          {PRICING_PLANS.map((plan) => (
+          {CREDIT_PACKAGES.map((pack, i) => (
             <div
-              key={plan.id}
+              key={pack.id}
               className={cn(
                 "rounded-3xl border bg-card p-6 flex flex-col",
-                plan.isPopular ? "border-primary shadow-lg" : "border-border"
+                i === 1 ? "border-primary shadow-lg" : "border-border"
               )}
             >
-              {plan.badge && (
-                <span
-                  className={cn(
-                    "self-start text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full mb-4",
-                    plan.isPopular ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
-                  )}
-                >
-                  {plan.badge}
-                </span>
-              )}
-              <h3 className="font-display text-lg font-bold text-foreground">{plan.name}</h3>
-              <p className="text-xs text-muted-foreground mt-1 mb-4">{plan.tagline}</p>
-              <div className="font-display text-2xl font-extrabold text-foreground mb-1">
-                {plan.priceFormatted}
+              <h3 className="font-display text-lg font-bold text-foreground">
+                {pack.credits.toLocaleString("vi-VN")} credit
+              </h3>
+              <div className="font-display text-2xl font-extrabold text-foreground mt-4 mb-1">
+                {SEEDED_PACKAGE_PRICES.VN[pack.id].formatted}
               </div>
-              <p className="text-[11px] text-muted-foreground mb-5">{plan.dailyLimitText}</p>
-              <ul className="space-y-2 text-xs text-foreground/90 mb-6 flex-1">
-                {plan.features.slice(0, 3).map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-              <Button asChild variant={plan.isPopular ? "default" : "outline"} className="rounded-full font-semibold">
+              <p className="text-[11px] text-muted-foreground mb-5">Hạn 365 ngày từ lần mua gần nhất</p>
+              <Button asChild variant={i === 1 ? "default" : "outline"} className="rounded-full font-semibold mt-auto">
                 <Link href="/pricing">{t.home.viewDetailsBtn}</Link>
               </Button>
             </div>

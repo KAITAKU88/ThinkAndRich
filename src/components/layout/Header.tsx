@@ -40,6 +40,8 @@ import { cn } from "@/lib/utils";
 import type { Post } from "@/lib/types";
 import { PILLARS_CONFIG } from "@/lib/data";
 import { SUPPORTED_LANGUAGES_LIST, getTranslation } from "@/lib/i18n/translations";
+import { CreditBadge } from "@/components/credits/CreditBadge";
+import { CreditCoin } from "@/components/credits/CreditCoin";
 
 export function Header() {
   const pathname = usePathname();
@@ -264,6 +266,17 @@ export function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
 
+            {user && (
+              <Link
+                href="/profile"
+                className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-400/10 px-2.5 h-9 text-xs font-bold tabular-nums text-foreground hover:bg-amber-400/20"
+                title="Credit còn lại"
+              >
+                {user.totalCredits}
+                <CreditCoin className="h-3.5 w-3.5" />
+              </Link>
+            )}
+
             {/* Mobile chỉ giữ một điểm đăng nhập ở bottom nav để tránh lặp CTA
                 và dành khoảng trống header cho tên thương hiệu. Desktop không
                 có bottom nav nên vẫn cần nút này. */}
@@ -344,11 +357,7 @@ export function Header() {
                           <span className={cn("text-[9px] font-bold uppercase px-2 py-0.5 rounded-full border", pillarMeta?.badgeBg, pillarMeta?.badgeText)}>
                             {pillarMeta?.titleVi}
                           </span>
-                          {item.accessLevel !== "FREE" && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold">
-                              {item.accessLevel === "MEMBER_PRO" ? "PRO" : "PLUS"}
-                            </span>
-                          )}
+                          <CreditBadge cost={item.creditCost ?? 0} />
                         </div>
                         <h4 className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
                           {item.title}

@@ -49,6 +49,13 @@
 			"bucket_name": "thinkandrich-attachments"
 		}
 	],
+	// Daily due-check only (03:00 UTC). Admin interval_days decides whether
+	// that ping actually refreshes. `scripts/inject-scheduled.mjs` adds a
+	// scheduled() handler after the OpenNext build so this cron fires
+	// POST /api/cron/pricing-refresh with CRON_SECRET.
+	"triggers": {
+		"crons": ["0 3 * * *"]
+	},
 	"kv_namespaces": [
 		{
 			"binding": "OTP_KV",

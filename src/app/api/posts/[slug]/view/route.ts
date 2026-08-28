@@ -4,13 +4,7 @@ import { drizzle } from "drizzle-orm/d1";
 import { and, eq, like } from "drizzle-orm";
 import { posts, readLogs, users } from "@/db/schema";
 import { verifySession, SESSION_COOKIE } from "@/lib/session-token";
-import { quotaForTier } from "@/lib/quota";
 
-// Increments views unconditionally (even anonymous) and, when a session
-// exists, records a read_logs row + updates the daily quota counter — one
-// quota slot per distinct post per day, matching the store's old
-// getTodayReadCount semantics (re-reading the same article today must not
-// burn a second slot).
 export async function POST(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const { env } = getCloudflareContext();
@@ -39,8 +33,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const now = new Date().toISOString();
     const user = await db.select().from(users).where(eq(users.id, session.sub)).get();
 
-    if (user) {
-      const insertLog = db.insert(readLogs).values({
+    if (user && !alreadyReadToday) {
+      await db.insert(readLogs).values({
         id: crypto.randomUUID(),
         userId: session.sub,
         userEmail: session.email,
@@ -52,22 +46,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         readAt: now,
         reaction: null,
       });
-
-      // A read is charged only at the level this tier's allowance meters —
-      // src/lib/quota.ts, the same rule checkPostAccess applies. Everything
-      // else is still logged, just not counted.
-      const quota = quotaForTier(user);
-      const countsTowardQuota = quota !== null && post.accessLevel === quota.level;
-
-      if (!alreadyReadToday && countsTowardQuota) {
-        const nextCount = user.dailyReadsDate === today ? user.dailyReadsCount + 1 : 1;
-        await db.batch([
-          insertLog,
-          db.update(users).set({ dailyReadsDate: today, dailyReadsCount: nextCount }).where(eq(users.id, user.id)),
-        ]);
-      } else {
-        await insertLog;
-      }
     }
   }
 

@@ -14,7 +14,6 @@ const payload: SessionPayload = {
   sub: "user-1",
   email: "reader@example.com",
   role: "USER",
-  tier: "FREE",
 };
 
 describe("signSession / verifySession", () => {
@@ -46,12 +45,11 @@ describe("signSession / verifySession", () => {
     expect(result).toBeNull();
   });
 
-  it("preserves the exact tier/role strings passed in", async () => {
-    const admin: SessionPayload = { sub: "admin-1", email: "a@b.com", role: "ADMIN", tier: "PRO" };
+  it("preserves the exact role string passed in", async () => {
+    const admin: SessionPayload = { sub: "admin-1", email: "a@b.com", role: "ADMIN" };
     const token = await signSession(admin, SECRET);
     const result = await verifySession(token, SECRET);
     expect(result?.role).toBe("ADMIN");
-    expect(result?.tier).toBe("PRO");
   });
 });
 

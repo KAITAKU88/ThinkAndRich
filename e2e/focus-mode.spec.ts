@@ -7,9 +7,9 @@ async function firstPostId(page: Page): Promise<string | undefined> {
   const list = (Array.isArray(body) ? body : body.posts ?? body.data ?? []) as Array<{
     id?: string;
     slug?: string;
-    accessLevel?: string;
+    creditCost?: number;
   }>;
-  const openPost = list.find((post) => post.accessLevel === "OPEN");
+  const openPost = list.find((post) => post.creditCost === 0);
   return openPost?.slug ?? openPost?.id;
 }
 

@@ -25,13 +25,13 @@ import { timeAgo, cn } from "@/lib/utils";
 import type { PillarType, Post, ReadLog } from "@/lib/types";
 import { PILLARS_CONFIG } from "@/lib/data";
 import { getTranslation } from "@/lib/i18n/translations";
-import { UpgradeModal } from "@/components/upgrade/UpgradeModal";
+import { CreditCoin } from "@/components/credits/CreditCoin";
+import type { UsageSnapshot } from "@/lib/types";
 
 type ProfileTab = "saved" | "history" | "favorites" | "account";
 
 export function ProfilePage() {
   const [tab, setTab] = useState<ProfileTab>("saved");
-  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [savedPillar, setSavedPillar] = useState<"ALL" | PillarType>("ALL");
   const [favPillar, setFavPillar] = useState<"ALL" | PillarType>("ALL");
 
@@ -40,8 +40,6 @@ export function ProfilePage() {
   const userReactions = useSession((s) => s.userReactions);
   const setAuthOpen = useSession((s) => s.setAuthOpen);
   const logout = useSession((s) => s.logout);
-  const todayReads = useSession((s) => s.getTodayReadCount)();
-  const dailyLimit = useSession((s) => s.getDailyLimit)();
   const language = useSession((s) => s.language);
   const t = getTranslation(language);
 
@@ -62,6 +60,7 @@ export function ProfilePage() {
   const [allSavedPosts, setAllSavedPosts] = useState<Post[]>([]);
   const [allFavoritePosts, setAllFavoritePosts] = useState<Post[]>([]);
   const [userHistory, setUserHistory] = useState<ReadLog[]>([]);
+  const [usage, setUsage] = useState<UsageSnapshot | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -81,6 +80,12 @@ export function ProfilePage() {
       .then((res) => res.json() as Promise<{ ok: boolean; readLogs?: ReadLog[] }>)
       .then((data) => {
         if (data.ok && data.readLogs) setUserHistory(data.readLogs);
+      })
+      .catch(() => {});
+    fetch("/api/usage")
+      .then((res) => res.json() as Promise<{ ok: boolean; usage?: UsageSnapshot }>)
+      .then((data) => {
+        if (data.ok && data.usage) setUsage(data.usage);
       })
       .catch(() => {});
   }, [user, bookmarks.length, userReactions]);
@@ -121,7 +126,9 @@ export function ProfilePage() {
     );
   }
 
-  const quotaPercent = dailyLimit === Infinity ? 100 : Math.min(100, (todayReads / dailyLimit) * 100);
+  const giftCap = usage?.giftMonthlyCap ?? 30;
+  const giftGranted = usage?.giftGrantedThisMonth ?? user.giftGrantedThisMonth ?? 0;
+  const giftPercent = Math.min(100, (giftGranted / giftCap) * 100);
 
   return (
     <div className="container mx-auto max-w-7xl px-3 sm:px-4 py-6 md:py-8">
@@ -136,17 +143,9 @@ export function ProfilePage() {
               <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">
                 {user.name}
               </h1>
-              <Badge
-                className={cn(
-                  "rounded-full text-xs font-bold",
-                  user.tier === "PRO"
-                    ? "bg-amber-500 text-white border-none"
-                    : user.tier === "PLUS"
-                    ? "bg-blue-600 text-white border-none"
-                    : "bg-secondary text-foreground"
-                )}
-              >
-                {user.tier === "PRO" ? t.profile.tierProLabel : user.tier === "PLUS" ? t.profile.tierPlusLabel : t.profile.tierFreeLabel}
+              <Badge className="rounded-full text-xs font-bold bg-amber-400/15 text-foreground border-amber-400/40 gap-1">
+                {user.totalCredits}
+                <CreditCoin className="h-3 w-3" />
               </Badge>
             </div>
             <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 break-all">{user.email}</p>
@@ -440,69 +439,53 @@ export function ProfilePage() {
           <Card className="rounded-3xl p-6 border-border">
             <CardHeader className="p-0 mb-4 flex flex-row items-center justify-between">
               <CardTitle className="text-lg font-semibold">{t.profile.billingTitle}</CardTitle>
-              <Badge
-                className={cn(
-                  "rounded-full text-xs font-bold",
-                  user.tier === "PRO"
-                    ? "bg-amber-500 text-white border-none"
-                    : user.tier === "PLUS"
-                    ? "bg-blue-600 text-white border-none"
-                    : "bg-secondary text-foreground"
-                )}
-              >
-                {user.tier === "PRO" ? t.profile.tierProLabel : user.tier === "PLUS" ? t.profile.tierPlusLabel : t.profile.tierFreeLabel}
+              <Badge className="rounded-full text-xs font-bold bg-amber-400/15 text-foreground border-amber-400/40 gap-1">
+                {user.totalCredits}
+                <CreditCoin className="h-3 w-3" />
               </Badge>
             </CardHeader>
             <CardContent className="p-0 space-y-6">
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-sm">
-                  <span className="font-medium">{t.profile.readTodayLabel}</span>
+                  <span className="font-medium">Credit mua (kỳ hiện tại)</span>
+                  <span className="font-bold">{usage?.paidBalance ?? user.paidCreditBalance}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="font-medium">Credit tặng còn lại hôm nay</span>
+                  <span className="font-bold">{usage?.giftRemainingToday ?? user.giftCreditBalance}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="font-medium">Đã dùng trong kỳ 365 ngày</span>
+                  <span className="font-bold">{usage?.creditsSpentThisTerm ?? 0}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="font-medium">Ngày còn lại tới hạn credit mua</span>
                   <span className="font-bold">
-                    {dailyLimit === Infinity ? t.profile.unlimitedLabel : `${todayReads} / ${dailyLimit}`}
+                    {usage?.daysRemaining != null ? `${usage.daysRemaining} ngày` : "Chưa có kỳ hạn"}
                   </span>
                 </div>
                 <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                   <div
                     className="h-full bg-primary transition-all duration-300"
-                    style={{ width: `${quotaPercent}%` }}
+                    style={{ width: `${giftPercent}%` }}
                   />
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {user.tier === "PRO"
-                    ? t.profile.quotaProNote
-                    : user.tier === "PLUS"
-                    ? t.profile.quotaPlusNote
-                    : t.profile.quotaFreeNote}
+                  Đã cấp {giftGranted}/{giftCap} credit tặng trong tháng này.
                 </p>
               </div>
 
-              {user.tier !== "PRO" && (
-                <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex flex-col min-[420px]:flex-row min-[420px]:items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <h4 className="font-bold text-amber-600 dark:text-amber-500 text-sm">{t.profile.upgradeTitle}</h4>
-                    <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-1">
-                      {t.profile.upgradeDesc}
-                    </p>
-                  </div>
-                  {/* A PLUS member is mid-term, so the price is not the list
-                      price — it is the PRO price less what their PLUS year is
-                      still worth, which only the server can quote. A FREE
-                      reader has nothing to credit and goes to the plans. */}
-                  {user.tier === "PLUS" ? (
-                    <Button
-                      size="sm"
-                      className="rounded-full shrink-0 shadow-sm self-end min-[420px]:self-auto"
-                      onClick={() => setUpgradeOpen(true)}
-                    >
-                      {t.profile.upgradeBtn}
-                    </Button>
-                  ) : (
-                    <Button size="sm" className="rounded-full shrink-0 shadow-sm self-end min-[420px]:self-auto" asChild>
-                      <Link href="/pricing">{t.profile.upgradeBtn}</Link>
-                    </Button>
-                  )}
+              <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex flex-col min-[420px]:flex-row min-[420px]:items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h4 className="font-bold text-amber-600 dark:text-amber-500 text-sm">Mua thêm credit</h4>
+                  <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-1">
+                    Mọi lần mua cộng dồn và gia hạn 365 ngày cho toàn bộ số dư.
+                  </p>
                 </div>
-              )}
+                <Button size="sm" className="rounded-full shrink-0 shadow-sm self-end min-[420px]:self-auto" asChild>
+                  <Link href="/pricing">Mua credit</Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -553,7 +536,6 @@ export function ProfilePage() {
           </Card>
         </div>
       )}
-      <UpgradeModal open={upgradeOpen} onOpenChange={setUpgradeOpen} />
     </div>
   );
 }

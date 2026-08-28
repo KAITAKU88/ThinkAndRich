@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -36,6 +37,8 @@ import { useSession } from "@/store/session";
 import { cn, formatViews } from "@/lib/utils";
 import { PILLARS_CONFIG } from "@/lib/data";
 import { getTranslation } from "@/lib/i18n/translations";
+import { CreditBadge } from "@/components/credits/CreditBadge";
+import { parseCreditCost } from "@/lib/credit-cost";
 import type { AccessCheckResult } from "@/lib/server/access-control";
 
 export function PostDetailPage() {
@@ -262,17 +265,7 @@ export function PostDetailPage() {
                   <span>{pillarMeta.titleVi}</span>
                 </span>
 
-                {(post.accessLevel === "MEMBER_PLUS" || post.accessLevel === "MEMBER_PRO") && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                    <Lock className="w-2.5 h-2.5" /> {post.accessLevel === "MEMBER_PRO" ? t.detail.proOnlyBadge : "PLUS"}
-                  </span>
-                )}
-
-                {post.accessLevel === "OPEN" && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                    <Globe2 className="w-2.5 h-2.5" /> {t.detail.freeReadBadge}
-                  </span>
-                )}
+                <CreditBadge cost={parseCreditCost(post.creditCost, 0)} />
               </div>
 
               <Button
@@ -323,9 +316,25 @@ export function PostDetailPage() {
 
                 <PaywallCTA
                   reason={access.reason}
-                  limit={access.limit}
-                  currentReads={access.currentReads}
-                  tier={access.tier}
+                  creditCost={access.creditCost}
+                  available={access.available}
+                  shortfall={access.shortfall}
+                  slug={post.slug || post.id}
+                  onUnlocked={() => {
+                    fetch(`/api/posts/${id}`)
+                      .then((res) => res.json() as Promise<{
+                        ok: boolean;
+                        post?: Post;
+                        access?: AccessCheckResult;
+                      }>)
+                      .then((data) => {
+                        if (data.ok && data.post && data.access) {
+                          setPost(data.post);
+                          setAccess(data.access);
+                        }
+                      })
+                      .catch(() => {});
+                  }}
                 />
               </div>
             )}

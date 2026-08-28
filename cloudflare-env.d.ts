@@ -11,13 +11,8 @@ interface __BaseEnv_CloudflareEnv {
 	PUBLIC_HOST: "thinkandrich.ankiva.cc";
 	SESSION_COOKIE_DOMAIN: ".thinkandrich.ankiva.cc";
 	JWT_SECRET: string;
-	SEPAY_WEBHOOK_SECRET: string;
-	LEMONSQUEEZY_API_KEY: string;
-	LEMONSQUEEZY_STORE_ID: string;
-	LEMONSQUEEZY_VARIANT_PLUS: string;
-	LEMONSQUEEZY_VARIANT_PRO: string;
-	LEMONSQUEEZY_WEBHOOK_SECRET: string;
 	ADMIN_EMAILS: string;
+	CRON_SECRET: string;
 }
 declare namespace Cloudflare {
 	interface GlobalProps {
@@ -30,7 +25,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "ADMIN_HOST" | "PUBLIC_HOST" | "SESSION_COOKIE_DOMAIN" | "JWT_SECRET" | "SEPAY_WEBHOOK_SECRET" | "LEMONSQUEEZY_API_KEY" | "LEMONSQUEEZY_STORE_ID" | "LEMONSQUEEZY_VARIANT_PLUS" | "LEMONSQUEEZY_VARIANT_PRO" | "LEMONSQUEEZY_WEBHOOK_SECRET" | "ADMIN_EMAILS">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "ADMIN_HOST" | "PUBLIC_HOST" | "SESSION_COOKIE_DOMAIN" | "JWT_SECRET" | "ADMIN_EMAILS" | "CRON_SECRET">> {}
 }
 
 // Begin runtime types

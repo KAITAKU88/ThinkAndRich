@@ -11,6 +11,13 @@ import { useSession } from "@/store/session";
 
 export function SiteShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  // Focus mode on post pages sets pointer-events:none on chrome via a body
+  // class. If that class survives a client navigation, header buttons and
+  // dropdowns feel dead even though the new page rendered fine.
+  useEffect(() => {
+    document.body.classList.remove("focus-mode-active");
+  }, [pathname]);
+
   // The admin console (src/app/admin/**) is a separate full-width tool
   // with its own layout/sidebar/login — it must not carry the public
   // site's header, footer, bottom nav, or the anonymous-visitor auth

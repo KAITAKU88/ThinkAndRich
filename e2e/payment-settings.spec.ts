@@ -15,7 +15,7 @@ test.describe("payment settings", () => {
     // Reaching checkout needs an account, but not an admin one.
     await signInAsReader(page, `e2e-pay-${Date.now()}@example.com`);
 
-    await page.goto("/checkout?plan=PLUS&country=VN");
+    await page.goto("/checkout?package=pack_2&country=VN");
     await expect(page.getByTestId("payment-not-configured")).toBeVisible();
     // The whole point: a half-configured site must not draw a scannable code.
     await expect(page.locator('img[alt="VietQR SePay Transfer"]')).toHaveCount(0);
@@ -27,7 +27,7 @@ test.describe("payment settings", () => {
 
     // The sidebar only collapses below lg, and these run at the default
     // desktop viewport, so the tab is reachable directly.
-    await page.getByRole("button", { name: "Cấu hình Thanh toán" }).click();
+    await page.getByRole("button", { name: "Thanh toán & giá" }).click();
 
     await page.locator("#bankCode").fill("VCB");
     await page.locator("#bankName").fill("Vietcombank");
@@ -45,12 +45,50 @@ test.describe("payment settings", () => {
       payment: { bankCode: "VCB", bankAccountNumber: "1234567890" },
     });
 
-    await page.goto("/checkout?plan=PLUS&country=VN");
+    await page.goto("/checkout?package=pack_2&country=VN");
     await expect(page.getByTestId("payment-not-configured")).toHaveCount(0);
     await expect(page.locator('img[alt="VietQR SePay Transfer"]')).toHaveAttribute(
       "src",
       /img\.vietqr\.io\/image\/VCB-1234567890-compact2\.png/
     );
+  });
+
+  test("gateway secrets are never served on the public payment endpoint", async ({ page }) => {
+    await signInAsAdmin(page);
+
+    const sepaySecret = `sepay-e2e-${Date.now()}-secret`;
+    const paddleKey = "pdl_sdbx_apikey_e2etest";
+    const saved = await page.request.put("/api/admin/settings", {
+      data: {
+        payment: {
+          sepayWebhookSecret: sepaySecret,
+          paddleApiKey: paddleKey,
+          paddleWebhookSecret: "pdl_ntfset_e2e_secret",
+          paddleSandbox: true,
+          paddlePricePack1: "pri_01e2epack1testid",
+          paddlePricePack2: "pri_01e2epack2testid",
+          paddlePricePack3: "pri_01e2epack3testid",
+        },
+      },
+    });
+    expect(saved.status()).toBe(200);
+    const admin = (await saved.json()) as {
+      ok: boolean;
+      paddleConfigured?: boolean;
+      payment?: { sepayWebhookSecret?: string };
+      webhookUrls?: { sepay: string; paddle: string };
+    };
+    expect(admin.ok).toBe(true);
+    expect(admin.paddleConfigured).toBe(true);
+    expect(admin.payment?.sepayWebhookSecret).toBe(sepaySecret);
+    expect(admin.webhookUrls?.paddle).toMatch(/gateway=paddle$/);
+
+    const pub = await (await page.request.get("/api/settings/payment")).json();
+    expect(JSON.stringify(pub)).not.toContain(sepaySecret);
+    expect(JSON.stringify(pub)).not.toContain(paddleKey);
+    expect(pub.payment).not.toHaveProperty("sepayWebhookSecret");
+    expect(pub.payment).not.toHaveProperty("paddleApiKey");
+    expect(pub.payment).not.toHaveProperty("paddleWebhookSecret");
   });
 
   test("refuses details that would produce a broken transfer screen", async ({ page }) => {

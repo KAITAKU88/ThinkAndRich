@@ -19,15 +19,10 @@ JWT_SECRET=
 # `npm run test:e2e`.
 ADMIN_EMAILS=
 
-# Verifies SePay's webhook signature. Leave blank to develop without it;
-# /api/webhooks/billing rejects unsigned calls when it is set.
-SEPAY_WEBHOOK_SECRET=
+# Shared secret for POST /api/cron/pricing-refresh (daily due-check).
+CRON_SECRET=
 
-# Lemon Squeezy — international checkout. Left blank, that gateway is
-# disabled and /api/checkout returns a 503 rather than pretending to work.
-# The two variant IDs come from Members > Plus / Pro in the LS dashboard.
-LEMONSQUEEZY_API_KEY=
-LEMONSQUEEZY_STORE_ID=
-LEMONSQUEEZY_VARIANT_PLUS=
-LEMONSQUEEZY_VARIANT_PRO=
-LEMONSQUEEZY_WEBHOOK_SECRET=
+# SePay (VN) and Paddle (international) credentials are NOT Worker secrets.
+# Enter them in Admin → Cấu hình Thanh toán. They live in `app_settings` so
+# they can change without a deploy. The public `/api/settings/payment`
+# endpoint never returns the API keys or webhook secrets.
