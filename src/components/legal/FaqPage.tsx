@@ -24,7 +24,7 @@ const FAQ_CONTENT: Partial<Record<SupportedLanguage, FaqContent>> = {
   vi: {
     eyebrow: "Câu hỏi thường gặp",
     title: "Bạn cần biết điều gì?",
-    subtitle: "Những câu hỏi người đọc Think & Rich hỏi nhiều nhất — về nội dung, gói thành viên và thanh toán.",
+    subtitle: "Những câu hỏi người đọc Think & Rich hỏi nhiều nhất — về nội dung, credit và thanh toán.",
     entries: [
       {
         question: "Think & Rich là gì?",
@@ -32,14 +32,14 @@ const FAQ_CONTENT: Partial<Record<SupportedLanguage, FaqContent>> = {
           "Một nền tảng tri thức học thuật & chiến lược, tổ chức nội dung theo 3 trụ cột: Mô hình Tư duy, Chiến lược Kinh doanh và Ý tưởng Khởi nghiệp. Mỗi hồ sơ được viết như một mô hình có thể áp dụng ngay, không phải bài blog dàn trải.",
       },
       {
-        question: "Gói FREE, PLUS và PRO khác nhau ở đâu?",
+        question: "Credit dùng để làm gì? Có những gói nào?",
         answer:
-          "FREE cho đọc một số lượng hồ sơ giới hạn mỗi tháng trên cả 3 trụ cột. PLUS mở khoá phần lớn thư viện và bỏ giới hạn lượt đọc. PRO thêm các hồ sơ chuyên sâu nhất (đánh dấu PRO ONLY) cùng các phân tích công thức học thuật đầy đủ.",
+          "Bài Open đọc miễn phí. Các bài khác trừ credit khi mở khóa — bài đã mở thì xem lại không mất thêm. Ba gói mua: 1.500, 4.500 và 10.000 credit; mỗi lần mua cộng dồn vào số dư và gia hạn 365 ngày cho toàn bộ số dư. Tài khoản đăng nhập còn được 5 credit tặng mỗi ngày (trần 30/tháng).",
       },
       {
         question: "Vì sao giá hiển thị khác nhau tuỳ khu vực?",
         answer:
-          "Bảng giá áp dụng PPP (Purchasing Power Parity) theo quốc gia phát hiện qua IP, để mức giá phù hợp với sức mua từng thị trường thay vì một mức giá USD cố định cho tất cả.",
+          "Giá theo khu vực của bạn. Việt Nam thanh toán bằng VNĐ qua SePay; khu vực khác thanh toán bằng tiền tệ địa phương qua Paddle.",
       },
       {
         question: "Thanh toán bằng cách nào?",
@@ -66,7 +66,7 @@ const FAQ_CONTENT: Partial<Record<SupportedLanguage, FaqContent>> = {
   en: {
     eyebrow: "Frequently Asked Questions",
     title: "What do you need to know?",
-    subtitle: "The questions Think & Rich readers ask most — about content, membership plans, and payments.",
+    subtitle: "The questions Think & Rich readers ask most — about content, credits, and payments.",
     entries: [
       {
         question: "What is Think & Rich?",
@@ -74,14 +74,14 @@ const FAQ_CONTENT: Partial<Record<SupportedLanguage, FaqContent>> = {
           "An academic and strategy knowledge platform organized around 3 pillars: Mental Models, Business Strategy, and Startup Ideas. Every model is written as something you can apply immediately, not a sprawling blog post.",
       },
       {
-        question: "What's the difference between FREE, PLUS, and PRO?",
+        question: "How do credits work? What packages are there?",
         answer:
-          "FREE gives you a limited number of models per month across all 3 pillars. PLUS unlocks most of the library and removes the daily reading limit. PRO adds the deepest models (marked PRO ONLY) plus full academic formula breakdowns.",
+          "Open articles are free to read. Other articles cost credits to unlock — once unlocked, you can reread them at no extra cost. Three purchase packs: 1,500, 4,500, and 10,000 credits; each purchase adds to your balance and resets the 365-day expiry for the whole balance. Signed-in accounts also receive 5 gift credits per day (capped at 30 per month).",
       },
       {
         question: "Why does the price shown differ by region?",
         answer:
-          "Pricing uses PPP (Purchasing Power Parity) based on the country detected from your IP, so the price matches each market's purchasing power instead of one fixed USD price for everyone.",
+          "Prices match your region. Vietnam pays in VND via SePay; other regions pay in local currency via Paddle.",
       },
       {
         question: "How can I pay?",
@@ -108,7 +108,7 @@ const FAQ_CONTENT: Partial<Record<SupportedLanguage, FaqContent>> = {
   zh: {
     eyebrow: "常见问题",
     title: "您需要了解什么？",
-    subtitle: "Think & Rich 读者最常问的问题 —— 关于内容、会员方案与支付。",
+    subtitle: "Think & Rich 读者最常问的问题 —— 关于内容、点数与支付。",
     entries: [
       {
         question: "Think & Rich 是什么？",
@@ -116,14 +116,14 @@ const FAQ_CONTENT: Partial<Record<SupportedLanguage, FaqContent>> = {
           "一个学术与战略知识平台，内容按 3 大支柱组织：思维模型、商业战略与创业构想。每份模型都以可立即应用的形式撰写，而不是冗长的博客文章。",
       },
       {
-        question: "FREE、PLUS 和 PRO 方案有什么区别？",
+        question: "点数怎么用？有哪些套餐？",
         answer:
-          "FREE 每月可在 3 大支柱中阅读有限数量的模型。PLUS 解锁绝大部分内容库并取消每日阅读限制。PRO 额外解锁最深度的模型（标记为仅限 PRO），并提供完整的学术公式解析。",
+          "Open 文章可免费阅读。其他文章解锁时扣除点数 —— 解锁后可随时重读，不再扣费。三种购买套餐：1,500、4,500 与 10,000 点数；每次购买累加余额，并将全部余额的有效期重置为 365 天。登录账户每天还可获赠 5 点（每月上限 30）。",
       },
       {
         question: "为什么不同地区显示的价格不同？",
         answer:
-          "定价采用按 IP 识别国家的购买力平价 (PPP) 机制，使价格与各市场的实际购买力相符，而不是对所有人统一收取固定美元价格。",
+          "价格按您所在地区显示。越南用户通过 SePay 以越南盾支付；其他地区通过 Paddle 以当地货币支付。",
       },
       {
         question: "可以用什么方式支付？",

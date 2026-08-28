@@ -13,8 +13,6 @@ import {
   Compass,
   Lightbulb,
   Heart,
-  MonitorSmartphone,
-  Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -99,12 +97,6 @@ export function ProfilePage() {
     if (favPillar === "ALL") return allFavoritePosts;
     return allFavoritePosts.filter((p) => p.pillar === favPillar);
   }, [allFavoritePosts, favPillar]);
-
-  // MOCK DEVICES
-  const devices = [
-    { id: 1, name: "Chrome trên Windows", isCurrent: true, lastActive: "Đang hoạt động" },
-    { id: 2, name: "Safari trên iPhone 15", isCurrent: false, lastActive: "2 giờ trước" }
-  ];
 
   if (!user) {
     return (
@@ -486,52 +478,6 @@ export function ProfilePage() {
                   <Link href="/pricing">Mua credit</Link>
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Thiết bị truy cập */}
-          <Card className="rounded-3xl p-6 border-border lg:col-span-2">
-            <CardHeader className="p-0 mb-4 flex flex-row items-center justify-between">
-              <CardTitle className="text-lg font-semibold">{t.profile.devicesTitle}</CardTitle>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-secondary px-2.5 py-1 rounded-full">
-                <MonitorSmartphone className="w-3.5 h-3.5" />
-                <span>{devices.length} / 3 {t.profile.devicesMaxSuffix}</span>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="border border-border rounded-2xl divide-y divide-border overflow-hidden">
-                {devices.map((device) => (
-                  <div key={device.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-4 bg-card hover:bg-secondary/20 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                        <MonitorSmartphone className="w-5 h-5 text-muted-foreground" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-sm text-foreground flex items-center gap-2">
-                          {device.name}
-                          {device.isCurrent && (
-                            <Badge variant="outline" className="text-[9px] h-4 bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
-                              {t.profile.currentBadge}
-                            </Badge>
-                          )}
-                        </p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                          <Clock className="w-3 h-3" /> {t.profile.lastActiveLabel} {device.lastActive}
-                        </p>
-                      </div>
-                    </div>
-                    {!device.isCurrent && (
-                      <Button variant="outline" size="sm" className="rounded-full text-xs">
-                        {t.profile.logoutDeviceBtn}
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground mt-4 flex items-start gap-1.5">
-                <Info className="w-4 h-4 shrink-0 text-amber-500" />
-                {t.profile.deviceLimitNote}
-              </p>
             </CardContent>
           </Card>
         </div>

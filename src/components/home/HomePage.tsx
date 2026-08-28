@@ -229,7 +229,7 @@ function StatsStrip({ posts }: { posts: Post[] }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// PRICING TEASER — three credit packages; full PPP detail stays on /pricing.
+// PRICING TEASER — three credit packages; full list is on /pricing.
 // ─────────────────────────────────────────────────────────────────────────
 function PricingTeaserSection() {
   const language = useSession((s) => s.language);

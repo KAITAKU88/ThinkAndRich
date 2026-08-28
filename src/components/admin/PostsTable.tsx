@@ -12,6 +12,8 @@ import { PILLARS_CONFIG } from "@/lib/data";
 import { cn, formatDateTime, formatViews } from "@/lib/utils";
 import type { AdminPost, AdminPostCounts, AdminPostsQuery } from "@/lib/admin/use-admin-posts";
 import type { PillarType } from "@/lib/types";
+import { CreditBadge } from "@/components/credits/CreditBadge";
+import { parseCreditCost } from "@/lib/credit-cost";
 
 interface PostsTableProps {
   posts: AdminPost[];
@@ -24,7 +26,7 @@ interface PostsTableProps {
   onCreateNew: () => void;
 }
 
-type SortKey = "title" | "views" | "clicks" | "shares" | "bookmarkCount" | "updatedAt";
+type SortKey = "title" | "creditCost" | "views" | "clicks" | "shares" | "bookmarkCount" | "updatedAt";
 type StatusFilter = "ALL" | "DRAFT" | "PUBLISHED";
 
 const STATUS_TABS: { id: StatusFilter; label: string }[] = [
@@ -165,11 +167,14 @@ export function PostsTable({
       </div>
 
       <div className="border border-border rounded-xl overflow-x-auto">
-        <table className="w-full min-w-[1040px] text-xs text-left">
+        <table className="w-full min-w-[1120px] text-xs text-left">
           <thead className="uppercase bg-secondary/60 text-muted-foreground border-b border-border">
             <tr>
               <th className="px-4 py-2.5">
                 <SortableHeader label="Bài viết" sortKey="title" activeSort={sortKey} dir={dir} onSort={handleSort} />
+              </th>
+              <th className="px-4 py-2.5">
+                <SortableHeader label="Phân loại" sortKey="creditCost" activeSort={sortKey} dir={dir} onSort={handleSort} />
               </th>
               <th className="px-4 py-2.5">Trụ cột</th>
               <th className="px-4 py-2.5">
@@ -193,13 +198,13 @@ export function PostsTable({
           <tbody className="divide-y divide-border/60">
             {loading ? (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
+                <td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">
                   Đang tải...
                 </td>
               </tr>
             ) : posts.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
+                <td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">
                   {statusFilter === "DRAFT"
                     ? "Không có bản nháp nào đang chờ duyệt."
                     : statusFilter === "PUBLISHED"
@@ -221,6 +226,9 @@ export function PostsTable({
                           </Badge>
                         )}
                       </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <CreditBadge cost={parseCreditCost(post.creditCost, 0)} />
                     </td>
                     <td className="px-4 py-3">
                       <Badge className={`text-[10px] border ${pillarMeta?.badgeBg}`}>{pillarMeta?.titleVi}</Badge>

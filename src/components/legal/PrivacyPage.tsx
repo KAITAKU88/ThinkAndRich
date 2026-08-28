@@ -30,11 +30,11 @@ const PRIVACY_CONTENT: Partial<Record<SupportedLanguage, PrivacyContent>> = {
     sections: [
       {
         heading: "1. Dữ liệu chúng tôi thu thập",
-        body: "Thông tin tài khoản (email, tên hiển thị), lịch sử đọc và tương tác (lượt xem, thích, Đọc sau), gói thành viên, ngôn ngữ và khu vực (dùng để tính giá PPP), cùng dữ liệu thanh toán được xử lý qua đối tác cổng thanh toán — chúng tôi không lưu trữ số thẻ hay thông tin VietQR trực tiếp.",
+        body: "Thông tin tài khoản (email, tên hiển thị), lịch sử đọc và tương tác (lượt xem, thích, Đọc sau), số dư credit, ngôn ngữ và khu vực (để hiển thị đúng giá), cùng dữ liệu thanh toán được xử lý qua đối tác cổng thanh toán — chúng tôi không lưu trữ số thẻ hay thông tin VietQR trực tiếp.",
       },
       {
         heading: "2. Mục đích sử dụng",
-        body: "Dữ liệu được dùng để duy trì tài khoản của bạn, đồng bộ Đọc sau và lịch sử đọc giữa các thiết bị, xác định gói thành viên đang hoạt động, hiển thị đúng bảng giá theo khu vực, và cải thiện chất lượng gợi ý nội dung theo 3 trụ cột.",
+        body: "Dữ liệu được dùng để duy trì tài khoản của bạn, đồng bộ Đọc sau và lịch sử đọc giữa các thiết bị, quản lý số dư credit, hiển thị đúng bảng giá theo khu vực, và cải thiện chất lượng gợi ý nội dung theo 3 trụ cột.",
       },
       {
         heading: "3. Chia sẻ dữ liệu",
@@ -59,11 +59,11 @@ const PRIVACY_CONTENT: Partial<Record<SupportedLanguage, PrivacyContent>> = {
     sections: [
       {
         heading: "1. Data we collect",
-        body: "Account information (email, display name), reading and interaction history (views, likes, Read Later), membership plan, language and region (used to compute PPP pricing), and payment data processed by our payment gateway partners — we do not store card numbers or VietQR details directly.",
+        body: "Account information (email, display name), reading and interaction history (views, likes, Read Later), credit balance, language and region (to show the correct price), and payment data processed by our payment gateway partners — we do not store card numbers or VietQR details directly.",
       },
       {
         heading: "2. How we use it",
-        body: "Data is used to maintain your account, sync your Read Later list and reading history across devices, determine your active membership plan, show the correct regional pricing, and improve content recommendations across the 3 pillars.",
+        body: "Data is used to maintain your account, sync your Read Later list and reading history across devices, manage your credit balance, show the correct regional pricing, and improve content recommendations across the 3 pillars.",
       },
       {
         heading: "3. Data sharing",
@@ -88,11 +88,11 @@ const PRIVACY_CONTENT: Partial<Record<SupportedLanguage, PrivacyContent>> = {
     sections: [
       {
         heading: "1. 我们收集的数据",
-        body: "账户信息（邮箱、显示名称）、阅读与互动历史（浏览、点赞、稍后阅读）、会员方案、语言与地区（用于计算 PPP 定价），以及由支付网关合作方处理的支付数据 —— 我们不会直接存储银行卡号或 VietQR 信息。",
+        body: "账户信息（邮箱、显示名称）、阅读与互动历史（浏览、点赞、稍后阅读）、点数余额、语言与地区（用于展示正确价格），以及由支付网关合作方处理的支付数据 —— 我们不会直接存储银行卡号或 VietQR 信息。",
       },
       {
         heading: "2. 使用目的",
-        body: "数据用于维护您的账户、在多设备间同步稍后阅读列表与阅读历史、确定您当前的会员方案、展示正确的地区定价，以及优化 3 大支柱下的内容推荐质量。",
+        body: "数据用于维护您的账户、在多设备间同步稍后阅读列表与阅读历史、管理点数余额、展示正确的地区定价，以及优化 3 大支柱下的内容推荐质量。",
       },
       {
         heading: "3. 数据共享",

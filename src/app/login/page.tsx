@@ -23,8 +23,7 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Magic link passwordless theo Blueprint. Nhấn nút bên dưới để mở form
-            đăng nhập.
+            Nhập email để nhận mã OTP 6 chữ số, rồi xác nhận để đăng nhập.
           </p>
           <Button className="w-full" onClick={() => setAuthOpen(true)}>
             Mở form đăng nhập

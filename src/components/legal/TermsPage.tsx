@@ -39,8 +39,8 @@ const TERMS_CONTENT: Partial<Record<SupportedLanguage, TermsContent>> = {
         body: "Toàn bộ hồ sơ tri thức, mô hình tư duy, công thức học thuật và sơ đồ minh hoạ thuộc bản quyền của Think & Rich hoặc các tác giả cộng tác. Bạn được phép đọc và trích dẫn có ghi nguồn cho mục đích cá nhân; sao chép để phân phối lại hoặc khai thác thương mại cần có sự đồng ý bằng văn bản trước.",
       },
       {
-        heading: "4. Gói thành viên & thanh toán",
-        body: "Gói PLUS và PRO được tính phí theo chu kỳ đã chọn, với mức giá quy đổi theo khu vực (PPP) tại thời điểm đăng ký. Thanh toán được xử lý qua SePay (VietQR nội địa) hoặc Paddle (thẻ quốc tế), tuỳ theo khu vực của bạn. Việc huỷ gói có hiệu lực từ chu kỳ thanh toán tiếp theo; các khoản đã thanh toán cho chu kỳ hiện tại không được hoàn lại trừ trường hợp lỗi hệ thống thuộc về chúng tôi.",
+        heading: "4. Credit & thanh toán",
+        body: "Bạn mua gói credit (1.500, 4.500 hoặc 10.000). Mỗi lần mua cộng dồn vào số dư và gia hạn 365 ngày cho toàn bộ số dư. Giá theo khu vực tại thời điểm mua. Thanh toán qua SePay (VietQR nội địa) hoặc Paddle (thẻ quốc tế), tuỳ khu vực. Credit đã mua không hoàn lại trừ trường hợp lỗi hệ thống thuộc về chúng tôi.",
       },
       {
         heading: "5. Giới hạn trách nhiệm",
@@ -70,8 +70,8 @@ const TERMS_CONTENT: Partial<Record<SupportedLanguage, TermsContent>> = {
         body: "All knowledge models, mental frameworks, academic formulas, and diagrams are copyrighted by Think & Rich or its contributing authors. You may read and cite them, with attribution, for personal use; copying for redistribution or commercial use requires prior written consent.",
       },
       {
-        heading: "4. Membership & billing",
-        body: "PLUS and PRO plans are billed on the selected cycle, at the regionally-converted (PPP) price at the time of signup. Payments are processed via SePay (domestic VietQR) or Paddle (international cards), depending on your region. Cancellation takes effect at the next billing cycle; amounts already paid for the current cycle are non-refundable except in the case of a system error on our part.",
+        heading: "4. Credits & billing",
+        body: "You buy credit packs (1,500, 4,500, or 10,000). Each purchase adds to your balance and resets the 365-day expiry for the whole balance. Prices are those of your region at the time of purchase. Payments go through SePay (domestic VietQR) or Paddle (international cards), depending on your region. Purchased credits are non-refundable except in the case of a system error on our part.",
       },
       {
         heading: "5. Limitation of liability",
@@ -101,8 +101,8 @@ const TERMS_CONTENT: Partial<Record<SupportedLanguage, TermsContent>> = {
         body: "全部知识模型、思维框架、学术公式与示意图均归 Think & Rich 或其合作作者所有版权。您可为个人用途阅读并注明出处引用；如需复制用于再分发或商业用途，须事先获得书面同意。",
       },
       {
-        heading: "4. 会员方案与计费",
-        body: "PLUS 与 PRO 方案按所选周期计费，价格为注册时按地区换算（PPP）后的价格。支付通过 SePay（境内 VietQR）或 Paddle（国际信用卡）处理，具体取决于您所在地区。取消订阅自下一计费周期起生效；当前周期已支付的费用不予退还，除非因我方系统错误所致。",
+        heading: "4. 点数与计费",
+        body: "您可购买点数套餐（1,500、4,500 或 10,000）。每次购买累加余额，并将全部余额的有效期重置为 365 天。价格以购买时您所在地区为准。支付通过 SePay（境内 VietQR）或 Paddle（国际信用卡）处理，具体取决于您所在地区。已购买的点数不予退还，除非因我方系统错误所致。",
       },
       {
         heading: "5. 责任限制",

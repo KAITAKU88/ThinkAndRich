@@ -76,11 +76,13 @@ export async function GET(request: NextRequest) {
           ? posts.shares
           : sort === "title"
             ? posts.title
-            : sort === "bookmarkCount"
-              ? bookmarkCount
-              : sort === "createdAt"
-                ? posts.createdAt
-                : posts.updatedAt;
+              : sort === "bookmarkCount"
+                ? bookmarkCount
+                : sort === "creditCost"
+                  ? posts.creditCost
+                  : sort === "createdAt"
+                    ? posts.createdAt
+                    : posts.updatedAt;
 
   const countRows = await db
     .select({
