@@ -19,6 +19,7 @@ import type { CreditPackageId } from "@/lib/types";
 import type { PublicPaymentSettings } from "@/lib/payment-settings";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useSession } from "@/store/session";
@@ -48,6 +49,8 @@ function CheckoutContent() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [order, setOrder] = useState<{ id: string; reference: string; amount: number; currency: string } | null>(null);
+  const [promoCode, setPromoCode] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState("");
   const [orderError, setOrderError] = useState<string | null>(null);
   const [paddleCheckoutUrl, setPaddleCheckoutUrl] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -55,6 +58,7 @@ function CheckoutContent() {
   const planName = `${pack.credits.toLocaleString("vi-VN")} credit`;
   const planLimitText = paidTermPurchasePhrase(language);
   const listPriceFormatted = ppp.packages[packageId].formatted;
+  const marketListAmount = () => ppp.packages[packageId].price;
   const planPriceFormatted = order
     ? `${order.amount.toLocaleString("vi-VN")} ${order.currency}`
     : listPriceFormatted;
@@ -79,7 +83,7 @@ function CheckoutContent() {
     setOrder(null);
     setPaddleCheckoutUrl(null);
     setOrderError(null);
-  }, [countryCode]);
+  }, [countryCode, packageId, appliedPromo]);
 
   useEffect(() => {
     if (!user || order) return;
@@ -89,7 +93,7 @@ function CheckoutContent() {
     fetch(`/api/checkout?country=${countryCode}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ packageId }),
+      body: JSON.stringify({ packageId, promoCode: appliedPromo || undefined }),
     })
       .then(
         (res) =>
@@ -112,7 +116,7 @@ function CheckoutContent() {
         }
       })
       .catch(() => setOrderError(t.checkout.genericConnError));
-  }, [user, countryCode, packageId, order, t.checkout.genericOrderError, t.checkout.genericConnError]);
+  }, [user, countryCode, packageId, order, appliedPromo, t.checkout.genericOrderError, t.checkout.genericConnError]);
 
   // Poll for the webhook flipping the order to PAID — this page never
   // decides success itself (see src/app/api/webhooks/billing/route.ts).
@@ -248,6 +252,31 @@ function CheckoutContent() {
             </div>
 
             <div className="p-4 rounded-2xl bg-muted/50 border border-border/60 space-y-3">
+              <div className="flex gap-2">
+                <Input
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                  placeholder="Mã giảm giá"
+                  className="h-9 text-xs flex-1"
+                  disabled={!user || Boolean(order)}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 shrink-0 text-xs"
+                  disabled={!user || !promoCode.trim() || Boolean(order)}
+                  onClick={() => setAppliedPromo(promoCode.trim())}
+                >
+                  Áp dụng
+                </Button>
+              </div>
+              {appliedPromo ? (
+                <p className="text-[11px] text-emerald-600 dark:text-emerald-400">
+                  Đã áp dụng mã <strong>{appliedPromo}</strong>
+                  {order && order.amount < marketListAmount() ? ` — giảm còn ${planPriceFormatted}` : ""}
+                </p>
+              ) : null}
               <div className="flex justify-between items-start gap-3 text-xs">
                 <span className="text-muted-foreground">{t.checkout.readingLimit}</span>
                 <span className="font-semibold text-primary">{planLimitText}</span>

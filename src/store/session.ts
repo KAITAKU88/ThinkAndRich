@@ -88,7 +88,7 @@ interface SessionState {
   refreshUserState: () => Promise<void>;
 
   // Post Interactions & Metrics — real D1 writes now (src/app/api/posts/[slug]/*)
-  recordPostView: (postId: string) => Promise<void>;
+  recordPostView: (slug: string, postId: string) => Promise<void>;
   unlockPost: (slug: string) => Promise<{
     ok: boolean;
     message?: string;
@@ -254,11 +254,11 @@ export const useSession = create<SessionState>()(
         }
       },
 
-      recordPostView: async (postId: string) => {
-        const res = await fetch(`/api/posts/${postId}/view`, { method: "POST" }).then(
-          (r) => r.json() as Promise<{ ok: boolean }>
-        ).catch(() => ({ ok: false }));
-        if (res.ok && get().user) {
+      recordPostView: async (slug: string, postId: string) => {
+        const res = await fetch(`/api/posts/${slug}/view`, { method: "POST" })
+          .then((r) => r.json() as Promise<{ ok: boolean; recorded?: boolean }>)
+          .catch(() => ({ ok: false as const }));
+        if (res.ok && (!("recorded" in res) || res.recorded !== false) && get().user) {
           set((state) => ({
             readPostIds: state.readPostIds.includes(postId) ? state.readPostIds : [...state.readPostIds, postId],
           }));

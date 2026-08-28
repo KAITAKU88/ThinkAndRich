@@ -11,6 +11,10 @@ export interface PublicPostStats {
   byPillar: Record<PillarType, number>;
 }
 
+/** First paint on Explore — keep small for fast SSR; more load client-side. */
+export const EXPLORE_INITIAL_PAGE_SIZE = 48;
+export const EXPLORE_BACKGROUND_PAGE_SIZE = 60;
+
 export interface PublicPostFilters {
   pillar?: string | null;
   q?: string | null;

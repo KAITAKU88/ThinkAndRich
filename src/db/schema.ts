@@ -170,7 +170,7 @@ export const orders = sqliteTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    gateway: text("gateway", { enum: ["sepay", "paddle"] }).notNull(),
+    gateway: text("gateway", { enum: ["sepay", "paddle", "admin"] }).notNull(),
     packageId: text("package_id", { enum: ["pack_1", "pack_2", "pack_3"] }).notNull(),
     amount: integer("amount").notNull(),
     currency: text("currency").notNull(),
@@ -178,6 +178,8 @@ export const orders = sqliteTable(
       .notNull()
       .default("PENDING"),
     gatewayReference: text("gateway_reference"),
+    promotionId: text("promotion_id").references(() => promotions.id, { onDelete: "set null" }),
+    discountAmount: integer("discount_amount").notNull().default(0),
     rawPayload: text("raw_payload"),
     createdAt: text("created_at").notNull(),
     paidAt: text("paid_at"),
@@ -185,6 +187,46 @@ export const orders = sqliteTable(
   (table) => [
     uniqueIndex("orders_gateway_reference_idx").on(table.gatewayReference),
     index("orders_user_id_idx").on(table.userId),
+  ]
+);
+
+export const promotions = sqliteTable(
+  "promotions",
+  {
+    id: text("id").primaryKey(),
+    code: text("code").notNull().unique(),
+    name: text("name").notNull(),
+    kind: text("kind", { enum: ["percent", "fixed"] }).notNull(),
+    discountPercent: integer("discount_percent"),
+    discountAmountVnd: integer("discount_amount_vnd"),
+    /** JSON array of package ids; null = all packages */
+    packageIds: text("package_ids"),
+    maxUses: integer("max_uses"),
+    usedCount: integer("used_count").notNull().default(0),
+    startsAt: text("starts_at"),
+    endsAt: text("ends_at"),
+    active: integer("active").notNull().default(1),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [uniqueIndex("promotions_code_idx").on(table.code)]
+);
+
+export const promotionRedemptions = sqliteTable(
+  "promotion_redemptions",
+  {
+    id: text("id").primaryKey(),
+    promotionId: text("promotion_id")
+      .notNull()
+      .references(() => promotions.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    orderId: text("order_id").references(() => orders.id, { onDelete: "set null" }),
+    redeemedAt: text("redeemed_at").notNull(),
+  },
+  (table) => [
+    index("promotion_redemptions_promotion_idx").on(table.promotionId),
+    index("promotion_redemptions_user_idx").on(table.userId),
   ]
 );
 

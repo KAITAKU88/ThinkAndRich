@@ -10,7 +10,7 @@ import {
   type PaddleWebhookPayload,
 } from "@/lib/paddle";
 import { extractOrderReference } from "@/lib/order-reference";
-import { grantPurchasedCredits } from "@/lib/server/grant-credits";
+import { fulfillPaidOrder } from "@/lib/server/fulfill-order";
 import { isCreditPackageId } from "@/lib/credit-packages";
 import { readPaymentSettings } from "@/lib/server/settings";
 
@@ -73,7 +73,8 @@ export async function POST(request: NextRequest) {
     .update(orders)
     .set({ status: "PAID", paidAt: now.toISOString(), rawPayload: JSON.stringify(body) })
     .where(eq(orders.id, order.id));
-  await grantPurchasedCredits(db, order.userId, order.packageId, now);
+  const paidOrder = await db.select().from(orders).where(eq(orders.id, order.id)).get();
+  if (paidOrder) await fulfillPaidOrder(db, env, paidOrder, now);
 
   return NextResponse.json({ ok: true, gateway: "sepay", message: "Đã xác nhận thanh toán và cộng credit." });
 }
@@ -114,7 +115,8 @@ async function handlePaddleWebhook(request: NextRequest, env: CloudflareEnv) {
 
   const now = new Date();
   await db.update(orders).set({ status: "PAID", paidAt: now.toISOString(), rawPayload: rawBody }).where(eq(orders.id, orderId));
-  await grantPurchasedCredits(db, order.userId, order.packageId, now);
+  const paidOrder = await db.select().from(orders).where(eq(orders.id, orderId)).get();
+  if (paidOrder) await fulfillPaidOrder(db, env, paidOrder, now);
 
   return NextResponse.json({ ok: true, gateway: "paddle", message: "Đã xác nhận thanh toán và cộng credit." });
 }

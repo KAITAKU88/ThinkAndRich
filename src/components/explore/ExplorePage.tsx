@@ -10,7 +10,6 @@ import {
   RotateCcw,
   ArrowUpDown,
   ChevronDown,
-  Flame,
   Brain,
   Compass,
   Lightbulb,
@@ -21,6 +20,8 @@ import type { PillarType, Post } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { InteractiveSquareCard } from "@/components/ideas/InteractiveSquareCard";
+import { LazySkylineCard } from "@/components/explore/LazySkylineCard";
+import { ExploreGridSkeleton } from "@/components/explore/ExploreGridSkeleton";
 import { SkylineSpine } from "@/components/ideas/SkylineSpine";
 import {
   generateSkylineSlots,
@@ -308,7 +309,7 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
     showGrid ? (
       <div className="skyline-grid pb-4" ref={gridRef}>
         {pageSlottedPosts.map((item, idx) => (
-          <InteractiveSquareCard
+          <LazySkylineCard
             key={`${item.post.id}-${item.slot.id}-${idx}`}
             post={item.post}
             slot={item.slot}
@@ -535,19 +536,6 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
           </h1>
         </div>
 
-        {user && (
-          <div className="flex items-center gap-3 p-3 rounded-2xl bg-card border border-border shadow-sm text-xs">
-            <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
-              <Flame className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5 font-semibold text-foreground">
-                <span>Credit</span>
-                <span className="text-primary font-bold">{user.totalCredits}</span>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Desktop filter bar — mỗi bộ lọc là 1 dropdown riêng, luôn hiển thị,
@@ -783,13 +771,7 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
 
 export function ExplorePage({ initialPosts }: { initialPosts: Post[] }) {
   return (
-    <Suspense
-      fallback={
-        <div className="container mx-auto max-w-7xl px-4 py-16 text-center text-muted-foreground text-sm">
-          {getTranslation().explore.loadingLibrary}
-        </div>
-      }
-    >
+    <Suspense fallback={<ExploreGridSkeleton />}>
       <ExploreContent initialPosts={initialPosts} />
     </Suspense>
   );

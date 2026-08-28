@@ -1,9 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { drizzle } from "drizzle-orm/d1";
-import { and, eq, like } from "drizzle-orm";
+import { and, eq, like, or } from "drizzle-orm";
 import { posts, readLogs, users } from "@/db/schema";
 import { verifySession, SESSION_COOKIE } from "@/lib/session-token";
+import { checkPostAccess } from "@/lib/server/access-control";
+import { parseCreditCost } from "@/lib/credit-cost";
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -13,7 +15,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   const session = token ? await verifySession(token, env.JWT_SECRET) : null;
 
-  const post = await db.select().from(posts).where(eq(posts.slug, slug)).get();
+  const post = await db
+    .select()
+    .from(posts)
+    .where(or(eq(posts.slug, slug), eq(posts.id, slug)))
+    .get();
   if (!post) {
     return NextResponse.json({ ok: false, message: "Không tìm thấy bài viết." }, { status: 404 });
   }
@@ -21,6 +27,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   await db.update(posts).set({ views: post.views + 1 }).where(eq(posts.id, post.id));
 
   if (session) {
+    const access = await checkPostAccess(
+      db,
+      { id: post.id, creditCost: parseCreditCost(post.creditCost, 0) },
+      { id: session.sub, role: session.role }
+    );
+    if (!access.allowed) {
+      return NextResponse.json({ ok: true, recorded: false });
+    }
+
     const today = new Date().toISOString().slice(0, 10);
     const alreadyReadToday = await db
       .select({ id: readLogs.id })

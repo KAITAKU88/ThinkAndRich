@@ -1,6 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { ExplorePage } from "@/components/explore/ExplorePage";
-import { getPublicPosts } from "@/lib/server/public-posts";
+import { EXPLORE_INITIAL_PAGE_SIZE, getPublicPosts } from "@/lib/server/public-posts";
 
 export const revalidate = 60;
 
@@ -14,6 +14,6 @@ export default async function Page() {
   // ISR (`revalidate = 60`) prerenders this route; sync
   // getCloudflareContext() is illegal there and `next build` exits.
   const { env } = await getCloudflareContext({ async: true });
-  const initialPosts = await getPublicPosts(env.DB, { pageSize: 200 });
+  const initialPosts = await getPublicPosts(env.DB, { pageSize: EXPLORE_INITIAL_PAGE_SIZE });
   return <ExplorePage initialPosts={initialPosts} />;
 }

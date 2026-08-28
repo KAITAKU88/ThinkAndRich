@@ -95,15 +95,15 @@ export function PostDetailPage() {
     };
   }, [id, user?.id]);
 
-  // Record view exactly once per post ID
+  // Record a read only when the reader can see the full article body.
   const recordedPostIdRef = useRef<string | null>(null);
   useEffect(() => {
-    if (post && recordedPostIdRef.current !== post.id) {
-      recordedPostIdRef.current = post.id;
-      recordPostView(post.id);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-record when the post identity changes, not on every refetched field
-  }, [post?.id, recordPostView]);
+    if (!post || !access.allowed) return;
+    if (recordedPostIdRef.current === post.id) return;
+    recordedPostIdRef.current = post.id;
+    recordPostView(post.slug || post.id, post.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-record when access or post identity changes
+  }, [post?.id, post?.slug, access.allowed, recordPostView]);
 
   // Scroll reading progress listener
   useEffect(() => {
@@ -327,6 +327,9 @@ export function PostDetailPage() {
                         if (data.ok && data.post && data.access) {
                           setPost(data.post);
                           setAccess(data.access);
+                          if (data.access.allowed) {
+                            void recordPostView(data.post.slug || data.post.id, data.post.id);
+                          }
                         }
                       })
                       .catch(() => {});

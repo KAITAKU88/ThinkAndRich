@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useSession } from "@/store/session";
 import { CreditCoin } from "@/components/credits/CreditCoin";
+import { GIFT_DAILY_GRANT } from "@/lib/credits";
 import type { AccessReason } from "@/lib/server/access-control";
 import type { CreditCost } from "@/lib/types";
 
@@ -78,10 +79,11 @@ export function PaywallCTA({
                 <CreditCoin className="h-6 w-6" />
               </div>
               <h3 className="font-display text-lg font-bold text-foreground sm:text-xl">
-                Không đủ credit
+                Không đủ credit để mở khóa
               </h3>
               <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                Cần {creditCost} credit để mở khóa. Số dư hiện tại: {availableCredits}.
+                Bạn không đủ credit để mở khóa, vui lòng đợi đến ngày mai để nhận {GIFT_DAILY_GRANT} credit
+                miễn phí, hoặc mua thêm credit để đọc ngay.
               </p>
               <Button asChild variant="default" className="mt-4 h-9 rounded-full px-5 text-sm font-semibold shadow-sm">
                 <Link href="/pricing">
@@ -107,12 +109,18 @@ export function PaywallCTA({
               </div>
               <p className="mt-2 text-[11px] text-muted-foreground">Số dư: {availableCredits}</p>
               {availableCredits < creditCost ? (
-                <Button asChild variant="default" className="mt-4 h-9 rounded-full px-5 text-sm font-semibold shadow-sm">
-                  <Link href="/pricing">
-                    Mua thêm credit
-                    <ArrowRight className="ml-1.5 size-4" />
-                  </Link>
-                </Button>
+                <>
+                  <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                    Bạn không đủ credit để mở khóa, vui lòng đợi đến ngày mai để nhận {GIFT_DAILY_GRANT} credit
+                    miễn phí, hoặc mua thêm credit để đọc ngay.
+                  </p>
+                  <Button asChild variant="default" className="mt-4 h-9 rounded-full px-5 text-sm font-semibold shadow-sm">
+                    <Link href="/pricing">
+                      Mua thêm credit
+                      <ArrowRight className="ml-1.5 size-4" />
+                    </Link>
+                  </Button>
+                </>
               ) : (
                 <Button
                   className="mt-4 h-9 rounded-full px-5 text-sm font-semibold shadow-sm"

@@ -1,11 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, Gift } from "lucide-react";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { SortableHeader } from "@/components/admin/SortableHeader";
 import { formatDateTime, formatViews } from "@/lib/utils";
+import { CREDIT_PACKAGES } from "@/lib/credit-packages";
+import type { CreditPackageId } from "@/lib/types";
 
 interface AdminUserRow {
   id: string;
@@ -42,6 +53,9 @@ export function UsersTable() {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("lastLoginAt");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
+  const [grantUser, setGrantUser] = useState<AdminUserRow | null>(null);
+  const [grantPackage, setGrantPackage] = useState<CreditPackageId>("pack_1");
+  const [granting, setGranting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,6 +81,23 @@ export function UsersTable() {
       setSortKey(key as SortKey);
       setDir("desc");
     }
+  }
+
+  async function handleGrant() {
+    if (!grantUser) return;
+    setGranting(true);
+    const res = await fetch(`/api/admin/users/${grantUser.id}/grant`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ packageId: grantPackage }),
+    }).then((r) => r.json() as Promise<{ ok: boolean; message?: string }>);
+    setGranting(false);
+    if (!res.ok) {
+      toast.error(res.message || "Không cấp được gói.");
+      return;
+    }
+    toast.success(res.message || "Đã cấp gói credit.");
+    setGrantUser(null);
   }
 
   return (
@@ -132,18 +163,19 @@ export function UsersTable() {
                   onSort={handleSort}
                 />
               </th>
+              <th className="px-4 py-2.5 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
             {loading ? (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
+                <td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">
                   Đang tải...
                 </td>
               </tr>
             ) : users.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
+                <td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">
                   Không có người dùng nào.
                 </td>
               </tr>
@@ -169,12 +201,64 @@ export function UsersTable() {
                   <td className="px-4 py-3 text-muted-foreground whitespace-nowrap tabular-nums">
                     {formatDateTime(u.lastLoginAt)}
                   </td>
+                  <td className="px-4 py-3 text-right">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 gap-1 text-[11px]"
+                      onClick={() => {
+                        setGrantPackage("pack_1");
+                        setGrantUser(u);
+                      }}
+                    >
+                      <Gift className="w-3 h-3" />
+                      Cấp gói
+                    </Button>
+                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
+
+      <Dialog open={Boolean(grantUser)} onOpenChange={(open) => !open && setGrantUser(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cấp gói credit</DialogTitle>
+            <DialogDescription>
+              Cấp thủ công cho <strong>{grantUser?.email}</strong> — tương đương mua gói với giảm giá 100%, kèm email thông báo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {CREDIT_PACKAGES.map((pack) => (
+              <label
+                key={pack.id}
+                className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 cursor-pointer hover:bg-secondary/40"
+              >
+                <span className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="grantPackage"
+                    checked={grantPackage === pack.id}
+                    onChange={() => setGrantPackage(pack.id)}
+                  />
+                  {pack.credits.toLocaleString("vi-VN")} credit
+                </span>
+                <span className="text-xs text-muted-foreground">{pack.vndPrice.toLocaleString("vi-VN")} ₫</span>
+              </label>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setGrantUser(null)}>
+              Hủy
+            </Button>
+            <Button onClick={() => void handleGrant()} disabled={granting}>
+              {granting ? "Đang cấp..." : "Xác nhận cấp"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

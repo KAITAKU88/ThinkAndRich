@@ -16,6 +16,7 @@ import {
   Plug,
   CreditCard,
   Settings,
+  Tag,
 } from "lucide-react";
 import { useSession } from "@/store/session";
 import { useAdminPosts, type AdminPost } from "@/lib/admin/use-admin-posts";
@@ -27,12 +28,14 @@ import { McpKeysPanel } from "@/components/admin/McpKeysPanel";
 import { PaymentSettingsPanel } from "@/components/admin/PaymentSettingsPanel";
 import { PricingRefreshPanel } from "@/components/admin/PricingRefreshPanel";
 import { OwnerSettingsPanel } from "@/components/admin/OwnerSettingsPanel";
+import { PromotionsPanel } from "@/components/admin/PromotionsPanel";
 import { cn, timeAgo } from "@/lib/utils";
 
 const SIDEBAR = [
   { id: "overview", label: "Tổng quan", icon: LayoutDashboard },
   { id: "posts", label: "Quản lý Bài viết", icon: BookOpen },
   { id: "users", label: "Quản lý Người dùng", icon: Users },
+  { id: "promotions", label: "Promotion", icon: Tag },
   { id: "orders", label: "Đơn hàng & Doanh thu", icon: Wallet },
   { id: "mcp", label: "MCP Connector", icon: Plug },
   { id: "payment", label: "Thanh toán & giá", icon: CreditCard },
@@ -164,6 +167,7 @@ export function AdminPage({ publicSiteUrl }: AdminPageProps) {
             ))}
 
           {tab === "users" && <UsersTable />}
+          {tab === "promotions" && <PromotionsPanel />}
           {tab === "orders" && <OrdersTable />}
           {tab === "mcp" && <McpKeysPanel publicSiteUrl={publicSiteUrl} />}
 

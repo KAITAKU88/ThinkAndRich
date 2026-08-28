@@ -12,6 +12,7 @@ import { PILLARS_CONFIG } from "@/lib/data";
 import { cn, formatDateTime, formatViews } from "@/lib/utils";
 import type { AdminPost, AdminPostCounts, AdminPostsQuery } from "@/lib/admin/use-admin-posts";
 import type { PillarType } from "@/lib/types";
+import { BulkUploadPostsButton } from "@/components/admin/BulkUploadPostsButton";
 import { CreditBadge } from "@/components/credits/CreditBadge";
 import { parseCreditCost } from "@/lib/credit-cost";
 
@@ -164,6 +165,19 @@ export function PostsTable({
         <Button size="sm" className="h-8 w-full sm:w-auto text-xs gap-1.5" onClick={onCreateNew}>
           <PlusCircle className="w-3.5 h-3.5" /> Viết bài mới
         </Button>
+        <BulkUploadPostsButton
+          onDone={() =>
+            void onQuery({
+              q: search.trim() || undefined,
+              pillar: pillarFilter,
+              status: statusFilter,
+              sort: sortKey,
+              dir,
+              page,
+              pageSize,
+            })
+          }
+        />
       </div>
 
       <div className="border border-border rounded-xl overflow-x-auto">

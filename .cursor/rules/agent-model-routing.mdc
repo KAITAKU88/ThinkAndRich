@@ -1,0 +1,40 @@
+---
+description: Phân tích độ phức tạp tác vụ và chọn model Agent phù hợp
+alwaysApply: true
+---
+
+# Chọn model Agent theo độ phức tạp tác vụ
+
+Trước khi bắt đầu (hoặc khi scope mở rộng), phân loại tác vụ và chọn model phù hợp.
+
+## Ma trận phức tạp
+
+| Mức | Đặc điểm | Model gợi ý |
+|-----|----------|-------------|
+| **S** | 1 file, copy/UI nhỏ, sửa bug cục bộ, grep rõ | `composer` / model nhanh |
+| **M** | 2–5 file, API + UI cùng domain, refactor có test | model cân bằng (Sonnet-class) |
+| **L** | Schema/migration, luồng thanh toán, email, auth, perf đa tầng | model mạnh (Opus/Thinking) |
+| **XL** | Nhiều subsystem, invariant cross-page, không được phá feature cũ | model mạnh + audit từng bước |
+
+## Quy tắc routing
+
+1. **Mặc định đúng scope** — không dùng model mạnh cho đổi copy hay xóa block UI thừa.
+2. **Nâng cấp khi** — đụng D1 schema, webhook billing, access control, grid/layout dùng chung (Explore/Home), hoặc ≥3 luồng liên quan.
+3. **Tách subtask** — goal nhiều mục: quick wins (S/M) trước; schema + admin (L) sau; mỗi mục verify độc lập.
+4. **Regression** — sau M/L/XL, kiểm tra bề mặt liên quan (header credit, paywall, filter đã đọc, checkout).
+
+## Ví dụ (Think & Rich)
+
+```markdown
+❌ Dùng model mạnh chỉ để đổi 1 câu PaywallCTA.
+
+✅ Paywall copy (S) → model nhanh.
+   Promotion + checkout + migration (L) → model mạnh, có test plan.
+   Explore lazy load (M) → giữ packing/--cols đồng bộ; không bỏ useLayoutEffect sync cột.
+```
+
+## Checklist trước khi ship
+
+- Liệt kê route/component đọc state/CSS vừa sửa
+- Chạy `tsc` / test liên quan
+- Không redefine "xong" nhỏ hơn objective gốc

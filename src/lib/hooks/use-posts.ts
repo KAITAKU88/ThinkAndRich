@@ -2,12 +2,26 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Post } from "@/lib/types";
+import { EXPLORE_BACKGROUND_PAGE_SIZE } from "@/lib/server/public-posts";
 
 export interface UsePostsFilters {
   pillar?: string;
   q?: string;
   sort?: string;
   pageSize?: number;
+}
+
+function mergePosts(existing: Post[], incoming: Post[]): Post[] {
+  if (incoming.length === 0) return existing;
+  const seen = new Set(existing.map((p) => p.id));
+  const merged = [...existing];
+  for (const post of incoming) {
+    if (!seen.has(post.id)) {
+      seen.add(post.id);
+      merged.push(post);
+    }
+  }
+  return merged;
 }
 
 // Fetches the real, D1-backed public post list (always PUBLISHED-only,
@@ -20,6 +34,7 @@ export function usePosts(filters: UsePostsFilters = {}, initialPosts?: Post[]) {
   const [posts, setPosts] = useState<Post[]>(initialPosts ?? []);
   const [loading, setLoading] = useState(initialPosts === undefined);
   const initialPostsHandled = useRef(false);
+  const backgroundDone = useRef(false);
 
   const { pillar, q, sort, pageSize } = filters;
 
@@ -37,7 +52,7 @@ export function usePosts(filters: UsePostsFilters = {}, initialPosts?: Post[]) {
     if (pillar) params.set("pillar", pillar);
     if (q) params.set("q", q);
     if (sort) params.set("sort", sort);
-    params.set("pageSize", String(pageSize ?? 200));
+    params.set("pageSize", String(pageSize ?? EXPLORE_BACKGROUND_PAGE_SIZE));
 
     fetch(`/api/posts?${params.toString()}`)
       .then((res) => res.json() as Promise<{ ok: boolean; posts?: Post[] }>)
@@ -53,6 +68,54 @@ export function usePosts(filters: UsePostsFilters = {}, initialPosts?: Post[]) {
       cancelled = true;
     };
   }, [initialPosts, pillar, q, sort, pageSize]);
+
+  // After the first SSR slice, load the rest of the library in the background
+  // so Explore opens immediately but filters still cover the full catalog.
+  useEffect(() => {
+    if (q || !initialPosts?.length || backgroundDone.current) return;
+
+    let cancelled = false;
+    backgroundDone.current = true;
+
+    async function loadRemaining() {
+      let page = 2;
+      while (!cancelled) {
+        const params = new URLSearchParams();
+        if (pillar) params.set("pillar", pillar);
+        if (sort) params.set("sort", sort ?? "DATE_DESC");
+        params.set("page", String(page));
+        params.set("pageSize", String(EXPLORE_BACKGROUND_PAGE_SIZE));
+
+        const data = await fetch(`/api/posts?${params.toString()}`)
+          .then((r) => r.json() as Promise<{ ok: boolean; posts?: Post[] }>)
+          .catch(() => ({ ok: false as const }));
+
+        if (!data.ok || !("posts" in data) || !data.posts?.length) break;
+
+        const batch = data.posts;
+        setPosts((prev) => mergePosts(prev, batch));
+        if (batch.length < EXPLORE_BACKGROUND_PAGE_SIZE) break;
+        page += 1;
+      }
+    }
+
+    let idleId: ReturnType<typeof setTimeout> | null = null;
+    let idleCallbackId: number | null = null;
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      idleCallbackId = window.requestIdleCallback(() => void loadRemaining(), { timeout: 1200 });
+    } else if (typeof globalThis !== "undefined") {
+      idleId = globalThis.setTimeout(() => void loadRemaining(), 200);
+    }
+
+    return () => {
+      cancelled = true;
+      if (idleId != null) clearTimeout(idleId);
+      if (idleCallbackId != null && "cancelIdleCallback" in window) {
+        window.cancelIdleCallback(idleCallbackId);
+      }
+    };
+  }, [initialPosts, pillar, q, sort]);
 
   return { posts, loading };
 }
