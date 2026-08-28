@@ -201,8 +201,6 @@ export function PostDetailPage() {
         style={{ transform: `scaleX(${readProgress / 100})` }}
       />
 
-      {focusMode ? <div aria-hidden="true" className="focus-mode-backdrop" /> : null}
-
       {focusMode ? (
         <div className="focus-mode-keep-clear fixed right-4 top-20 z-[70] sm:right-6 sm:top-24">
           <Button
@@ -245,9 +243,11 @@ export function PostDetailPage() {
               </div>
 
               <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5" /> {post.readingTimeMinutes || 5} {t.detail.minutesReadSuffix}
-                </span>
+                {post.readingTimeMinutes > 0 && (
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5" /> {post.readingTimeMinutes} {t.detail.minutesReadSuffix}
+                  </span>
+                )}
                 <span className="flex items-center gap-1">
                   <Eye className="w-3.5 h-3.5" /> {formatViews(post.views)} {t.detail.viewsSuffix}
                 </span>

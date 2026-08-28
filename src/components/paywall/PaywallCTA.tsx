@@ -45,7 +45,7 @@ export function PaywallCTA({
   }
 
   return (
-    <div className="absolute inset-x-0 bottom-0 min-h-[72%] bg-gradient-to-t from-background via-background/95 to-transparent flex items-end justify-center px-3 pb-3 pt-24 sm:pb-5">
+    <div className="reading-ui absolute inset-x-0 bottom-0 min-h-[72%] bg-gradient-to-t from-background via-background/95 to-transparent flex items-end justify-center px-3 pb-3 pt-24 sm:pb-5">
       <Card className="w-full max-w-md overflow-hidden rounded-3xl border-primary/25 bg-card/95 shadow-xl backdrop-blur-md">
         <CardContent className="px-5 py-5 text-center sm:px-7 sm:py-6">
           {reason === "AUTH_REQUIRED" ? (
@@ -82,7 +82,7 @@ export function PaywallCTA({
               <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-muted-foreground sm:text-sm">
                 Cần {creditCost} credit để mở khóa. Số dư hiện tại: {totalCredits}.
               </p>
-              <Button asChild className="mt-4 h-9 rounded-full px-5 text-sm font-semibold shadow-sm">
+              <Button asChild variant="default" className="mt-4 h-9 rounded-full px-5 text-sm font-semibold shadow-sm">
                 <Link href="/pricing">
                   Mua thêm credit
                   <ArrowRight className="ml-1.5 size-4" />
@@ -106,7 +106,7 @@ export function PaywallCTA({
               </div>
               <p className="mt-2 text-[11px] text-muted-foreground">Số dư: {totalCredits}</p>
               {totalCredits < creditCost ? (
-                <Button asChild className="mt-4 h-9 rounded-full px-5 text-sm font-semibold shadow-sm">
+                <Button asChild variant="default" className="mt-4 h-9 rounded-full px-5 text-sm font-semibold shadow-sm">
                   <Link href="/pricing">
                     Mua thêm credit
                     <ArrowRight className="ml-1.5 size-4" />

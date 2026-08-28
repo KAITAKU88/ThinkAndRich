@@ -24,6 +24,7 @@ import { Card } from "@/components/ui/card";
 import { useSession } from "@/store/session";
 import { getTranslation } from "@/lib/i18n/translations";
 import { getPppPricing } from "@/lib/geo-pricing";
+import { paidTermCheckoutSummary, paidTermPurchasePhrase } from "@/lib/site-config";
 import { isCreditPackageId, packageById } from "@/lib/credit-packages";
 import { CreditCoin } from "@/components/credits/CreditCoin";
 
@@ -52,7 +53,7 @@ function CheckoutContent() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const planName = `${pack.credits.toLocaleString("vi-VN")} credit`;
-  const planLimitText = "Hạn 365 ngày kể từ lần mua";
+  const planLimitText = paidTermPurchasePhrase(language);
   const listPriceFormatted = ppp.packages[packageId].formatted;
   const planPriceFormatted = order
     ? `${order.amount.toLocaleString("vi-VN")} ${order.currency}`
@@ -242,7 +243,7 @@ function CheckoutContent() {
                 <h3 className="font-display text-xl font-bold">{planName}</h3>
               </div>
               <p className="text-xs text-muted-foreground">
-                Cộng dồn vào số dư. Hạn dùng 365 ngày kể từ lần mua này.
+                {paidTermCheckoutSummary(language)}
               </p>
             </div>
 
@@ -274,8 +275,8 @@ function CheckoutContent() {
                 <Badge
                   className={
                     ppp.gateway === "sepay"
-                      ? "bg-emerald-600 text-white font-bold"
-                      : "bg-blue-600 text-white font-bold"
+                      ? "gateway-sepay font-bold"
+                      : "gateway-paddle font-bold"
                   }
                 >
                   {ppp.gateway === "sepay" ? t.checkout.sepayGatewayBadge : t.checkout.lemonGatewayBadge}
@@ -397,7 +398,7 @@ function CheckoutContent() {
                   login dialog instead of the button just sitting dead. */}
               <Button
                 size="lg"
-                className="w-full rounded-full font-semibold shadow-md bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="w-full rounded-full font-semibold shadow-md gateway-sepay"
                 disabled={isProcessing || (!!user && !order)}
                 onClick={handleConfirmPayment}
               >
@@ -418,7 +419,7 @@ function CheckoutContent() {
                flips the order to PAID the same way SePay's does, and this
                page polls for that exactly like the SePay branch above. */
             <Card className="rounded-3xl border-2 border-primary shadow-lg bg-card p-4 sm:p-6 space-y-6 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-blue-600/10 mx-auto flex items-center justify-center">
+              <div className="w-12 h-12 rounded-2xl gateway-paddle-muted mx-auto flex items-center justify-center">
                 <CreditCard className="w-6 h-6 text-blue-600" />
               </div>
               <div>
@@ -439,7 +440,7 @@ function CheckoutContent() {
               {paddleCheckoutUrl && (
                 <Button
                   size="lg"
-                  className="w-full rounded-full font-semibold shadow-md bg-blue-600 hover:bg-blue-700 text-white"
+                  className="w-full rounded-full font-semibold shadow-md gateway-paddle"
                   onClick={() => {
                     window.location.href = paddleCheckoutUrl;
                   }}

@@ -1,9 +1,15 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, count, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { posts } from "@/db/schema";
 import { rowToPost } from "@/lib/server/post-row";
+import { excludeDemoPostsCondition } from "@/lib/server/demo-posts";
 import { publicPostSearchCondition } from "@/lib/server/public-search";
-import type { Post } from "@/lib/types";
+import type { PillarType, Post } from "@/lib/types";
+
+export interface PublicPostStats {
+  totalPublished: number;
+  byPillar: Record<PillarType, number>;
+}
 
 export interface PublicPostFilters {
   pillar?: string | null;
@@ -18,7 +24,7 @@ export async function getPublicPosts(dbBinding: D1Database, filters: PublicPostF
   const q = filters.q?.trim();
   const page = Math.max(1, filters.page ?? 1);
   const pageSize = Math.min(Math.max(1, filters.pageSize ?? 200), 500);
-  const conditions = [eq(posts.status, "PUBLISHED")];
+  const conditions = [eq(posts.status, "PUBLISHED"), excludeDemoPostsCondition()];
 
   if (filters.pillar && filters.pillar !== "ALL") {
     conditions.push(eq(posts.pillar, filters.pillar));
@@ -46,4 +52,37 @@ export async function getPublicPosts(dbBinding: D1Database, filters: PublicPostF
     .all();
 
   return rows.map((row) => ({ ...rowToPost(row), fullContent: "" }));
+}
+
+const PILLAR_TYPES: PillarType[] = ["MENTAL_MODEL", "BUSINESS_STRATEGY", "STARTUP_IDEA"];
+
+export async function getPublicPostStats(dbBinding: D1Database): Promise<PublicPostStats> {
+  const db = drizzle(dbBinding);
+  const base = and(eq(posts.status, "PUBLISHED"), excludeDemoPostsCondition());
+
+  const [totalRow, pillarRows] = await Promise.all([
+    db.select({ total: count() }).from(posts).where(base).get(),
+    db
+      .select({ pillar: posts.pillar, total: count() })
+      .from(posts)
+      .where(base)
+      .groupBy(posts.pillar)
+      .all(),
+  ]);
+
+  const byPillar: Record<PillarType, number> = {
+    MENTAL_MODEL: 0,
+    BUSINESS_STRATEGY: 0,
+    STARTUP_IDEA: 0,
+  };
+  for (const row of pillarRows) {
+    if (row.pillar in byPillar) {
+      byPillar[row.pillar as PillarType] = Number(row.total);
+    }
+  }
+
+  return {
+    totalPublished: Number(totalRow?.total ?? 0),
+    byPillar,
+  };
 }

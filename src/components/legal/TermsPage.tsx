@@ -2,6 +2,7 @@
 
 import { ScrollText } from "lucide-react";
 import { useSession } from "@/store/session";
+import { interpolateSiteCopy } from "@/lib/site-config";
 import type { SupportedLanguage } from "@/lib/types";
 
 interface TermsSection {
@@ -40,7 +41,7 @@ const TERMS_CONTENT: Partial<Record<SupportedLanguage, TermsContent>> = {
       },
       {
         heading: "4. Credit & thanh toán",
-        body: "Bạn mua gói credit (1.500, 4.500 hoặc 10.000). Mỗi lần mua cộng dồn vào số dư và gia hạn 365 ngày cho toàn bộ số dư. Giá theo khu vực tại thời điểm mua. Thanh toán qua SePay (VietQR nội địa) hoặc Paddle (thẻ quốc tế), tuỳ khu vực. Credit đã mua không hoàn lại trừ trường hợp lỗi hệ thống thuộc về chúng tôi.",
+        body: "Bạn mua gói credit ({packageCreditsList}). Mỗi lần mua cộng dồn vào số dư và gia hạn {paidTermDays} ngày cho toàn bộ số dư. Giá theo khu vực tại thời điểm mua. Thanh toán qua SePay (VietQR nội địa) hoặc Paddle (thẻ quốc tế), tuỳ khu vực. Credit đã mua không hoàn lại trừ trường hợp lỗi hệ thống thuộc về chúng tôi.",
       },
       {
         heading: "5. Giới hạn trách nhiệm",
@@ -71,7 +72,7 @@ const TERMS_CONTENT: Partial<Record<SupportedLanguage, TermsContent>> = {
       },
       {
         heading: "4. Credits & billing",
-        body: "You buy credit packs (1,500, 4,500, or 10,000). Each purchase adds to your balance and resets the 365-day expiry for the whole balance. Prices are those of your region at the time of purchase. Payments go through SePay (domestic VietQR) or Paddle (international cards), depending on your region. Purchased credits are non-refundable except in the case of a system error on our part.",
+        body: "You buy credit packs ({packageCreditsList}). Each purchase adds to your balance and resets the {paidTermDays}-day expiry for the whole balance. Prices are those of your region at the time of purchase. Payments go through SePay (domestic VietQR) or Paddle (international cards), depending on your region. Purchased credits are non-refundable except in the case of a system error on our part.",
       },
       {
         heading: "5. Limitation of liability",
@@ -102,7 +103,7 @@ const TERMS_CONTENT: Partial<Record<SupportedLanguage, TermsContent>> = {
       },
       {
         heading: "4. 点数与计费",
-        body: "您可购买点数套餐（1,500、4,500 或 10,000）。每次购买累加余额，并将全部余额的有效期重置为 365 天。价格以购买时您所在地区为准。支付通过 SePay（境内 VietQR）或 Paddle（国际信用卡）处理，具体取决于您所在地区。已购买的点数不予退还，除非因我方系统错误所致。",
+        body: "您可购买点数套餐（{packageCreditsList}）。每次购买累加余额，并将全部余额的有效期重置为 {paidTermDays} 天。价格以购买时您所在地区为准。支付通过 SePay（境内 VietQR）或 Paddle（国际信用卡）处理，具体取决于您所在地区。已购买的点数不予退还，除非因我方系统错误所致。",
       },
       {
         heading: "5. 责任限制",
@@ -136,7 +137,7 @@ export function TermsPage() {
         {content.sections.map((section) => (
           <div key={section.heading}>
             <h2>{section.heading}</h2>
-            <p>{section.body}</p>
+            <p>{interpolateSiteCopy(section.body, language)}</p>
           </div>
         ))}
       </div>

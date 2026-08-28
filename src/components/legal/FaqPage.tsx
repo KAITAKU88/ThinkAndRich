@@ -2,6 +2,7 @@
 
 import { ChevronDown, HelpCircle } from "lucide-react";
 import { useSession } from "@/store/session";
+import { interpolateSiteCopy } from "@/lib/site-config";
 import type { SupportedLanguage } from "@/lib/types";
 
 interface FaqEntry {
@@ -29,12 +30,12 @@ const FAQ_CONTENT: Partial<Record<SupportedLanguage, FaqContent>> = {
       {
         question: "Think & Rich là gì?",
         answer:
-          "Một nền tảng tri thức học thuật & chiến lược, tổ chức nội dung theo 3 trụ cột: Mô hình Tư duy, Chiến lược Kinh doanh và Ý tưởng Khởi nghiệp. Mỗi hồ sơ được viết như một mô hình có thể áp dụng ngay, không phải bài blog dàn trải.",
+          "Một nền tảng tri thức học thuật & chiến lược, tổ chức nội dung theo {pillarCount} trụ cột: Mô hình Tư duy, Chiến lược Kinh doanh và Ý tưởng Khởi nghiệp. Mỗi hồ sơ được viết như một mô hình có thể áp dụng ngay, không phải bài blog dàn trải.",
       },
       {
         question: "Credit dùng để làm gì? Có những gói nào?",
         answer:
-          "Bài Open đọc miễn phí. Các bài khác trừ credit khi mở khóa — bài đã mở thì xem lại không mất thêm. Ba gói mua: 1.500, 4.500 và 10.000 credit; mỗi lần mua cộng dồn vào số dư và gia hạn 365 ngày cho toàn bộ số dư. Tài khoản đăng nhập còn được 5 credit tặng mỗi ngày (trần 30/tháng).",
+          "Bài Open đọc miễn phí. Các bài khác trừ credit khi mở khóa — bài đã mở thì xem lại không mất thêm. Ba gói mua: {packageCreditsList} credit; mỗi lần mua cộng dồn vào số dư và gia hạn {paidTermDays} ngày cho toàn bộ số dư. Tài khoản đăng nhập còn được {giftDaily} credit tặng mỗi ngày (trần {giftMonthlyCap}/tháng).",
       },
       {
         question: "Vì sao giá hiển thị khác nhau tuỳ khu vực?",
@@ -54,7 +55,7 @@ const FAQ_CONTENT: Partial<Record<SupportedLanguage, FaqContent>> = {
       {
         question: "Đổi ngôn ngữ giao diện ở đâu?",
         answer:
-          "Nhấn biểu tượng quả cầu trên thanh điều hướng để chọn 1 trong 14 ngôn ngữ hỗ trợ. Lựa chọn ngôn ngữ độc lập với đơn vị tiền tệ thanh toán.",
+          "Nhấn biểu tượng quả cầu trên thanh điều hướng để chọn 1 trong {languageCount} ngôn ngữ hỗ trợ. Lựa chọn ngôn ngữ độc lập với đơn vị tiền tệ thanh toán.",
       },
       {
         question: "Tôi cần liên hệ hỗ trợ thì làm sao?",
@@ -71,12 +72,12 @@ const FAQ_CONTENT: Partial<Record<SupportedLanguage, FaqContent>> = {
       {
         question: "What is Think & Rich?",
         answer:
-          "An academic and strategy knowledge platform organized around 3 pillars: Mental Models, Business Strategy, and Startup Ideas. Every model is written as something you can apply immediately, not a sprawling blog post.",
+          "An academic and strategy knowledge platform organized around {pillarCount} pillars: Mental Models, Business Strategy, and Startup Ideas. Every model is written as something you can apply immediately, not a sprawling blog post.",
       },
       {
         question: "How do credits work? What packages are there?",
         answer:
-          "Open articles are free to read. Other articles cost credits to unlock — once unlocked, you can reread them at no extra cost. Three purchase packs: 1,500, 4,500, and 10,000 credits; each purchase adds to your balance and resets the 365-day expiry for the whole balance. Signed-in accounts also receive 5 gift credits per day (capped at 30 per month).",
+          "Open articles are free to read. Other articles cost credits to unlock — once unlocked, you can reread them at no extra cost. Three purchase packs: {packageCreditsList} credits; each purchase adds to your balance and resets the {paidTermDays}-day expiry for the whole balance. Signed-in accounts also receive {giftDaily} gift credits per day (capped at {giftMonthlyCap} per month).",
       },
       {
         question: "Why does the price shown differ by region?",
@@ -96,7 +97,7 @@ const FAQ_CONTENT: Partial<Record<SupportedLanguage, FaqContent>> = {
       {
         question: "Where do I change the interface language?",
         answer:
-          "Tap the globe icon in the navigation bar to choose from 14 supported languages. Your language choice is independent of your payment currency.",
+          "Tap the globe icon in the navigation bar to choose from {languageCount} supported languages. Your language choice is independent of your payment currency.",
       },
       {
         question: "How do I contact support?",
@@ -113,12 +114,12 @@ const FAQ_CONTENT: Partial<Record<SupportedLanguage, FaqContent>> = {
       {
         question: "Think & Rich 是什么？",
         answer:
-          "一个学术与战略知识平台，内容按 3 大支柱组织：思维模型、商业战略与创业构想。每份模型都以可立即应用的形式撰写，而不是冗长的博客文章。",
+          "一个学术与战略知识平台，内容按 {pillarCount} 大支柱组织：思维模型、商业战略与创业构想。每份模型都以可立即应用的形式撰写，而不是冗长的博客文章。",
       },
       {
         question: "点数怎么用？有哪些套餐？",
         answer:
-          "Open 文章可免费阅读。其他文章解锁时扣除点数 —— 解锁后可随时重读，不再扣费。三种购买套餐：1,500、4,500 与 10,000 点数；每次购买累加余额，并将全部余额的有效期重置为 365 天。登录账户每天还可获赠 5 点（每月上限 30）。",
+          "Open 文章可免费阅读。其他文章解锁时扣除点数 —— 解锁后可随时重读，不再扣费。三种购买套餐：{packageCreditsList}；每次购买累加余额，并将全部余额的有效期重置为 {paidTermDays} 天。登录账户每天还可获赠 {giftDaily} 点（每月上限 {giftMonthlyCap}）。",
       },
       {
         question: "为什么不同地区显示的价格不同？",
@@ -138,7 +139,7 @@ const FAQ_CONTENT: Partial<Record<SupportedLanguage, FaqContent>> = {
       {
         question: "在哪里切换界面语言？",
         answer:
-          "点击导航栏上的地球图标，即可从 14 种支持的语言中选择。语言选择与支付币种相互独立。",
+          "点击导航栏上的地球图标，即可从 {languageCount} 种支持的语言中选择。语言选择与支付币种相互独立。",
       },
       {
         question: "如何联系客服？",
@@ -178,7 +179,7 @@ export function FaqPage() {
               <ChevronDown className="w-4 h-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180" />
             </summary>
             <p className="px-4 sm:px-5 pb-4 sm:pb-5 text-sm text-muted-foreground leading-relaxed">
-              {entry.answer}
+              {interpolateSiteCopy(entry.answer, language)}
             </p>
           </details>
         ))}

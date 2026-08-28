@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -9,17 +9,19 @@ import {
   Lightbulb,
   Globe,
   Sparkles,
-  CheckCircle2,
 } from "lucide-react";
 import { PILLARS_CONFIG } from "@/lib/data";
-import { CREDIT_PACKAGES, SEEDED_PACKAGE_PRICES } from "@/lib/credit-packages";
+import { CREDIT_PACKAGES } from "@/lib/credit-packages";
+import { getPppPricing } from "@/lib/geo-pricing";
+import { useSiteStats } from "@/lib/hooks/use-site-stats";
+import { paidTermPricingCardNote } from "@/lib/site-config";
 import { InteractiveSquareCard } from "@/components/ideas/InteractiveSquareCard";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/store/session";
 import { usePosts } from "@/lib/hooks/use-posts";
 import { cn } from "@/lib/utils";
 import { getTranslation } from "@/lib/i18n/translations";
-import type { Post, PillarType } from "@/lib/types";
+import type { CountryCode, MarketPricing, Post, PillarType } from "@/lib/types";
 
 const PILLAR_ORDER: PillarType[] = ["MENTAL_MODEL", "BUSINESS_STRATEGY", "STARTUP_IDEA"];
 
@@ -39,11 +41,12 @@ const PILLAR_ACCENT_VAR: Record<PillarType, string> = {
 
 export function HomePage() {
   const { posts } = usePosts({ pageSize: 200 });
+  const { stats } = useSiteStats();
   return (
     <div>
       <HeroSection posts={posts} />
-      <PillarsSection posts={posts} />
-      <StatsStrip posts={posts} />
+      <PillarsSection stats={stats} />
+      <StatsStrip stats={stats} />
       <PricingTeaserSection />
       <FinalCtaSection />
     </div>
@@ -130,16 +133,10 @@ function HeroSection({ posts }: { posts: Post[] }) {
 // ─────────────────────────────────────────────────────────────────────────
 // 3 PILLARS — parallel categories, not a sequence, so no 01/02/03 markers.
 // ─────────────────────────────────────────────────────────────────────────
-function PillarsSection({ posts }: { posts: Post[] }) {
+function PillarsSection({ stats }: { stats: ReturnType<typeof useSiteStats>["stats"] }) {
   const language = useSession((s) => s.language);
   const t = getTranslation(language);
-  const pillarCounts = useMemo(() => {
-    return {
-      MENTAL_MODEL: posts.filter((p) => p.pillar === "MENTAL_MODEL").length,
-      BUSINESS_STRATEGY: posts.filter((p) => p.pillar === "BUSINESS_STRATEGY").length,
-      STARTUP_IDEA: posts.filter((p) => p.pillar === "STARTUP_IDEA").length,
-    } as Record<PillarType, number>;
-  }, [posts]);
+  const pillarCounts = stats.byPillar;
 
   return (
     <section className="border-b border-border/70 bg-secondary/30">
@@ -193,15 +190,14 @@ function PillarsSection({ posts }: { posts: Post[] }) {
 // STATS — quiet, mono-set numbers pulled live from the store. No oversized
 // gradient hero-stat treatment.
 // ─────────────────────────────────────────────────────────────────────────
-function StatsStrip({ posts }: { posts: Post[] }) {
+function StatsStrip({ stats }: { stats: ReturnType<typeof useSiteStats>["stats"] }) {
   const language = useSession((s) => s.language);
   const t = getTranslation(language);
-  const publishedCount = posts.length;
 
-  const stats = [
-    { label: t.home.statsPostsLabel, value: publishedCount },
-    { label: t.home.statsPillarsLabel, value: 3 },
-    { label: t.home.statsLanguagesLabel, value: 14 },
+  const statItems = [
+    { label: t.home.statsPostsLabel, value: stats.totalPublished },
+    { label: t.home.statsPillarsLabel, value: stats.pillarCount },
+    { label: t.home.statsLanguagesLabel, value: stats.languageCount },
   ];
 
   return (
@@ -209,7 +205,7 @@ function StatsStrip({ posts }: { posts: Post[] }) {
       <div className="container mx-auto max-w-[1400px] px-4 sm:px-6 py-8 sm:py-10">
         <div className="flex flex-wrap items-center justify-center sm:justify-between gap-x-8 gap-y-4 text-center sm:text-left">
           <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
-            {stats.map((s) => (
+            {statItems.map((s) => (
               <div key={s.label} className="flex items-baseline gap-2">
                 <span className="font-mono text-2xl sm:text-3xl font-bold text-foreground tabular-nums">
                   {s.value}
@@ -233,7 +229,22 @@ function StatsStrip({ posts }: { posts: Post[] }) {
 // ─────────────────────────────────────────────────────────────────────────
 function PricingTeaserSection() {
   const language = useSession((s) => s.language);
+  const countryCode = useSession((s) => s.countryCode);
   const t = getTranslation(language);
+  const [markets, setMarkets] = useState<Record<CountryCode, MarketPricing> | null>(null);
+
+  useEffect(() => {
+    fetch("/api/pricing")
+      .then((res) => res.json() as Promise<{ ok: boolean; markets?: Record<CountryCode, MarketPricing> }>)
+      .then((data) => {
+        if (data.ok && data.markets) setMarkets(data.markets);
+      })
+      .catch(() => {});
+  }, []);
+
+  const currentPpp = markets?.[countryCode] ?? getPppPricing(countryCode);
+  const termPhrase = paidTermPricingCardNote(language);
+
   return (
     <section className="border-b border-border/70 bg-secondary/30">
       <div className="container mx-auto max-w-[1400px] px-4 sm:px-6 py-14 sm:py-20">
@@ -262,9 +273,9 @@ function PricingTeaserSection() {
                 {pack.credits.toLocaleString("vi-VN")} credit
               </h3>
               <div className="font-display text-2xl font-extrabold text-foreground mt-4 mb-1">
-                {SEEDED_PACKAGE_PRICES.VN[pack.id].formatted}
+                {currentPpp.packages[pack.id].formatted}
               </div>
-              <p className="text-[11px] text-muted-foreground mb-5">Hạn 365 ngày từ lần mua gần nhất</p>
+              <p className="text-[11px] text-muted-foreground mb-5">{termPhrase}</p>
               <Button asChild variant={i === 1 ? "default" : "outline"} className="rounded-full font-semibold mt-auto">
                 <Link href="/pricing">{t.home.viewDetailsBtn}</Link>
               </Button>

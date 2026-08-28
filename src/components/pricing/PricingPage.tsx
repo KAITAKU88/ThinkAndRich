@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { getTranslation } from "@/lib/i18n/translations";
 import { getPppPricing } from "@/lib/geo-pricing";
 import { CREDIT_PACKAGES } from "@/lib/credit-packages";
+import { paidTermPricingCardNote } from "@/lib/site-config";
 import type { CountryCode, MarketPricing } from "@/lib/types";
 import { CreditCoin } from "@/components/credits/CreditCoin";
 
@@ -40,6 +41,8 @@ export function PricingPage() {
       })
       .catch(() => {});
   }, []);
+
+  const termPhrase = paidTermPricingCardNote(language);
 
   const packages = CREDIT_PACKAGES.map((pack, i) => {
     const price = currentPpp.packages[pack.id];
@@ -81,8 +84,8 @@ export function PricingPage() {
               <Badge
                 className={
                   currentPpp.gateway === "sepay"
-                    ? "bg-emerald-600 text-white"
-                    : "bg-blue-600 text-white"
+                    ? "gateway-sepay border-none"
+                    : "gateway-paddle border-none"
                 }
               >
                 {currentPpp.gateway === "sepay" ? t.pricing.gatewaySepayFull : t.pricing.gatewayLemonFull}
@@ -122,7 +125,7 @@ export function PricingPage() {
               </div>
             </CardHeader>
             <CardContent className="flex-1 text-sm text-muted-foreground text-center">
-              Cộng dồn vào số dư. Hạn dùng 365 ngày kể từ lần mua gần nhất.
+              {termPhrase}
             </CardContent>
             <CardFooter className="pt-4 border-t border-border/50">
               {!user ? (

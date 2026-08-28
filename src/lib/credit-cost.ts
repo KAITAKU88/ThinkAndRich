@@ -11,33 +11,34 @@ export function parseCreditCost(value: unknown, fallback: CreditCost = 1): Credi
   return isCreditCost(n) ? n : fallback;
 }
 
-/** Card / badge colour per CREDIT_PRICING_MODEL.md — one hue per cost. */
+/** Inline accent colour — tokens live in globals.css (`--credit-cost-*`). */
 export const CREDIT_COST_ACCENT: Record<CreditCost, string> = {
-  0: "oklch(1 0 0)",
-  1: "#10b981",
-  2: "#3b82f6",
-  3: "#8b5cf6",
-  4: "#fbbf24",
-  5: "#ef4444",
+  0: "var(--credit-cost-0)",
+  1: "var(--credit-cost-1)",
+  2: "var(--credit-cost-2)",
+  3: "var(--credit-cost-3)",
+  4: "var(--credit-cost-4)",
+  5: "var(--credit-cost-5)",
 };
 
-/** Tailwind border class matching CREDIT_COST_ACCENT (emerald / blue / violet / amber / red). */
+/** Border utility class per cost — see `.credit-border-*` in globals.css. */
 export const CREDIT_COST_BORDER: Record<CreditCost, string> = {
-  0: "border-white dark:border-white/80",
-  1: "border-emerald-500",
-  2: "border-blue-500",
-  3: "border-violet-500",
-  4: "border-amber-400",
-  5: "border-red-500",
+  0: "credit-border-0 border-white dark:border-white/80",
+  1: "credit-border-1",
+  2: "credit-border-2",
+  3: "credit-border-3",
+  4: "credit-border-4",
+  5: "credit-border-5",
 };
 
+/** Badge utility class per cost — see `.credit-badge-*` in globals.css. */
 export const CREDIT_COST_BADGE: Record<CreditCost, string> = {
-  0: "bg-white text-foreground border-white dark:bg-white/10 dark:text-white dark:border-white/40",
-  1: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40",
-  2: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/40",
-  3: "bg-violet-500/15 text-violet-700 dark:text-violet-300 border-violet-500/40",
-  4: "bg-amber-400/15 text-amber-800 dark:text-amber-300 border-amber-400/40",
-  5: "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/40",
+  0: "credit-badge-0",
+  1: "credit-badge-1",
+  2: "credit-badge-2",
+  3: "credit-badge-3",
+  4: "credit-badge-4",
+  5: "credit-badge-5",
 };
 
 /** Map a legacy access-level string onto a credit cost (seed / one-shot migration). */

@@ -24,6 +24,8 @@ import type { PillarType, Post, ReadLog } from "@/lib/types";
 import { PILLARS_CONFIG } from "@/lib/data";
 import { getTranslation } from "@/lib/i18n/translations";
 import { CreditCoin } from "@/components/credits/CreditCoin";
+import { GIFT_MONTHLY_CAP } from "@/lib/credits";
+import { paidTermStackPhrase, paidTermUsagePeriodLabel } from "@/lib/site-config";
 import type { UsageSnapshot } from "@/lib/types";
 
 type ProfileTab = "saved" | "history" | "favorites" | "account";
@@ -118,7 +120,7 @@ export function ProfilePage() {
     );
   }
 
-  const giftCap = usage?.giftMonthlyCap ?? 30;
+  const giftCap = usage?.giftMonthlyCap ?? GIFT_MONTHLY_CAP;
   const giftGranted = usage?.giftGrantedThisMonth ?? user.giftGrantedThisMonth ?? 0;
   const giftPercent = Math.min(100, (giftGranted / giftCap) * 100);
 
@@ -447,7 +449,7 @@ export function ProfilePage() {
                   <span className="font-bold">{usage?.giftRemainingToday ?? user.giftCreditBalance}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
-                  <span className="font-medium">Đã dùng trong kỳ 365 ngày</span>
+                  <span className="font-medium">{paidTermUsagePeriodLabel(language)}</span>
                   <span className="font-bold">{usage?.creditsSpentThisTerm ?? 0}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
@@ -471,7 +473,7 @@ export function ProfilePage() {
                 <div className="min-w-0">
                   <h4 className="font-bold text-amber-600 dark:text-amber-500 text-sm">Mua thêm credit</h4>
                   <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-1">
-                    Mọi lần mua cộng dồn và gia hạn 365 ngày cho toàn bộ số dư.
+                    {paidTermStackPhrase(language)}
                   </p>
                 </div>
                 <Button size="sm" className="rounded-full shrink-0 shadow-sm self-end min-[420px]:self-auto" asChild>

@@ -1,4 +1,7 @@
 import type { SupportedLanguage } from "../types";
+import { interpolateSiteCopy } from "@/lib/site-config";
+
+export { SUPPORTED_LANGUAGES_LIST } from "@/lib/i18n/languages";
 
 export interface TranslationDictionary {
   // Unused leftover from the old PLUS → PRO upgrade modal. Kept so existing
@@ -537,7 +540,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
       badge: "Gói credit",
       title: "Đầu tư cho Tư duy vượt trội",
       subtitle:
-        "Ba gói credit, chênh lệch chỉ ở giá mỗi credit. Mỗi lần mua cộng dồn và gia hạn 365 ngày cho toàn bộ số dư.",
+        "Ba gói credit, chênh lệch chỉ ở giá mỗi credit. Mỗi lần mua cộng dồn và gia hạn {paidTermDays} ngày cho toàn bộ số dư.",
       currentPlan: "Gói hiện tại của bạn",
       startFree: "Đọc bài ngay",
       upgradePlus: "Nâng cấp Gói Plus",
@@ -554,7 +557,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
       decoyEffectDesc:
         "Gói 4.500C (300.000₫) nằm giữa 1.500C và 10.000C: chiết khấu đủ rõ để gói lớn nhất thành lựa chọn giá trị cao nhất.",
       featuresIncluded: "Quyền lợi bao gồm:",
-      yearSuffix: " / 365 ngày",
+      yearSuffix: " / {paidTermDays} ngày",
       planBadgePlus: "Gói Đột Phá",
       planBadgePro: "👑 Khuyên dùng (Best Value)",
       ipSimulatorLabel: "Mô phỏng IP:",
@@ -623,7 +626,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
         "Cổng thanh toán trong nước chưa được cấu hình. Vui lòng liên hệ hỗ trợ — chúng tôi sẽ xử lý ngay.",
       badge: "Thanh toán An toàn & Tự động",
       title: "Xác nhận mua",
-      subtitle: "Credit cộng dồn vào số dư. Hạn dùng 365 ngày kể từ lần mua này.",
+      subtitle: "Credit cộng dồn vào số dư. Hạn dùng {paidTermDays} ngày kể từ lần mua này.",
       planSummary: "Thông tin gói đăng ký",
       duration: "Thời hạn gói:",
       durationValue: "1 Năm (12 Tháng)",
@@ -871,7 +874,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
       statsPppNote: "Giá theo khu vực · SePay & Paddle",
       pricingTeaserEyebrow: "Gói credit",
       pricingTeaserTitle: "Trả đúng cho bài bạn mở",
-      pricingTeaserSubtitle: "Ba gói credit. Mỗi lần mua cộng dồn và gia hạn 365 ngày cho toàn bộ số dư.",
+      pricingTeaserSubtitle: "Ba gói credit. Mỗi lần mua cộng dồn và gia hạn {paidTermDays} ngày cho toàn bộ số dư.",
       viewDetailsBtn: "Xem chi tiết",
       finalCtaTitle: "Bắt đầu tra cứu — không cần đọc lướt.",
       finalCtaSubtitle: "5 credit tặng mỗi ngày khi đăng nhập. Bài Open đọc miễn phí."
@@ -996,7 +999,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
       badge: "Credit packs",
       title: "Invest in Superior Thinking",
       subtitle:
-        "Three credit packages — the only difference is price per credit. Every purchase stacks and resets the 365-day term on the whole paid balance.",
+        "Three credit packages — the only difference is price per credit. Every purchase stacks and resets the {paidTermDays}-day term on the whole paid balance.",
       currentPlan: "Your Current Plan",
       startFree: "Start Reading",
       upgradePlus: "Upgrade to Plus",
@@ -1013,7 +1016,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
       decoyEffectDesc:
         "The 4,500C pack sits between 1,500C and 10,000C: enough of a discount that the largest pack reads as the highest-value buy.",
       featuresIncluded: "What's included:",
-      yearSuffix: " / 365 days",
+      yearSuffix: " / {paidTermDays} days",
       planBadgePlus: "Breakthrough",
       planBadgePro: "👑 Recommended (Best Value)",
       ipSimulatorLabel: "Simulate IP:",
@@ -1082,7 +1085,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
         "Local payment is not set up yet. Please contact support and we will sort it out right away.",
       badge: "Secure & Automated Checkout",
       title: "Confirm purchase",
-      subtitle: "Credits add to your balance. They expire 365 days from this purchase.",
+      subtitle: "Credits add to your balance. They expire {paidTermDays} days from this purchase.",
       planSummary: "Order Summary",
       duration: "Duration:",
       durationValue: "1 Year (12 Months)",
@@ -1330,7 +1333,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
       statsPppNote: "Regional pricing · SePay & Paddle",
       pricingTeaserEyebrow: "Credit packs",
       pricingTeaserTitle: "Pay for the articles you unlock",
-      pricingTeaserSubtitle: "Three credit packs. Every purchase stacks and resets the 365-day term on the whole balance.",
+      pricingTeaserSubtitle: "Three credit packs. Every purchase stacks and resets the {paidTermDays}-day term on the whole balance.",
       viewDetailsBtn: "View details",
       finalCtaTitle: "Start looking things up — no more skimming.",
       finalCtaSubtitle: "5 gift credits a day when you sign in. Open articles are free.",
@@ -1440,7 +1443,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
     pricing: {
       badge: "点数套餐",
       title: "投资顶层认知与决策思维",
-      subtitle: "三种点数套餐，差别只在每点单价。每次购买累加余额，并将全部余额有效期重置为 365 天。",
+      subtitle: "三种点数套餐，差别只在每点单价。每次购买累加余额，并将全部余额有效期重置为 {paidTermDays} 天。",
       currentPlan: "当前使用方案",
       startFree: "立即开始阅读",
       upgradePlus: "升级 Plus 进阶版",
@@ -1521,7 +1524,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
     checkout: {
       badge: "安全合规与自动开通",
       title: "确认购买",
-      subtitle: "点数累加到余额，有效期 365 天（从本次购买起算）。",
+      subtitle: "点数累加到余额，有效期 {paidTermDays} 天（从本次购买起算）。",
       planSummary: "方案概览",
       duration: "订阅周期：",
       durationValue: "1 年 (12 个月)",
@@ -1769,7 +1772,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
       statsPppNote: "按地区定价 · SePay & Paddle",
       pricingTeaserEyebrow: "点数套餐",
       pricingTeaserTitle: "按您需要的节奏阅读",
-      pricingTeaserSubtitle: "三种点数套餐。每次购买累加余额，并将全部余额有效期重置为 365 天。",
+      pricingTeaserSubtitle: "三种点数套餐。每次购买累加余额，并将全部余额有效期重置为 {paidTermDays} 天。",
       viewDetailsBtn: "查看详情",
       finalCtaTitle: "开始查阅 — 无需再刷内容。",
       finalCtaSubtitle: "登录后每天获赠 5 点。Open 文章免费阅读。",
@@ -1879,7 +1882,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
     pricing: {
       badge: "Paquetes de créditos",
       title: "Invierte en un Pensamiento Superior",
-      subtitle: "Tres paquetes de créditos. Cada compra se acumula y reinicia el plazo de 365 días de todo el saldo.",
+      subtitle: "Tres paquetes de créditos. Cada compra se acumula y reinicia el plazo de {paidTermDays} días de todo el saldo.",
       currentPlan: "Tu Plan Actual",
       startFree: "Empezar a Leer",
       upgradePlus: "Mejorar a Plus",
@@ -1960,7 +1963,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
     checkout: {
       badge: "Pago Seguro y Automatizado",
       title: "Confirmar compra",
-      subtitle: "Los créditos se suman a tu saldo. Caducan 365 días después de esta compra.",
+      subtitle: "Los créditos se suman a tu saldo. Caducan {paidTermDays} días después de esta compra.",
       planSummary: "Resumen del pedido",
       duration: "Duración:",
       durationValue: "1 Año (12 Meses)",
@@ -2208,7 +2211,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
       statsPppNote: "Precios por región · SePay y Paddle",
       pricingTeaserEyebrow: "Paquetes de créditos",
       pricingTeaserTitle: "Lee al ritmo que necesitas",
-      pricingTeaserSubtitle: "Tres paquetes de créditos. Cada compra se acumula y reinicia el plazo de 365 días.",
+      pricingTeaserSubtitle: "Tres paquetes de créditos. Cada compra se acumula y reinicia el plazo de {paidTermDays} días.",
       viewDetailsBtn: "Ver detalles",
       finalCtaTitle: "Empieza a consultar — sin necesidad de hojear.",
       finalCtaSubtitle: "5 créditos de regalo al día al iniciar sesión. Los artículos Open son gratis.",
@@ -2318,7 +2321,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
     pricing: {
       badge: "Packs de crédits",
       title: "Investissez dans une Pensée Supérieure",
-      subtitle: "Trois packs de crédits. Chaque achat s'ajoute au solde et réinitialise le délai de 365 jours.",
+      subtitle: "Trois packs de crédits. Chaque achat s'ajoute au solde et réinitialise le délai de {paidTermDays} jours.",
       currentPlan: "Votre Forfait Actuel",
       startFree: "Commencer la Lecture",
       upgradePlus: "Passer à Plus",
@@ -2399,7 +2402,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
     checkout: {
       badge: "Paiement Sécurisé & Automatisé",
       title: "Confirmer l'achat",
-      subtitle: "Les crédits s'ajoutent au solde. Ils expirent 365 jours après cet achat.",
+      subtitle: "Les crédits s'ajoutent au solde. Ils expirent {paidTermDays} jours après cet achat.",
       planSummary: "Récapitulatif de la commande",
       duration: "Durée :",
       durationValue: "1 An (12 Mois)",
@@ -2647,7 +2650,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
       statsPppNote: "Tarifs selon région · SePay et Paddle",
       pricingTeaserEyebrow: "Packs de crédits",
       pricingTeaserTitle: "Lisez au rythme qui vous convient",
-      pricingTeaserSubtitle: "Trois packs de crédits. Chaque achat s'ajoute au solde et réinitialise le délai de 365 jours.",
+      pricingTeaserSubtitle: "Trois packs de crédits. Chaque achat s'ajoute au solde et réinitialise le délai de {paidTermDays} jours.",
       viewDetailsBtn: "Voir les détails",
       finalCtaTitle: "Commencez à consulter — plus besoin de survoler.",
       finalCtaSubtitle: "5 crédits offerts par jour une fois connecté. Les articles Open sont gratuits.",
@@ -2757,7 +2760,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
     pricing: {
       badge: "Credit-Pakete",
       title: "Investieren Sie in exzellentes Denken",
-      subtitle: "Drei Credit-Pakete. Jeder Kauf addiert sich und setzt die 365-Tage-Frist für das gesamte Guthaben zurück.",
+      subtitle: "Drei Credit-Pakete. Jeder Kauf addiert sich und setzt die {paidTermDays}-Tage-Frist für das gesamte Guthaben zurück.",
       currentPlan: "Ihr aktueller Tarif",
       startFree: "Jetzt lesen",
       upgradePlus: "Auf Plus upgraden",
@@ -3086,7 +3089,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
       statsPppNote: "Regionale Preise · SePay & Paddle",
       pricingTeaserEyebrow: "Credit-Pakete",
       pricingTeaserTitle: "Lesen Sie in Ihrem eigenen Tempo",
-      pricingTeaserSubtitle: "Drei Credit-Pakete. Jeder Kauf addiert sich und setzt die 365-Tage-Frist zurück.",
+      pricingTeaserSubtitle: "Drei Credit-Pakete. Jeder Kauf addiert sich und setzt die {paidTermDays}-Tage-Frist zurück.",
       viewDetailsBtn: "Details ansehen",
       finalCtaTitle: "Beginnen Sie mit dem Nachschlagen — kein Überfliegen mehr nötig.",
       finalCtaSubtitle: "5 Geschenk-Credits pro Tag nach der Anmeldung. Open-Artikel sind kostenlos.",
@@ -3196,7 +3199,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
     pricing: {
       badge: "クレジットパック",
       title: "卓越した思考力への自己投資",
-      subtitle: "3つのクレジットパック。購入ごとに残高に加算され、全残高の有効期限が365日にリセットされます。",
+      subtitle: "3つのクレジットパック。購入ごとに残高に加算され、全残高の有効期限が{paidTermDays}日にリセットされます。",
       currentPlan: "現在のプラン",
       startFree: "今すぐ読む",
       upgradePlus: "Plusプランにアップグレード",
@@ -3277,7 +3280,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
     checkout: {
       badge: "安全な決済と即時有効化",
       title: "購入の確認",
-      subtitle: "クレジットは残高に加算されます。この購入から365日間有効です。",
+      subtitle: "クレジットは残高に加算されます。この購入から{paidTermDays}日間有効です。",
       planSummary: "ご注文内容",
       duration: "期間:",
       durationValue: "1年間 (12ヶ月)",
@@ -3525,7 +3528,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
       statsPppNote: "地域別価格 · SePay & Paddle",
       pricingTeaserEyebrow: "クレジットパック",
       pricingTeaserTitle: "あなたのペースで読む",
-      pricingTeaserSubtitle: "3つのクレジットパック。購入ごとに残高に加算され、有効期限が365日にリセットされます。",
+      pricingTeaserSubtitle: "3つのクレジットパック。購入ごとに残高に加算され、有効期限が{paidTermDays}日にリセットされます。",
       viewDetailsBtn: "詳細を見る",
       finalCtaTitle: "調べることを始めよう — もう流し読みは不要。",
       finalCtaSubtitle: "ログインで毎日5クレジット進呈。Open記事は無料です。",
@@ -3635,7 +3638,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
     pricing: {
       badge: "크레딧 패키지",
       title: "탁월한 의사결정력을 위한 투자",
-      subtitle: "크레딧 패키지 3종. 구매 시 잔액에 합산되며 전체 잔액의 유효기간이 365일로 재설정됩니다.",
+      subtitle: "크레딧 패키지 3종. 구매 시 잔액에 합산되며 전체 잔액의 유효기간이 {paidTermDays}일로 재설정됩니다.",
       currentPlan: "현재 이용 중인 요금제",
       startFree: "지금 무료로 읽기",
       upgradePlus: "Plus 업그레이드",
@@ -3716,7 +3719,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
     checkout: {
       badge: "안전한 결제 및 즉시 활성화",
       title: "구매 확인",
-      subtitle: "크레딧이 잔액에 더해집니다. 이번 구매부터 365일간 유효합니다.",
+      subtitle: "크레딧이 잔액에 더해집니다. 이번 구매부터 {paidTermDays}일간 유효합니다.",
       planSummary: "주문 내역",
       duration: "구독 기간:",
       durationValue: "1년 (12개월)",
@@ -3964,7 +3967,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
       statsPppNote: "지역별 요금 · SePay & Paddle",
       pricingTeaserEyebrow: "크레딧 패키지",
       pricingTeaserTitle: "당신의 속도에 맞게 읽으세요",
-      pricingTeaserSubtitle: "크레딧 패키지 3종. 구매 시 잔액에 합산되며 유효기간이 365일로 재설정됩니다.",
+      pricingTeaserSubtitle: "크레딧 패키지 3종. 구매 시 잔액에 합산되며 유효기간이 {paidTermDays}일로 재설정됩니다.",
       viewDetailsBtn: "자세히 보기",
       finalCtaTitle: "훑어보는 대신 — 지금 바로 찾아보기를 시작하세요.",
       finalCtaSubtitle: "로그인 시 매일 5 크레딧 증정. Open 글은 무료입니다.",
@@ -4074,7 +4077,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
     pricing: {
       badge: "Пакеты кредитов",
       title: "Инвестиция в Стратегическое Мышление",
-      subtitle: "Три пакета кредитов. Каждая покупка добавляется к балансу и обновляет срок 365 дней.",
+      subtitle: "Три пакета кредитов. Каждая покупка добавляется к балансу и обновляет срок {paidTermDays} дней.",
       currentPlan: "Ваш текущий тариф",
       startFree: "Начать чтение",
       upgradePlus: "Перейти на Plus",
@@ -4155,7 +4158,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
     checkout: {
       badge: "Безопасная оплата",
       title: "Подтверждение покупки",
-      subtitle: "Кредиты добавляются к балансу. Срок 365 дней с этой покупки.",
+      subtitle: "Кредиты добавляются к балансу. Срок {paidTermDays} дней с этой покупки.",
       planSummary: "Информация о заказе",
       duration: "Период:",
       durationValue: "1 Год (12 Месяцев)",
@@ -4403,7 +4406,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
       statsPppNote: "Цены по региону · SePay и Paddle",
       pricingTeaserEyebrow: "Пакеты кредитов",
       pricingTeaserTitle: "Читайте в своём темпе",
-      pricingTeaserSubtitle: "Три пакета кредитов. Каждая покупка добавляется к балансу и обновляет срок 365 дней.",
+      pricingTeaserSubtitle: "Три пакета кредитов. Каждая покупка добавляется к балансу и обновляет срок {paidTermDays} дней.",
       viewDetailsBtn: "Подробнее",
       finalCtaTitle: "Начните искать — больше не нужно листать.",
       finalCtaSubtitle: "5 подарочных кредитов в день после входа. Статьи Open бесплатны.",
@@ -4952,7 +4955,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
     pricing: {
       badge: "باقات الرصيد",
       title: "استثمر في عقليتك وقراراتك",
-      subtitle: "ثلاث باقات رصيد. كل عملية شراء تُضاف إلى الرصيد وتعيد مهلة 365 يوماً.",
+      subtitle: "ثلاث باقات رصيد. كل عملية شراء تُضاف إلى الرصيد وتعيد مهلة {paidTermDays} يوماً.",
       currentPlan: "خطتك الحالية",
       startFree: "ابدأ القراءة",
       upgradePlus: "الترقية إلى Plus",
@@ -5033,7 +5036,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
     checkout: {
       badge: "دفع آمن وتفعيل فوري",
       title: "تأكيد الشراء",
-      subtitle: "تُضاف الأرصدة إلى رصيدك. صالحة 365 يوماً من هذه العملية.",
+      subtitle: "تُضاف الأرصدة إلى رصيدك. صالحة {paidTermDays} يوماً من هذه العملية.",
       planSummary: "ملخص الطلب",
       duration: "المدة:",
       durationValue: "سنة واحدة (12 شهراً)",
@@ -5281,7 +5284,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
       statsPppNote: "أسعار حسب المنطقة · SePay و Paddle",
       pricingTeaserEyebrow: "باقات الرصيد",
       pricingTeaserTitle: "اقرأ بالوتيرة التي تناسبك",
-      pricingTeaserSubtitle: "ثلاث باقات رصيد. كل عملية شراء تُضاف إلى الرصيد وتعيد مهلة 365 يوماً.",
+      pricingTeaserSubtitle: "ثلاث باقات رصيد. كل عملية شراء تُضاف إلى الرصيد وتعيد مهلة {paidTermDays} يوماً.",
       viewDetailsBtn: "عرض التفاصيل",
       finalCtaTitle: "ابدأ الرجوع إلى المعرفة — بلا حاجة للتصفح السريع.",
       finalCtaSubtitle: "5 أرصدة هدية يومياً عند تسجيل الدخول. مقالات Open مجانية.",
@@ -5472,7 +5475,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
     checkout: {
       badge: "सुरक्षित और त्वरित भुगतान",
       title: "खरीद की पुष्टि करें",
-      subtitle: "क्रेडिट आपके शेष में जुड़ जाते हैं। इस खरीद से 365 दिन तक मान्य।",
+      subtitle: "क्रेडिट आपके शेष में जुड़ जाते हैं। इस खरीद से {paidTermDays} दिन तक मान्य।",
       planSummary: "ऑर्डर विवरण",
       duration: "अवधि:",
       durationValue: "1 वर्ष (12 महीने)",
@@ -5830,7 +5833,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
     pricing: {
       badge: "Paket kredit",
       title: "Investasi untuk Pola Pikir Unggul",
-      subtitle: "Tiga paket kredit. Setiap pembelian menambah saldo dan mengatur ulang masa 365 hari.",
+      subtitle: "Tiga paket kredit. Setiap pembelian menambah saldo dan mengatur ulang masa {paidTermDays} hari.",
       currentPlan: "Paket Anda Saat Ini",
       startFree: "Mulai Membaca",
       upgradePlus: "Tingkatkan ke Plus",
@@ -5911,7 +5914,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
     checkout: {
       badge: "Pembayaran Aman & Otomatis",
       title: "Konfirmasi pembelian",
-      subtitle: "Kredit ditambahkan ke saldo. Berlaku 365 hari dari pembelian ini.",
+      subtitle: "Kredit ditambahkan ke saldo. Berlaku {paidTermDays} hari dari pembelian ini.",
       planSummary: "Ringkasan Pesanan",
       duration: "Durasi:",
       durationValue: "1 Tahun (12 Bulan)",
@@ -6159,7 +6162,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
       statsPppNote: "Harga berdasarkan wilayah · SePay & Paddle",
       pricingTeaserEyebrow: "Paket kredit",
       pricingTeaserTitle: "Baca sesuai kecepatan Anda",
-      pricingTeaserSubtitle: "Tiga paket kredit. Setiap pembelian menambah saldo dan mengatur ulang masa 365 hari.",
+      pricingTeaserSubtitle: "Tiga paket kredit. Setiap pembelian menambah saldo dan mengatur ulang masa {paidTermDays} hari.",
       viewDetailsBtn: "Lihat detail",
       finalCtaTitle: "Mulai mencari — tidak perlu membaca sekilas lagi.",
       finalCtaSubtitle: "5 kredit hadiah per hari setelah masuk. Artikel Open gratis.",
@@ -6269,7 +6272,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
     pricing: {
       badge: "แพ็กเกจเครดิต",
       title: "ลงทุนในกระบวนการคิดที่เหนือกว่า",
-      subtitle: "สามแพ็กเกจเครดิต แต่ละครั้งที่ซื้อจะสะสมยอดและรีเซ็ตอายุ 365 วันของยอดทั้งหมด",
+      subtitle: "สามแพ็กเกจเครดิต แต่ละครั้งที่ซื้อจะสะสมยอดและรีเซ็ตอายุ {paidTermDays} วันของยอดทั้งหมด",
       currentPlan: "แพ็กเกจปัจจุบันของคุณ",
       startFree: "เริ่มอ่านทันที",
       upgradePlus: "อัปเกรดเป็น Plus",
@@ -6350,7 +6353,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
     checkout: {
       badge: "ชำระเงินปลอดภัยและเปิดใช้งานทันที",
       title: "ยืนยันการซื้อ",
-      subtitle: "เครดิตสะสมเข้ายอดคงเหลือ มีอายุ 365 วันนับจากครั้งนี้",
+      subtitle: "เครดิตสะสมเข้ายอดคงเหลือ มีอายุ {paidTermDays} วันนับจากครั้งนี้",
       planSummary: "สรุปคำสั่งซื้อ",
       duration: "ระยะเวลา:",
       durationValue: "1 ปี (12 เดือน)",
@@ -6598,7 +6601,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
       statsPppNote: "ราคาตามภูมิภาค · SePay และ Paddle",
       pricingTeaserEyebrow: "แพ็กเกจเครดิต",
       pricingTeaserTitle: "อ่านตามจังหวะที่คุณต้องการ",
-      pricingTeaserSubtitle: "สามแพ็กเกจเครดิต แต่ละครั้งที่ซื้อจะสะสมยอดและรีเซ็ตอายุ 365 วัน",
+      pricingTeaserSubtitle: "สามแพ็กเกจเครดิต แต่ละครั้งที่ซื้อจะสะสมยอดและรีเซ็ตอายุ {paidTermDays} วัน",
       viewDetailsBtn: "ดูรายละเอียด",
       finalCtaTitle: "เริ่มค้นหา — ไม่ต้องอ่านผ่านๆ อีกต่อไป",
       finalCtaSubtitle: "5 เครดิตของขวัญต่อวันเมื่อเข้าสู่ระบบ บทความ Open อ่านฟรี",
@@ -6642,28 +6645,6 @@ export const TRANSLATIONS: Record<SupportedLanguage, DeepPartial<TranslationDict
   },
 };
 
-export const SUPPORTED_LANGUAGES_LIST: {
-  code: SupportedLanguage;
-  label: string;
-  nativeLabel: string;
-  flag: string;
-}[] = [
-  { code: "vi", label: "Tiếng Việt", nativeLabel: "Tiếng Việt", flag: "🇻🇳" },
-  { code: "en", label: "English", nativeLabel: "English", flag: "🇺🇸" },
-  { code: "zh", label: "Chinese (中文)", nativeLabel: "中文", flag: "🇨🇳" },
-  { code: "es", label: "Spanish (Español)", nativeLabel: "Español", flag: "🇪🇸" },
-  { code: "fr", label: "French (Français)", nativeLabel: "Français", flag: "🇫🇷" },
-  { code: "de", label: "German (Deutsch)", nativeLabel: "Deutsch", flag: "🇩🇪" },
-  { code: "ja", label: "Japanese (日本語)", nativeLabel: "日本語", flag: "🇯🇵" },
-  { code: "ko", label: "Korean (한국어)", nativeLabel: "한국어", flag: "🇰🇷" },
-  { code: "ru", label: "Russian (Русский)", nativeLabel: "Русский", flag: "🇷🇺" },
-  { code: "pt", label: "Portuguese (Português)", nativeLabel: "Português", flag: "🇧🇷" },
-  { code: "ar", label: "Arabic (العربية)", nativeLabel: "العربية", flag: "🇸🇦" },
-  { code: "hi", label: "Hindi (हिन्दी)", nativeLabel: "हिन्दी", flag: "🇮🇳" },
-  { code: "id", label: "Indonesian (Bahasa)", nativeLabel: "Bahasa Indonesia", flag: "🇮🇩" },
-  { code: "th", label: "Thai (ภาษาไทย)", nativeLabel: "ภาษาไทย", flag: "🇹🇭" },
-];
-
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -6691,10 +6672,27 @@ function deepMerge<T>(base: T, override: DeepPartial<T> | undefined): T {
   return result as T;
 }
 
+function applySiteCopyDeep<T>(value: T, lang: SupportedLanguage): T {
+  if (typeof value === "string") {
+    return interpolateSiteCopy(value, lang) as T;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => applySiteCopyDeep(item, lang)) as T;
+  }
+  if (isPlainObject(value)) {
+    const result: Record<string, unknown> = {};
+    for (const key of Object.keys(value)) {
+      result[key] = applySiteCopyDeep((value as Record<string, unknown>)[key], lang);
+    }
+    return result as T;
+  }
+  return value;
+}
+
 // `en` must stay fully populated — it's the runtime fallback base every
 // other language merges onto, not just the English translation.
 export function getTranslation(lang: SupportedLanguage = "vi"): TranslationDictionary {
   const base = TRANSLATIONS.en as unknown as TranslationDictionary;
-  if (lang === "en") return base;
-  return deepMerge<TranslationDictionary>(base, TRANSLATIONS[lang]);
+  const merged = lang === "en" ? base : deepMerge<TranslationDictionary>(base, TRANSLATIONS[lang]);
+  return applySiteCopyDeep(merged, lang);
 }
