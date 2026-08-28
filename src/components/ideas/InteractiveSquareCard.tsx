@@ -19,8 +19,7 @@ import { useSession } from "@/store/session";
 import { cn, formatViews, shareContent } from "@/lib/utils";
 import { getTranslation } from "@/lib/i18n/translations";
 import { CreditBadge } from "@/components/credits/CreditBadge";
-import { CREDIT_COST_BORDER } from "@/lib/credit-cost";
-import { parseCreditCost } from "@/lib/credit-cost";
+import { CREDIT_COST_ACCENT, CREDIT_COST_BORDER, parseCreditCost } from "@/lib/credit-cost";
 
 interface InteractiveSquareCardProps {
   post: Post;
@@ -28,12 +27,6 @@ interface InteractiveSquareCardProps {
   priorityIndex?: number;
   fontSizeClass?: string;
 }
-
-const PILLAR_ACCENT_VAR: Record<Post["pillar"], string> = {
-  MENTAL_MODEL: "var(--pillar-crimson)",
-  BUSINESS_STRATEGY: "var(--pillar-amber)",
-  STARTUP_IDEA: "var(--pillar-jade)",
-};
 
 export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -139,7 +132,7 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
   }
 
   const hoverScale = isLarge ? 1.008 : 1.02;
-  const pillarAccent = PILLAR_ACCENT_VAR[post.pillar];
+  const creditAccent = CREDIT_COST_ACCENT[creditCost];
 
   // Grid style computed from Slot coordinates if provided
   const gridStyle: React.CSSProperties = slot
@@ -183,16 +176,16 @@ export function InteractiveSquareCard({ post, slot }: InteractiveSquareCardProps
             ? "transform 0.08s ease-out, box-shadow 0.2s ease-out, border-color 0.25s ease-out"
             : "transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease, border-color 0.4s ease",
           transformStyle: "preserve-3d",
-          // Pillar identity now lives in the border itself — a tinted edge
-          // (not a saturated ring) so the card still reads as paper, just
-          // paper filed under a particular shelf. Strengthens on hover.
-          borderColor: `color-mix(in oklab, ${pillarAccent} ${isHovered ? "72%" : "40%"}, var(--border))`,
+          // Credit cost owns the edge (same hue as CreditBadge). An inline
+          // borderColor used to mix in the pillar accent and overrode the
+          // Tailwind CREDIT_COST_BORDER class, so a 3C card wore a crimson
+          // shelf-edge next to a violet label.
+          borderColor: `color-mix(in oklab, ${creditAccent} ${isHovered ? "85%" : "65%"}, var(--border))`,
         }}
         className={cn(
           "relative flex flex-col justify-between w-full h-full p-3.5 sm:p-4.5 md:p-5 rounded-2xl md:rounded-3xl border-2 bg-card overflow-hidden",
           CREDIT_COST_BORDER[creditCost],
           "shadow-xs hover:shadow-xl",
-          isHovered && "ring-1 ring-primary/20"
         )}
       >
         {/* Dynamic glare overlay */}

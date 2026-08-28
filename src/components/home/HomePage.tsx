@@ -29,9 +29,8 @@ const PILLAR_ICONS: Record<PillarType, typeof Brain> = {
   STARTUP_IDEA: Lightbulb,
 };
 
-// Same theme-reactive CSS vars InteractiveSquareCard borders with, so the
-// pillar showcase cards below read as the exact same "object" as the real
-// content cards, not a separate marketing-only palette.
+// Pillar showcase cards keep the shelf-colour of each trụ cột. Article
+// cards (InteractiveSquareCard) edge by credit cost, not pillar.
 const PILLAR_ACCENT_VAR: Record<PillarType, string> = {
   MENTAL_MODEL: "var(--pillar-crimson)",
   BUSINESS_STRATEGY: "var(--pillar-amber)",

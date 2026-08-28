@@ -11,7 +11,17 @@ export function parseCreditCost(value: unknown, fallback: CreditCost = 1): Credi
   return isCreditCost(n) ? n : fallback;
 }
 
-/** Card / badge border colour per CREDIT_PRICING_MODEL.md. */
+/** Card / badge colour per CREDIT_PRICING_MODEL.md — one hue per cost. */
+export const CREDIT_COST_ACCENT: Record<CreditCost, string> = {
+  0: "oklch(1 0 0)",
+  1: "#10b981",
+  2: "#3b82f6",
+  3: "#8b5cf6",
+  4: "#fbbf24",
+  5: "#ef4444",
+};
+
+/** Tailwind border class matching CREDIT_COST_ACCENT (emerald / blue / violet / amber / red). */
 export const CREDIT_COST_BORDER: Record<CreditCost, string> = {
   0: "border-white dark:border-white/80",
   1: "border-emerald-500",
