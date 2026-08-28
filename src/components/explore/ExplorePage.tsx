@@ -28,7 +28,7 @@ import {
   paginateSkylineRows,
   MIN_CARDS_PER_PAGE,
   readSkylineNumCols,
-  skylineGapPx,
+  applySkylineGridMetrics,
   type SlottedPost,
 } from "@/lib/algorithms/skyline-packer";
 import {
@@ -114,7 +114,8 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
   const initialQ = searchParams.get("q") || "";
   const initialPillar = (searchParams.get("pillar") as PillarFilter) || "ALL";
 
-  const { posts } = usePosts({ pageSize: 200 }, initialPosts);
+  const urlQ = searchParams.get("q") || "";
+  const { posts } = usePosts({ pageSize: 200, q: urlQ || undefined }, urlQ ? undefined : initialPosts);
   const user = useSession((s) => s.user);
   const bookmarks = useSession((s) => s.bookmarks);
   const hideSavedPosts = useSession((s) => s.hideSavedPosts);
@@ -134,10 +135,9 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
   // media queries used to bump --cols to 12 on desktop while this state
   // stayed at 4 until a resize effect ran, so cards were placed for a
   // 4-column skyline into a 12-column grid — huge gaps and broken rows.
-  // numCols is synced in useLayoutEffect before paint; the grid itself
-  // waits for that so SSR never emits slot coordinates for the wrong width.
+  // numCols is synced in useLayoutEffect before paint so the first client
+  // frame already uses the real column count.
   const [numCols, setNumCols] = useState(4);
-  const [gridReady, setGridReady] = useState(false);
   const [page, setPage] = useState(1);
 
   // A query arriving via ?q= (header search "Xem toàn bộ") should filter
@@ -150,46 +150,18 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
     }
   }, [searchParams]);
 
-  // Responsive column count — must match --cols on the grid element (set below).
+  // Packing (`numCols`) and CSS (`--cols` / `--cell`) must agree before paint.
+  // Updating --cols in useEffect ran after the first frame, so desktop users
+  // saw 12-col slots in a 4-col grid: overlapping cards, huge titles, dead clicks.
+  const gridRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     function syncCols() {
       setNumCols(readSkylineNumCols());
     }
     syncCols();
-    setGridReady(true);
     window.addEventListener("resize", syncCols);
     return () => window.removeEventListener("resize", syncCols);
   }, []);
-
-  // Cell size for the bento grid, measured from the grid's own actual
-  // rendered width rather than derived in pure CSS (a self-referencing
-  // container-query calc broke as soon as this grid sat next to any
-  // sibling that changed its available width — ResizeObserver reads the
-  // real post-layout width instead, so it's correct however it's nested).
-  const gridRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = gridRef.current;
-    if (!el) return;
-
-    function applyCellSize() {
-      if (!el) return;
-      const cols = readSkylineNumCols();
-      const gap = skylineGapPx(cols);
-      el.style.setProperty("--cols", String(cols));
-      el.style.setProperty("--gap", `${gap}px`);
-      const gapPx = parseFloat(getComputedStyle(el).columnGap) || gap;
-      const width = el.clientWidth;
-      if (width > 0) {
-        const cell = (width - gapPx * (cols - 1)) / cols;
-        el.style.setProperty("--cell", `${cell}px`);
-      }
-    }
-
-    applyCellSize();
-    const observer = new ResizeObserver(applyCellSize);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [numCols, gridReady]);
 
   // 1. Pillar / access / hide-saved — what the tag cloud below is computed
   // from, so a chosen tag never dead-ends into 0 results, and what every
@@ -240,18 +212,6 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
 
     if (selectedTag) list = list.filter((p) => p.tags?.includes(selectedTag));
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          p.summarySnippet?.toLowerCase().includes(q) ||
-          p.shortDescription?.toLowerCase().includes(q) ||
-          p.category.toLowerCase().includes(q) ||
-          p.tags?.some((t) => t.toLowerCase().includes(q))
-      );
-    }
-
     return [...list].sort((a, b) => {
       switch (sortOption) {
         case "DATE_DESC":
@@ -270,7 +230,7 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
           return 0;
       }
     });
-  }, [baseFilteredPosts, readStatusFilter, user, isPostRead, selectedTag, searchQuery, sortOption]);
+  }, [baseFilteredPosts, readStatusFilter, user, isPostRead, selectedTag, sortOption]);
 
   const hasActiveFilters =
     pillarFilter !== "ALL" ||
@@ -319,8 +279,21 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
     .filter((f) => f.row >= rowStart && f.row < rowEnd)
     .map((f) => ({ ...f, row: f.row - rowStart }));
 
+  const showGrid = pageSlottedPosts.length > 0;
+  useLayoutEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+    const cols = readSkylineNumCols();
+    applySkylineGridMetrics(el, cols);
+    const observer = new ResizeObserver(() => {
+      if (gridRef.current) applySkylineGridMetrics(gridRef.current, readSkylineNumCols());
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [numCols, showGrid]);
+
   const bentoGrid =
-    gridReady && pageSlottedPosts.length > 0 ? (
+    showGrid ? (
       <div className="skyline-grid pb-4" ref={gridRef}>
         {pageSlottedPosts.map((item, idx) => (
           <InteractiveSquareCard
@@ -779,8 +752,6 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
           {bentoGrid}
           {paginationControls}
         </div>
-      ) : !gridReady && filteredPosts.length > 0 ? (
-        <div className="py-16 text-center text-sm text-muted-foreground">{t.explore.loadingLibrary}</div>
       ) : (
         <div className="text-center py-20 bg-card rounded-3xl border border-dashed border-border p-8 max-w-md mx-auto">
           <Brain className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />

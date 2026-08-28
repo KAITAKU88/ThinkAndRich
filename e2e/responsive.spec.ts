@@ -172,6 +172,8 @@ test.describe("admin console on a phone", () => {
     "Quản lý Người dùng",
     "Đơn hàng & Doanh thu",
     "MCP Connector",
+    "Thanh toán & giá",
+    "Cấu hình",
   ];
 
   test("every console tab stays within the mobile viewport", async ({ page }) => {

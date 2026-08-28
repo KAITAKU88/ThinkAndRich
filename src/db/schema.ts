@@ -266,6 +266,22 @@ export const appSettings = sqliteTable("app_settings", {
   updatedBy: text("updated_by"),
 });
 
+// Login / recovery codes. D1 is strongly consistent; the previous KV store
+// was not, so a code emailed in one colo was often invisible to verify in
+// another for up to a minute — the user saw "OTP hết hạn hoặc không chính xác".
+export const authOtps = sqliteTable(
+  "auth_otps",
+  {
+    email: text("email").notNull(),
+    code: text("code").notNull(),
+    expiresAt: text("expires_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.email, table.code] }),
+    index("auth_otps_expires_idx").on(table.expiresAt),
+  ]
+);
+
 export const marketPricing = sqliteTable(
   "market_pricing",
   {

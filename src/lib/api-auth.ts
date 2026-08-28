@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { verifySession, SESSION_COOKIE, type SessionPayload } from "@/lib/session-token";
+import { ADMIN_SESSION_EPOCH_KEY, isAdminSessionStale } from "@/lib/owner-recovery";
 
 export interface ApiAuthContext {
   session: SessionPayload;
@@ -16,6 +17,14 @@ export async function requireSession(request: NextRequest): Promise<ApiAuthConte
   const { env } = getCloudflareContext();
   const session = await verifySession(token, env.JWT_SECRET);
   if (!session) return null;
+  if (session.role === "ADMIN") {
+    try {
+      const epoch = Number((await env.OTP_KV.get(ADMIN_SESSION_EPOCH_KEY)) ?? 0) || 0;
+      if (isAdminSessionStale(session.iat, epoch)) return null;
+    } catch {
+      // KV outage must not lock the console; epoch is a revocation signal, not a gate.
+    }
+  }
   return { session, env };
 }
 

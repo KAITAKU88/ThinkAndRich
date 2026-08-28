@@ -1,7 +1,8 @@
-import { and, asc, desc, eq, like, or } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { posts } from "@/db/schema";
 import { rowToPost } from "@/lib/server/post-row";
+import { publicPostSearchCondition } from "@/lib/server/public-search";
 import type { Post } from "@/lib/types";
 
 export interface PublicPostFilters {
@@ -23,9 +24,7 @@ export async function getPublicPosts(dbBinding: D1Database, filters: PublicPostF
     conditions.push(eq(posts.pillar, filters.pillar));
   }
   if (q) {
-    conditions.push(
-      or(like(posts.title, `%${q}%`), like(posts.summarySnippet, `%${q}%`), like(posts.tags, `%${q}%`))!
-    );
+    conditions.push(publicPostSearchCondition(q));
   }
 
   const orderBy =

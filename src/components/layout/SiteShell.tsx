@@ -23,6 +23,8 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
   // site's header, footer, bottom nav, or the anonymous-visitor auth
   // dialog. restoreSession() below still needs to run there too, since
   // AdminLayout's own auth relies on `useSession().user` being populated.
+  // Console hostname redirects `/` → `/admin` (see middleware). Localhost
+  // and the /admin/login|/admin/recover routes already live under this prefix.
   const isAdmin = pathname?.startsWith("/admin");
   // The store persists to localStorage, which the server can't see —
   // useSession is configured with skipHydration so both the server and

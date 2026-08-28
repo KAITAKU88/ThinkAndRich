@@ -23,7 +23,7 @@ interface McpKey {
 
 const MCP_PATH = "/api/mcp";
 
-export function McpKeysPanel() {
+export function McpKeysPanel({ publicSiteUrl }: { publicSiteUrl: string }) {
   const [keys, setKeys] = useState<McpKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [label, setLabel] = useState("");
@@ -84,9 +84,12 @@ export function McpKeysPanel() {
     else setError(data.message ?? "Thu hồi thất bại.");
   }
 
-  const connectorUrl = freshKey
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}${MCP_PATH}?key=${freshKey}`
-    : "";
+  const origin = publicSiteUrl.replace(/\/$/, "") || (typeof window !== "undefined" ? window.location.origin : "");
+  const mcpUrl = `${origin}${MCP_PATH}`;
+  const oauthMetadataUrl = `${origin}/.well-known/oauth-protected-resource`;
+  const authorizeUrl = `${origin}/mcp/authorize`;
+
+  const connectorUrl = freshKey ? `${mcpUrl}?key=${freshKey}` : "";
 
   async function copyUrl() {
     await navigator.clipboard.writeText(connectorUrl);
@@ -114,49 +117,66 @@ export function McpKeysPanel() {
           automatically by /mcp/authorize when a client completes the dance).
           Neither is "the" way to connect; which one an admin needs depends on
           what the AI client's connector settings ask for. */}
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 lg:grid-cols-2">
         <details className="group rounded-lg border border-border bg-secondary/30 open:bg-secondary/50" open>
           <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium flex items-center justify-between">
-            <span>Cách 1 — API Key thủ công</span>
-            <span className="text-xs text-muted-foreground group-open:hidden">Xem hướng dẫn</span>
+            <span>Hướng dẫn 1 — API Key thủ công</span>
+            <span className="text-xs text-muted-foreground group-open:hidden">Mở</span>
           </summary>
-          <ol className="px-4 pb-4 space-y-2 text-xs text-muted-foreground list-decimal list-inside">
-            <li>Đặt tên gợi nhớ ở ô bên dưới (ví dụ &quot;Claude.ai của tôi&quot;), bấm <strong>Tạo key mới</strong>.</li>
-            <li>Hệ thống hiện đúng một lần URL dạng <code className="text-[11px]">/api/mcp?key=…</code> — sao chép ngay.</li>
-            <li>
-              Trong khung thêm Custom Connector của Claude.ai / ChatGPT: dán nguyên URL đó vào ô{" "}
-              <strong>Remote MCP server URL</strong>, để trống các ô Client ID / Client Secret.
-            </li>
-            <li>Xong — client dùng thẳng key trong URL, không cần đăng nhập hay ủy quyền gì thêm.</li>
-            <li>Muốn ngắt kết nối: bấm <strong>Thu hồi</strong> ở bảng bên dưới — chặn ngay request kế tiếp.</li>
-          </ol>
-          <p className="px-4 pb-4 text-xs text-muted-foreground/80">
-            Phù hợp khi: chỉ dùng cho một client duy nhất, muốn thiết lập nhanh, không cần đăng nhập lại mỗi phiên.
-          </p>
+          <div className="px-4 pb-4 space-y-3 text-xs text-muted-foreground leading-relaxed">
+            <p>
+              Dùng khi Claude.ai, ChatGPT hoặc một MCP client cho phép dán URL kèm secret, không bắt OAuth.
+              Key nằm trong query <code className="text-[11px]">?key=</code>. Hệ thống chỉ lưu bản băm — mất key là phải tạo key mới.
+            </p>
+            <ol className="space-y-2 list-decimal list-inside">
+              <li>Đặt tên gợi nhớ (ví dụ «Claude desktop máy A»), bấm <strong className="text-foreground">Tạo key mới</strong>.</li>
+              <li>Sao chép ngay URL một lần hiện ra (dạng <code className="text-[11px]">{mcpUrl}?key=…</code>). Đóng banner là không xem lại được.</li>
+              <li>
+                Claude.ai: Settings → Connectors → Add custom connector. Ô <strong className="text-foreground">Remote MCP server URL</strong> dán nguyên URL có <code className="text-[11px]">?key=</code>. Để trống Client ID và Client Secret.
+              </li>
+              <li>
+                Claude Desktop: trong <code className="text-[11px]">claude_desktop_config.json</code>, thêm server type url, url = URL vừa copy. Không khai báo OAuth.
+              </li>
+              <li>
+                ChatGPT custom GPT / MCP: dán cùng URL vào trường server. Nếu form bắt OAuth, chuyển sang hướng dẫn 2.
+              </li>
+              <li>Kiểm tra: client liệt kê tool soạn bản nháp. Không có quyền xuất bản hay xóa bài.</li>
+              <li>Ngắt: <strong className="text-foreground">Thu hồi</strong> trên hàng key tương ứng — request kế tiếp bị từ chối.</li>
+            </ol>
+            <p className="text-muted-foreground/90">
+              Endpoint: <code className="text-[11px] break-all text-foreground">{mcpUrl}</code>
+            </p>
+          </div>
         </details>
 
-        <details className="group rounded-lg border border-border bg-secondary/30 open:bg-secondary/50">
+        <details className="group rounded-lg border border-border bg-secondary/30 open:bg-secondary/50" open>
           <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium flex items-center justify-between">
-            <span>Cách 2 — OAuth (tự động)</span>
-            <span className="text-xs text-muted-foreground group-open:hidden">Xem hướng dẫn</span>
+            <span>Hướng dẫn 2 — OAuth</span>
+            <span className="text-xs text-muted-foreground group-open:hidden">Mở</span>
           </summary>
-          <ol className="px-4 pb-4 space-y-2 text-xs text-muted-foreground list-decimal list-inside">
-            <li>
-              Trong khung thêm Custom Connector: dán URL gốc <code className="text-[11px]">/api/mcp</code> (không có{" "}
-              <code className="text-[11px]">?key=</code>) — để trống Client ID / Client Secret, client sẽ tự đăng ký.
-            </li>
-            <li>Client tự phát hiện endpoint OAuth của hệ thống và tự đăng ký (RFC 7591) — không cần thao tác gì.</li>
-            <li>
-              Trình duyệt mở màn hình <strong>Ủy quyền kết nối</strong>. Chưa đăng nhập Admin thì hệ thống bắt đăng
-              nhập trước, rồi quay lại đúng chỗ.
-            </li>
-            <li>Đọc kỹ quyền được cấp (chỉ bài nháp — không xuất bản, không xóa), bấm <strong>Cho phép kết nối</strong>.</li>
-            <li>Xong — kết nối này tự xuất hiện trong bảng bên dưới với nhãn <strong>OAuth</strong>, thu hồi y hệt cách 1.</li>
-          </ol>
-          <p className="px-4 pb-4 text-xs text-muted-foreground/80">
-            Phù hợp khi: client yêu cầu OAuth thay vì nhận URL/key thủ công, hoặc muốn mỗi kết nối được cấp quyền
-            riêng, không dùng chung 1 secret.
-          </p>
+          <div className="px-4 pb-4 space-y-3 text-xs text-muted-foreground leading-relaxed">
+            <p>
+              Dùng khi client bắt buộc OAuth 2.1 (Claude.ai Custom Connector kiểu «Sign in», hoặc client tự động phát hiện metadata).
+              Không tạo key thủ công. Sau khi bạn bấm Cho phép, một hàng loại OAuth xuất hiện trong bảng dưới.
+            </p>
+            <ol className="space-y-2 list-decimal list-inside">
+              <li>
+                Dán đúng URL gốc, không có query: <code className="text-[11px] break-all text-foreground">{mcpUrl}</code>
+              </li>
+              <li>Để trống Client ID / Client Secret. Client tự gọi đăng ký động (RFC 7591) tại <code className="text-[11px]">/api/mcp/oauth/register</code>.</li>
+              <li>
+                Client đọc metadata tại <code className="text-[11px] break-all">{oauthMetadataUrl}</code> rồi mở trình duyệt tới màn hình ủy quyền:{" "}
+                <code className="text-[11px] break-all">{authorizeUrl}</code>
+              </li>
+              <li>Phải đăng nhập bằng tài khoản admin (OTP). Nếu chưa đăng nhập, hệ thống đưa tới trang đăng nhập admin rồi trả lại đúng chỗ.</li>
+              <li>Đọc phạm vi: chỉ tạo/sửa bản nháp, không xuất bản, không xóa. Bấm <strong className="text-foreground">Cho phép kết nối</strong>.</li>
+              <li>Quay lại client — kết nối hiện trong bảng với nhãn OAuth. Thu hồi giống API Key.</li>
+            </ol>
+            <p>
+              Lưu ý: URL MCP phải là hostname trang công khai ({origin || "thinkandrich.ankiva.cc"}), không phải hostname admin.
+              OAuth redirect không chạy nếu dán nhầm host console.
+            </p>
+          </div>
         </details>
       </div>
 

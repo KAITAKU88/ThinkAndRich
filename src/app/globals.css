@@ -862,12 +862,14 @@ body.focus-mode-active [data-focus-dimmable="true"] {
   gap: var(--gap);
 }
 
-/* --cols and --gap are set from JS (ExplorePage) so they always match the
-   packing algorithm's numCols. Media-query overrides here caused desktop
-   CSS to use 12 columns while JS still packed for 4 until a resize effect. */
+/* --cols / --gap / --cell are set from JS in useLayoutEffect (ExplorePage)
+   so they always match the packing algorithm's numCols before paint.
+   Do not add media-query overrides for --cols here: desktop CSS at 12
+   columns while JS still packed for 4 made cards overlap and swallowed clicks. */
 
 .skyline-card-container {
   container-type: inline-size;
+  isolation: isolate;
 }
 
 .skyline-card-title {
@@ -881,3 +883,72 @@ body.focus-mode-active [data-focus-dimmable="true"] {
   -webkit-line-clamp: 5;
   overflow: hidden;
 }
+
+/* Swiss typesetting desk — Full editor + live preview. Tokens stay inside
+   this overlay: white/neutral surface, Helvetica, Yves Klein Blue hairline. */
+.typeset-desk {
+  background: #f7f7f8;
+  color: #111;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.typeset-desk-bar {
+  border-bottom: 1px solid #111;
+  background: #ffffff;
+}
+
+.typeset-desk-folio {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.typeset-desk-time {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: #555;
+  flex-shrink: 0;
+}
+
+.typeset-desk-full {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #ffffff;
+  background: #002fa7;
+  border: 1px solid #002fa7;
+}
+
+.typeset-desk-full:hover {
+  background: #001f6f;
+}
+
+.typeset-desk-col-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 10px 16px 8px;
+  color: #111;
+}
+
+.typeset-desk-preview {
+  border-left: 1px solid #002fa7;
+}
+
+@media (max-width: 1023px) {
+  .typeset-desk-preview {
+    border-left: none;
+    border-top: 1px solid #002fa7;
+  }
+}
+

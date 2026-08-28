@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatFormula, formatViews, timeAgo } from "./utils";
+import { formatFormula, formatViews, timeAgo, formatDateTime } from "./utils";
 
 describe("formatFormula", () => {
   it("strips \\text{} grouping", () => {
@@ -38,6 +38,19 @@ describe("formatViews", () => {
 
   it("handles zero", () => {
     expect(formatViews(0)).toBe("0");
+  });
+});
+
+describe("formatDateTime", () => {
+  it("returns an em dash for empty or invalid values", () => {
+    expect(formatDateTime("")).toBe("—");
+    expect(formatDateTime("not-a-date")).toBe("—");
+  });
+
+  it("formats a valid ISO timestamp with date and time", () => {
+    const text = formatDateTime("2026-08-28T07:30:00.000Z");
+    expect(text).not.toBe("—");
+    expect(text).toMatch(/2026/);
   });
 });
 

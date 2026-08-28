@@ -15,6 +15,7 @@ import {
   BadgeDollarSign,
   Plug,
   CreditCard,
+  Settings,
 } from "lucide-react";
 import { useSession } from "@/store/session";
 import { useAdminPosts, type AdminPost } from "@/lib/admin/use-admin-posts";
@@ -25,6 +26,7 @@ import { OrdersTable } from "@/components/admin/OrdersTable";
 import { McpKeysPanel } from "@/components/admin/McpKeysPanel";
 import { PaymentSettingsPanel } from "@/components/admin/PaymentSettingsPanel";
 import { PricingRefreshPanel } from "@/components/admin/PricingRefreshPanel";
+import { OwnerSettingsPanel } from "@/components/admin/OwnerSettingsPanel";
 import { cn, timeAgo } from "@/lib/utils";
 
 const SIDEBAR = [
@@ -34,6 +36,7 @@ const SIDEBAR = [
   { id: "orders", label: "Đơn hàng & Doanh thu", icon: Wallet },
   { id: "mcp", label: "MCP Connector", icon: Plug },
   { id: "payment", label: "Thanh toán & giá", icon: CreditCard },
+  { id: "settings", label: "Cấu hình", icon: Settings },
 ] as const;
 
 type TabId = (typeof SIDEBAR)[number]["id"];
@@ -50,7 +53,7 @@ export function AdminPage({ publicSiteUrl }: AdminPageProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<AdminPost | "new" | null>(null);
 
-  const { posts, loading, createPost, updatePost, deletePost } = useAdminPosts();
+  const { posts, total, counts, loading, refresh, createPost, updatePost, deletePost } = useAdminPosts();
 
   // Middleware already gates /admin server-side (src/middleware.ts) — this
   // is just avoiding a flash of the wrong content while restoreSession()
@@ -136,7 +139,7 @@ export function AdminPage({ publicSiteUrl }: AdminPageProps) {
         </header>
 
         <main className="p-3 sm:p-4 lg:p-6">
-          {tab === "overview" && <OverviewTab postsCount={posts.length} />}
+          {tab === "overview" && <OverviewTab />}
 
           {tab === "posts" &&
             (editingPost ? (
@@ -150,7 +153,10 @@ export function AdminPage({ publicSiteUrl }: AdminPageProps) {
             ) : (
               <PostsTable
                 posts={posts}
+                total={total}
+                counts={counts}
                 loading={loading}
+                onQuery={refresh}
                 onEdit={(p) => setEditingPost(p)}
                 onDelete={deletePost}
                 onCreateNew={() => setEditingPost("new")}
@@ -159,7 +165,7 @@ export function AdminPage({ publicSiteUrl }: AdminPageProps) {
 
           {tab === "users" && <UsersTable />}
           {tab === "orders" && <OrdersTable />}
-          {tab === "mcp" && <McpKeysPanel />}
+          {tab === "mcp" && <McpKeysPanel publicSiteUrl={publicSiteUrl} />}
 
           {tab === "payment" && (
             <div className="space-y-6">
@@ -167,6 +173,8 @@ export function AdminPage({ publicSiteUrl }: AdminPageProps) {
               <PricingRefreshPanel />
             </div>
           )}
+
+          {tab === "settings" && <OwnerSettingsPanel />}
         </main>
       </div>
     </div>
@@ -180,12 +188,16 @@ interface RecentActivity {
   readAt: string;
 }
 
-function OverviewTab({ postsCount }: { postsCount: number }) {
+function OverviewTab() {
+  const [postsCount, setPostsCount] = useState<number | null>(null);
   const [userCount, setUserCount] = useState<number | null>(null);
   const [revenueVnd, setRevenueVnd] = useState<number | null>(null);
   const [recent, setRecent] = useState<RecentActivity[]>([]);
 
   useEffect(() => {
+    fetch("/api/admin/posts?page=1&pageSize=50")
+      .then((r) => r.json() as Promise<{ ok: boolean; counts?: { ALL: number } }>)
+      .then((d) => d.ok && d.counts && setPostsCount(d.counts.ALL));
     fetch("/api/admin/users")
       .then((r) => r.json() as Promise<{ ok: boolean; users?: unknown[] }>)
       .then((d) => d.ok && d.users && setUserCount(d.users.length));
@@ -203,7 +215,7 @@ function OverviewTab({ postsCount }: { postsCount: number }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <StatCard icon={<FileText className="w-4 h-4" />} label="Bài viết" value={String(postsCount)} />
+        <StatCard icon={<FileText className="w-4 h-4" />} label="Bài viết" value={postsCount === null ? "…" : String(postsCount)} />
         <StatCard icon={<UserCheck className="w-4 h-4" />} label="Người dùng" value={userCount === null ? "…" : String(userCount)} />
         <StatCard icon={<BadgeDollarSign className="w-4 h-4" />} label="Doanh thu (VND)" value={revenueVnd === null ? "…" : revenueVnd.toLocaleString("vi-VN")} />
       </div>

@@ -40,6 +40,24 @@ export function skylineGapPx(numCols: number): number {
   return 10;
 }
 
+/** Write --cols / --gap / --cell onto the grid element. Must run in
+ *  useLayoutEffect (before paint): packing uses `numCols` while CSS uses
+ *  these variables. If they disagree for even one frame, cards overlap,
+ *  titles blow up via cqw, and buttons stop receiving clicks. */
+export function applySkylineGridMetrics(el: HTMLElement, numCols: number): void {
+  const gap = skylineGapPx(numCols);
+  el.style.setProperty("--cols", String(numCols));
+  el.style.setProperty("--gap", `${gap}px`);
+  const gapPx =
+    typeof getComputedStyle === "function"
+      ? parseFloat(getComputedStyle(el).columnGap) || gap
+      : gap;
+  const width = el.clientWidth;
+  if (width > 0) {
+    el.style.setProperty("--cell", `${(width - gapPx * (numCols - 1)) / numCols}px`);
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Seeded PRNG — deterministic so layout never flickers on re-render
 // ─────────────────────────────────────────────────────────────────────────────

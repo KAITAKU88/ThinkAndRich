@@ -20,7 +20,8 @@ describe("signSession / verifySession", () => {
   it("round-trips a valid token", async () => {
     const token = await signSession(payload, SECRET);
     const result = await verifySession(token, SECRET);
-    expect(result).toEqual(payload);
+    expect(result).toMatchObject(payload);
+    expect(result?.iat).toEqual(expect.any(Number));
   });
 
   it("rejects a token signed with a different secret", async () => {

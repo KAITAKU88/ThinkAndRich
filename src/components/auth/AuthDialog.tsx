@@ -31,6 +31,7 @@ export function AuthDialog() {
   const [otpCode, setOtpCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(60);
+  const [devCode, setDevCode] = useState<string | null>(null);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -68,10 +69,17 @@ export function AuthDialog() {
 
     setStep("OTP");
     setCountdown(60);
-    toast.success(t.auth.otpSentToastTitle, {
-      description: `${t.auth.otpSentToastDescPrefix} ${email}. ${t.auth.otpSentToastDescSuffix.replace("{minutes}", String(OTP_TTL_MINUTES))}`,
-      duration: 8000,
-    });
+    if (res.devCode) {
+      setDevCode(res.devCode);
+      setOtpCode(res.devCode);
+      toast.success("Môi trường local — mã OTP đã điền sẵn.");
+    } else {
+      setDevCode(null);
+      toast.success(t.auth.otpSentToastTitle, {
+        description: `${t.auth.otpSentToastDescPrefix} ${email}. ${t.auth.otpSentToastDescSuffix.replace("{minutes}", String(OTP_TTL_MINUTES))}`,
+        duration: 8000,
+      });
+    }
   }
 
   async function handleVerifyOtp(e: React.FormEvent) {
@@ -168,6 +176,11 @@ export function AuthDialog() {
                   setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))
                 }
               />
+              {devCode && (
+                <p className="text-[11px] text-muted-foreground">
+                  Local không gửi email. Mã OTP: <code className="font-mono text-foreground">{devCode}</code>
+                </p>
+              )}
             </div>
 
             <Button

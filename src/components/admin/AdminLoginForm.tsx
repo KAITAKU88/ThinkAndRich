@@ -34,6 +34,7 @@ export function AdminLoginForm() {
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(60);
   const [deniedReason, setDeniedReason] = useState<string | null>(null);
+  const [devCode, setDevCode] = useState<string | null>(null);
 
   useEffect(() => {
     useSession.persist.rehydrate();
@@ -71,7 +72,14 @@ export function AdminLoginForm() {
     setDeniedReason(null);
     setStep("OTP");
     setCountdown(60);
-    toast.success("Đã gửi mã xác thực OTP tới email quản trị.");
+    if (res.devCode) {
+      setDevCode(res.devCode);
+      setOtpCode(res.devCode);
+      toast.success("Môi trường local — Cloudflare không gửi email. Mã OTP đã điền sẵn.");
+    } else {
+      setDevCode(null);
+      toast.success("Đã gửi mã xác thực OTP tới email quản trị.");
+    }
   }
 
   async function handleVerify(e: React.FormEvent) {
@@ -106,6 +114,9 @@ export function AdminLoginForm() {
           <p className="text-xs text-muted-foreground mt-1.5">
             Khu vực nội bộ Think & Rich — chỉ dành cho quản trị viên.
           </p>
+          <a href="/admin/recover" className="mt-2 text-[11px] text-muted-foreground underline">
+            Khôi phục tài khoản chủ sở hữu
+          </a>
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-6">
@@ -153,6 +164,14 @@ export function AdminLoginForm() {
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                 />
+                {devCode && (
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Local không gửi được email. Mã OTP:{" "}
+                    <code className="font-mono text-foreground">{devCode}</code>
+                    . Email phải nằm trong <code className="text-[10px]">ADMIN_EMAILS</code> ở{" "}
+                    <code className="text-[10px]">.dev.vars</code>.
+                  </p>
+                )}
               </div>
               <Button type="submit" className="w-full h-10 font-medium" disabled={loading || otpCode.length < 6}>
                 {loading ? "Đang xác thực..." : (

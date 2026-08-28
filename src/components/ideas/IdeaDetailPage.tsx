@@ -349,9 +349,15 @@ export function PostDetailPage() {
                 {t.detail.tagsLabel}
               </span>
               {post.tags.map((tag) => (
-                <Badge key={tag} variant="secondary" className="rounded-full px-3 py-0.5 text-xs font-normal">
-                  #{tag}
-                </Badge>
+                <Link
+                  key={tag}
+                  href={`/explore?q=${encodeURIComponent(tag)}`}
+                  className="inline-flex"
+                >
+                  <Badge variant="secondary" className="rounded-full px-3 py-0.5 text-xs font-normal hover:bg-secondary/80">
+                    #{tag}
+                  </Badge>
+                </Link>
               ))}
             </div>
           )}

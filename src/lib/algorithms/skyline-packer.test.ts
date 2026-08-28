@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { generateSkylineSlots, paginateSkylineRows, MIN_CARDS_PER_PAGE } from "./skyline-packer";
+import { generateSkylineSlots, paginateSkylineRows, MIN_CARDS_PER_PAGE, applySkylineGridMetrics } from "./skyline-packer";
 
 // Pagination has to actually paginate.
 //
@@ -49,5 +49,23 @@ describe("paginateSkylineRows at realistic catalogue sizes", () => {
       const sizes = pageSizes(total, cols);
       expect(Math.min(...sizes), `total=${total} -> [${sizes.join(", ")}]`).toBeGreaterThan(1);
     }
+  });
+});
+
+describe("applySkylineGridMetrics", () => {
+  it("writes --cols matching the packing column count", () => {
+    const props: Record<string, string> = {};
+    const el = {
+      clientWidth: 1200,
+      style: {
+        setProperty: (key: string, value: string) => {
+          props[key] = value;
+        },
+      },
+    } as unknown as HTMLElement;
+    applySkylineGridMetrics(el, 12);
+    expect(props["--cols"]).toBe("12");
+    expect(props["--gap"]).toBe("14px");
+    expect(parseFloat(props["--cell"])).toBeCloseTo((1200 - 14 * 11) / 12);
   });
 });

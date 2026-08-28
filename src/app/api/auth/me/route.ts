@@ -6,6 +6,7 @@ import { users } from "@/db/schema";
 import { verifySession, SESSION_COOKIE } from "@/lib/session-token";
 import { loadUserCredits } from "@/lib/server/access-control";
 import { toSessionUser } from "@/lib/server/session-user";
+import { ADMIN_SESSION_EPOCH_KEY, isAdminSessionStale } from "@/lib/owner-recovery";
 
 export async function GET(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
@@ -17,6 +18,16 @@ export async function GET(request: NextRequest) {
   const session = await verifySession(token, env.JWT_SECRET);
   if (!session) {
     return NextResponse.json({ ok: false, message: "Phiên đăng nhập không hợp lệ." }, { status: 401 });
+  }
+  if (session.role === "ADMIN") {
+    try {
+      const epoch = Number((await env.OTP_KV.get(ADMIN_SESSION_EPOCH_KEY)) ?? 0) || 0;
+      if (isAdminSessionStale(session.iat, epoch)) {
+        return NextResponse.json({ ok: false, message: "Phiên đăng nhập đã bị thu hồi." }, { status: 401 });
+      }
+    } catch {
+      // fail open
+    }
   }
 
   const db = drizzle(env.DB);

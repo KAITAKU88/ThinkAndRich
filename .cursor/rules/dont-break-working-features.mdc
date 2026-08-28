@@ -1,0 +1,28 @@
+---
+description: Không phá tính năng đang chạy tốt khi thêm hoặc sửa tính năng khác. Phải kiểm tra lại các bề mặt liên quan trước khi coi việc xong.
+alwaysApply: true
+---
+
+# Đừng phá cái đang chạy tốt
+
+Tính năng mới không được làm hỏng hành vi người dùng đã có. Sửa xong một chỗ thì phải kiểm tra các bề mặt dùng chung state, CSS, layout, hoặc component.
+
+## Trước khi ship
+
+- Liệt kê route / trang / component **đọc hoặc kế thừa** cái vừa đụng (CSS toàn cục, grid, session, hook, schema).
+- Với UI: đi hết luồng chính trên bề mặt vừa sửa **và** bề mặt liên quan. Một screenshot không đủ.
+- Không xóa cổng đồng bộ (ví dụ packing `numCols` vs CSS `--cols`) chỉ để trang hiện nhanh hơn, nếu cổng đó đang giữ layout đúng.
+
+```markdown
+❌ BAD
+Bỏ gridReady / dời ResizeObserver sang useEffect để Khám phá hết delay.
+→ Desktop pack 12 cột nhưng CSS còn 4 cột: thẻ chồng, chữ phình, nút không bấm được.
+
+✅ GOOD
+Giữ packing và --cols/--cell khớp **trước paint** (useLayoutEffect).
+Rồi mới tối ưu delay, và mở lại Khám phá + Trang chủ để xác nhận thẻ/nút còn dùng được.
+```
+
+## CSS
+
+Class mới (editor Full, reading sheet, v.v.) phải scoped. Không thêm rule toàn cục (`h3`, `--cols` trong media query) nếu Explore/Home đang phụ thuộc token đó.

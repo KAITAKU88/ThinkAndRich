@@ -2,12 +2,13 @@
 
 import { useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Link2, Plus, Search, X } from "lucide-react";
-import type { AdminPost } from "@/lib/admin/use-admin-posts";
 import { MAX_RELATED_POSTS } from "@/lib/related-posts";
 import { cn } from "@/lib/utils";
 
+export type RelatedPostOption = { id: string; title: string; status: string; category?: string };
+
 interface RelatedPostPickerProps {
-  posts: AdminPost[];
+  posts: RelatedPostOption[];
   currentPostId: string | null;
   selectedIds: string[];
   onChange: (ids: string[]) => void;

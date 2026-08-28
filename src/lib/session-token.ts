@@ -7,6 +7,8 @@ export interface SessionPayload {
   sub: string; // user id
   email: string;
   role: string;
+  /** JWT issued-at (seconds). Used to invalidate stolen admin sessions. */
+  iat?: number;
 }
 
 export async function signSession(payload: SessionPayload, secret: string): Promise<string> {
@@ -27,7 +29,12 @@ export async function verifySession(token: string, secret: string): Promise<Sess
     ) {
       return null;
     }
-    return { sub: payload.sub, email: payload.email, role: payload.role };
+    return {
+      sub: payload.sub,
+      email: payload.email,
+      role: payload.role,
+      iat: typeof payload.iat === "number" ? payload.iat : undefined,
+    };
   } catch {
     return null;
   }

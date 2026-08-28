@@ -5,16 +5,28 @@ import { join } from "node:path";
 
 // Real email delivery only works once actually deployed (Cloudflare's
 // send_email "remote": true local-dev proxy hangs in this sandbox — see
-// memory). For e2e runs against `next dev`, read the code straight back
-// from the local KV simulator instead of an inbox.
+// memory). For e2e runs against `next dev`, read the code back from D1
+// (`auth_otps`) instead of an inbox. Login no longer stores codes in KV:
+// KV is eventually consistent, which is why production used to reject a
+// code the user had just received.
 export function readOtpFromLocalKv(email: string): string {
-  const prefix = `otp:${email}:`;
-  const out = wrangler(["kv", "key", "list", "--binding=OTP_KV", `--prefix=${prefix}`, "--local"]);
-  const keys = JSON.parse(out) as Array<{ name: string; expiration?: number }>;
-  const newest = keys.sort((a, b) => (b.expiration ?? 0) - (a.expiration ?? 0))[0];
-  const code = newest?.name.slice(prefix.length) ?? "";
+  const safe = email.replace(/'/g, "''");
+  const out = wrangler([
+    "d1",
+    "execute",
+    "thinkandrich-db",
+    "--local",
+    "--json",
+    "--command",
+    `SELECT code FROM auth_otps WHERE email = '${safe}' ORDER BY expires_at DESC LIMIT 1`,
+  ]);
+  const parsed = JSON.parse(out) as Array<{ results?: Array<{ code?: string }> }> | {
+    results?: Array<{ code?: string }>;
+  };
+  const rows = Array.isArray(parsed) ? parsed[0]?.results : parsed.results;
+  const code = rows?.[0]?.code ?? "";
   if (!/^\d{6}$/.test(code)) {
-    throw new Error(`Expected a 6-digit OTP key in local KV for ${email}, got: ${JSON.stringify(keys)}`);
+    throw new Error(`Expected a 6-digit OTP in D1 for ${email}, got: ${out}`);
   }
   return code;
 }

@@ -78,7 +78,7 @@ interface SessionState {
   isPostUnlocked: (postId: string) => boolean;
 
   // OTP Auth Flow — backed by the real /api/auth/* routes
-  requestOtp: (email: string) => Promise<{ ok: boolean; message?: string }>;
+  requestOtp: (email: string) => Promise<{ ok: boolean; message?: string; devCode?: string }>;
   verifyOtp: (email: string, code: string) => Promise<{ ok: boolean; message?: string }>;
   restoreSession: () => Promise<void>;
   logout: () => Promise<void>;
@@ -162,16 +162,25 @@ export const useSession = create<SessionState>()(
       isPostUnlocked: (postId: string) => get().unlockedPostIds.includes(postId),
 
       requestOtp: async (email: string) => {
-        const res = await fetch("/api/auth/request-otp", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: email.trim().toLowerCase() }),
-        });
-        const data = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: string };
-        if (!res.ok || !data.ok) {
-          return { ok: false, message: data.message || "Không gửi được mã OTP." };
+        try {
+          const res = await fetch("/api/auth/request-otp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email.trim().toLowerCase() }),
+            signal: AbortSignal.timeout(12_000),
+          });
+          const data = (await res.json().catch(() => ({}))) as {
+            ok?: boolean;
+            message?: string;
+            devCode?: string;
+          };
+          if (!res.ok || !data.ok) {
+            return { ok: false, message: data.message || "Không gửi được mã OTP." };
+          }
+          return { ok: true, devCode: data.devCode };
+        } catch {
+          return { ok: false, message: "Không gửi được mã OTP. Restart `npm run dev` rồi thử lại." };
         }
-        return { ok: true };
       },
 
       verifyOtp: async (email: string, code: string) => {

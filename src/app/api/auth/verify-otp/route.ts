@@ -5,9 +5,10 @@ import { eq } from "drizzle-orm";
 import { users } from "@/db/schema";
 import { signSession, SESSION_COOKIE, sessionCookieOptions } from "@/lib/session-token";
 import { peekRateLimit, recordRateLimitHit, tooManyRequests } from "@/lib/server/rate-limit";
-import { otpKey } from "@/lib/server/otp";
+import { consumeOtp, normalizeOtpCode } from "@/lib/server/otp";
 import { loadUserCredits } from "@/lib/server/access-control";
 import { toSessionUser } from "@/lib/server/session-user";
+import { shouldSkipOtpEmail } from "@/lib/server/send-otp";
 
 const VERIFY_ATTEMPTS = { limit: 8, windowSeconds: 15 * 60 };
 
@@ -16,35 +17,35 @@ export async function POST(request: NextRequest) {
     | { email?: string; code?: string }
     | null;
   const email = body?.email?.trim().toLowerCase();
-  const code = body?.code?.trim();
-  if (!email || !code) {
+  const code = body?.code ? normalizeOtpCode(body.code) : "";
+  if (!email || code.length !== 6) {
     return NextResponse.json({ ok: false, message: "Thiếu email hoặc mã OTP." }, { status: 400 });
   }
 
-  const { env } = getCloudflareContext();
+  const skipRemoteMail = shouldSkipOtpEmail({
+    nodeEnv: process.env.NODE_ENV,
+    hostname: request.headers.get("host") ?? request.nextUrl.hostname,
+  });
 
-  // The code is six digits and stays valid for its full five minutes even
-  // after a wrong guess, so unlimited attempts would make it brute-forceable.
-  // Only failures are counted — a legitimate login costs no KV write.
-  const attempts = await peekRateLimit(env.OTP_KV, "otp-verify", email, VERIFY_ATTEMPTS);
-  if (!attempts.allowed) {
-    return tooManyRequests("Bạn đã nhập sai quá nhiều lần. Vui lòng thử lại sau.", attempts.retryAfterSeconds);
+  const { env } = getCloudflareContext();
+  const db = drizzle(env.DB);
+
+  if (!skipRemoteMail) {
+    const attempts = await peekRateLimit(env.OTP_KV, "otp-verify", email, VERIFY_ATTEMPTS);
+    if (!attempts.allowed) {
+      return tooManyRequests("Bạn đã nhập sai quá nhiều lần. Vui lòng thử lại sau.", attempts.retryAfterSeconds);
+    }
   }
 
-  // The code is looked up as part of the key, so any code still within its
-  // five minutes is accepted — including one issued before the user pressed
-  // "resend". Presence is the whole check; the value is a placeholder.
-  const key = otpKey(email, code);
-  if ((await env.OTP_KV.get(key)) === null) {
-    await recordRateLimitHit(env.OTP_KV, "otp-verify", email, VERIFY_ATTEMPTS);
+  if (!(await consumeOtp(db, email, code))) {
+    if (!skipRemoteMail) {
+      await recordRateLimitHit(env.OTP_KV, "otp-verify", email, VERIFY_ATTEMPTS);
+    }
     return NextResponse.json(
       { ok: false, message: "Mã OTP không chính xác hoặc đã hết hạn." },
       { status: 401 }
     );
   }
-  await env.OTP_KV.delete(key); // one-time use
-
-  const db = drizzle(env.DB);
   const now = new Date().toISOString();
 
   // Admin rights come from an explicit allowlist held in the Worker's

@@ -1,0 +1,20 @@
+---
+description: Always reply to the user in Vietnamese
+alwaysApply: true
+---
+
+# Trả lời bằng tiếng Việt
+
+Mọi tin nhắn gửi cho người dùng phải viết bằng tiếng Việt.
+
+- Dùng tiếng Việt tự nhiên, đầy đủ câu. Thuật ngữ kỹ thuật (tên file, API, lệnh, identifier) giữ nguyên tiếng Anh khi đó là tên riêng trong code.
+- Không trả lời toàn bộ bằng tiếng Anh, kể cả khi user hỏi bằng tiếng Anh — trừ khi user Explicitly yêu cầu đổi ngôn ngữ.
+- Commit message, PR title/body, và chuỗi trong code (i18n keys, UI copy đang sửa) không bị rule này bắt buộc đổi ngôn ngữ.
+
+```markdown
+❌ BAD
+The checkout now sells credit packages instead of tiers.
+
+✅ GOOD
+Checkout giờ bán gói credit thay vì gói membership theo tier.
+```

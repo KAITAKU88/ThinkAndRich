@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { drizzle } from "drizzle-orm/d1";
-import { and, desc, eq, like, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, like, or, sql } from "drizzle-orm";
 import { posts, bookmarks, postRelations } from "@/db/schema";
 import { rowToPost } from "@/lib/server/post-row";
 import { createPost, type CreatePostInput } from "@/lib/server/create-post";
@@ -13,6 +13,12 @@ import {
   relationRows,
 } from "@/lib/server/related-posts";
 
+type StatusFilter = "ALL" | "DRAFT" | "PUBLISHED";
+
+function parsePageSize(raw: string | null): 50 | 100 {
+  return raw === "100" ? 100 : 50;
+}
+
 // Full CRUD for the admin Posts table — unlike the public /api/posts, this
 // includes DRAFT posts and never strips fullContent (the editor needs it).
 export async function GET(request: NextRequest) {
@@ -20,31 +26,93 @@ export async function GET(request: NextRequest) {
   if (!ctx) return NextResponse.json({ ok: false, message: "Forbidden" }, { status: 403 });
 
   const { searchParams } = new URL(request.url);
+  const db = drizzle(ctx.env.DB);
+
+  // Slim published titles for the related-post picker — not the paginated table.
+  if (searchParams.get("picker") === "1") {
+    const rows = await db
+      .select({
+        id: posts.id,
+        title: posts.title,
+        slug: posts.slug,
+        status: posts.status,
+        category: posts.category,
+      })
+      .from(posts)
+      .where(eq(posts.status, "PUBLISHED"))
+      .orderBy(asc(posts.title))
+      .limit(500)
+      .all();
+    return NextResponse.json({ ok: true, posts: rows });
+  }
+
   const q = searchParams.get("q")?.trim();
   const pillar = searchParams.get("pillar");
-  const sort = searchParams.get("sort") || "createdAt";
+  const statusParam = searchParams.get("status");
+  const status: StatusFilter =
+    statusParam === "DRAFT" || statusParam === "PUBLISHED" ? statusParam : "ALL";
+  const sort = searchParams.get("sort") || "updatedAt";
   const dir = searchParams.get("dir") === "asc" ? "asc" : "desc";
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const pageSize = parsePageSize(searchParams.get("pageSize"));
 
-  const db = drizzle(ctx.env.DB);
-  const conditions = [];
-  if (pillar && pillar !== "ALL") conditions.push(eq(posts.pillar, pillar));
-  if (q) conditions.push(or(like(posts.title, `%${q}%`), like(posts.summarySnippet, `%${q}%`))!);
+  const baseConditions = [];
+  if (pillar && pillar !== "ALL") baseConditions.push(eq(posts.pillar, pillar));
+  if (q) baseConditions.push(or(like(posts.title, `%${q}%`), like(posts.summarySnippet, `%${q}%`))!);
+
+  const listConditions = [...baseConditions];
+  if (status !== "ALL") listConditions.push(eq(posts.status, status));
+
+  const bookmarkCount = sql<number>`(select count(*) from ${bookmarks} where ${bookmarks.postId} = ${posts.id})`.as(
+    "bookmarkCount"
+  );
 
   const sortColumn =
-    sort === "views" ? posts.views :
-    sort === "clicks" ? posts.clicks :
-    sort === "shares" ? posts.shares :
-    sort === "title" ? posts.title :
-    posts.createdAt;
+    sort === "views"
+      ? posts.views
+      : sort === "clicks"
+        ? posts.clicks
+        : sort === "shares"
+          ? posts.shares
+          : sort === "title"
+            ? posts.title
+            : sort === "bookmarkCount"
+              ? bookmarkCount
+              : sort === "createdAt"
+                ? posts.createdAt
+                : posts.updatedAt;
+
+  const countRows = await db
+    .select({
+      status: posts.status,
+      n: sql<number>`count(*)`,
+    })
+    .from(posts)
+    .where(baseConditions.length ? and(...baseConditions) : undefined)
+    .groupBy(posts.status)
+    .all();
+
+  const counts = { ALL: 0, DRAFT: 0, PUBLISHED: 0 };
+  for (const row of countRows) {
+    const n = Number(row.n) || 0;
+    counts.ALL += n;
+    if (row.status === "DRAFT") counts.DRAFT = n;
+    if (row.status === "PUBLISHED") counts.PUBLISHED = n;
+  }
+
+  const total =
+    status === "DRAFT" ? counts.DRAFT : status === "PUBLISHED" ? counts.PUBLISHED : counts.ALL;
 
   const rows = await db
     .select({
       post: posts,
-      bookmarkCount: sql<number>`(select count(*) from ${bookmarks} where ${bookmarks.postId} = ${posts.id})`,
+      bookmarkCount,
     })
     .from(posts)
-    .where(conditions.length ? and(...conditions) : undefined)
-    .orderBy(dir === "asc" ? sortColumn : desc(sortColumn))
+    .where(listConditions.length ? and(...listConditions) : undefined)
+    .orderBy(dir === "asc" ? asc(sortColumn) : desc(sortColumn))
+    .limit(pageSize)
+    .offset((page - 1) * pageSize)
     .all();
 
   const relatedIdsByPost = await loadRelatedPostIdMap(db);
@@ -53,7 +121,14 @@ export async function GET(request: NextRequest) {
     relatedPostIds: relatedIdsByPost.get(r.post.id) ?? [],
     bookmarkCount: r.bookmarkCount,
   }));
-  return NextResponse.json({ ok: true, posts: result });
+  return NextResponse.json({
+    ok: true,
+    posts: result,
+    total,
+    page,
+    pageSize,
+    counts,
+  });
 }
 
 export async function POST(request: NextRequest) {

@@ -109,6 +109,19 @@ export function slugify(text: string): string {
     .trim();
 }
 
+export function formatDateTime(isoDate: string | null | undefined): string {
+  if (!isoDate) return "—";
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export function timeAgo(isoDate: string): string {
   const diff = Date.now() - new Date(isoDate).getTime();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
