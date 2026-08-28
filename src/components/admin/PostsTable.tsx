@@ -56,7 +56,7 @@ export function PostsTable({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<50 | 100>(50);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const [statusBusyId, setStatusBusyId] = useState<string | null>(null);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -90,13 +90,21 @@ export function PostsTable({
     setConfirmDeleteId(null);
   }
 
-  async function patchPost(id: string, updates: Partial<Post>, success: string) {
-    if (busyId) return;
-    setBusyId(id);
-    const res = await onUpdate(id, updates);
-    setBusyId(null);
-    if (res.ok) toast.success(success);
-    else toast.error(res.message || "Không cập nhật được bài viết.");
+  async function patchPost(
+    id: string,
+    updates: Partial<Post>,
+    success: string,
+    options?: { blockStatus?: boolean }
+  ) {
+    if (options?.blockStatus && statusBusyId === id) return;
+    if (options?.blockStatus) setStatusBusyId(id);
+    try {
+      const res = await onUpdate(id, updates);
+      if (res.ok) toast.success(success);
+      else toast.error(res.message || "Không cập nhật được bài viết.");
+    } finally {
+      if (options?.blockStatus) setStatusBusyId(null);
+    }
   }
 
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
@@ -253,13 +261,14 @@ export function PostsTable({
                     <td className="px-4 py-3">
                       <button
                         type="button"
-                        disabled={busyId === post.id}
+                        disabled={statusBusyId === post.id}
                         title={post.status === "DRAFT" ? "Bấm để xuất bản" : "Bấm để chuyển về nháp"}
                         onClick={() =>
                           void patchPost(
                             post.id,
                             { status: post.status === "DRAFT" ? "PUBLISHED" : "DRAFT" },
-                            post.status === "DRAFT" ? "Đã xuất bản." : "Đã chuyển về nháp. Bookmark và đã đọc của độc giả vẫn giữ theo ID bài."
+                            post.status === "DRAFT" ? "Đã xuất bản." : "Đã chuyển về nháp. Bookmark và đã đọc của độc giả vẫn giữ theo ID bài.",
+                            { blockStatus: true }
                           )
                         }
                         className={cn(
@@ -276,7 +285,6 @@ export function PostsTable({
                       {post.status === "DRAFT" ? (
                         <select
                           value={parseCreditCost(post.creditCost, 0)}
-                          disabled={busyId === post.id}
                           title="Chỉ đổi được khi bài còn nháp"
                           onChange={(e) =>
                             void patchPost(

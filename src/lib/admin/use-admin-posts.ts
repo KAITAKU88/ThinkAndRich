@@ -28,6 +28,19 @@ export function useAdminPosts() {
   const [counts, setCounts] = useState<AdminPostCounts>(EMPTY_COUNTS);
   const [loading, setLoading] = useState(true);
   const lastQuery = useRef<AdminPostsQuery>({ page: 1, pageSize: 50, sort: "updatedAt", dir: "desc" });
+  const postsRef = useRef(posts);
+  const countsRef = useRef(counts);
+  const totalRef = useRef(total);
+
+  useEffect(() => {
+    postsRef.current = posts;
+  }, [posts]);
+  useEffect(() => {
+    countsRef.current = counts;
+  }, [counts]);
+  useEffect(() => {
+    totalRef.current = total;
+  }, [total]);
 
   const refresh = useCallback(async (params?: AdminPostsQuery) => {
     if (params) lastQuery.current = { ...lastQuery.current, ...params };
@@ -71,18 +84,60 @@ export function useAdminPosts() {
     [refresh]
   );
 
-  const updatePost = useCallback(
-    async (id: string, updates: Partial<Post>) => {
-      const data = await fetch(`/api/admin/posts/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates),
-      }).then((r) => r.json() as Promise<{ ok: boolean; message?: string; post?: Post }>);
-      if (data.ok) await refresh();
+  const updatePost = useCallback(async (id: string, updates: Partial<Post>) => {
+    const activeStatus = lastQuery.current.status ?? "ALL";
+    const snapshot = {
+      posts: postsRef.current,
+      counts: countsRef.current,
+      total: totalRef.current,
+    };
+    const previous = snapshot.posts.find((post) => post.id === id);
+
+    setPosts((current) => {
+      const row = current.find((post) => post.id === id);
+      if (!row) return current;
+      const optimistic = { ...row, ...updates };
+      if (activeStatus !== "ALL" && optimistic.status !== activeStatus) {
+        return current.filter((post) => post.id !== id);
+      }
+      return current.map((post) => (post.id === id ? optimistic : post));
+    });
+
+    if (previous && updates.status !== undefined && previous.status !== updates.status) {
+      setCounts((current) => ({
+        ALL: current.ALL,
+        DRAFT: current.DRAFT + (updates.status === "DRAFT" ? 1 : -1),
+        PUBLISHED: current.PUBLISHED + (updates.status === "PUBLISHED" ? 1 : -1),
+      }));
+      if (activeStatus !== "ALL") setTotal((current) => Math.max(0, current - 1));
+    }
+
+    const data = await fetch(`/api/admin/posts/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    }).then((r) => r.json() as Promise<{ ok: boolean; message?: string; post?: Post }>);
+
+    if (!data.ok) {
+      setPosts(snapshot.posts);
+      setCounts(snapshot.counts);
+      setTotal(snapshot.total);
       return data;
-    },
-    [refresh]
-  );
+    }
+
+    if (data.post) {
+      setPosts((current) => {
+        if (activeStatus !== "ALL" && data.post!.status !== activeStatus) {
+          return current.filter((post) => post.id !== id);
+        }
+        return current.map((post) =>
+          post.id === id ? ({ ...post, ...data.post } as AdminPost) : post
+        );
+      });
+    }
+
+    return data;
+  }, []);
 
   const deletePost = useCallback(
     async (id: string) => {
