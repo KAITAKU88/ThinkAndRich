@@ -172,6 +172,7 @@ export function ProfilePage() {
         </Button>
         <Button
           variant={tab === "favorites" ? "default" : "ghost"}
+          data-testid="profile-tab-favorites"
           className="rounded-full text-xs sm:text-sm font-semibold gap-1.5 shrink-0"
           onClick={() => setTab("favorites")}
         >
@@ -256,20 +257,22 @@ export function ProfilePage() {
       {/* TAB: ĐỌC SAU (SAVED) */}
       {tab === "saved" && (
         <div className="space-y-6">
-          {bookmarks.length > 0 && (
+          {allSavedPosts.length > 0 && (
             <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-1">
               <button
                 type="button"
+                data-testid="profile-saved-filter-ALL"
                 onClick={() => setSavedPillar("ALL")}
                 className={cn(
                   "px-3 py-1 rounded-full text-xs font-semibold transition-all shrink-0",
                   savedPillar === "ALL" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
                 )}
               >
-                {t.explore.allLabel} ({bookmarks.length})
+                {t.explore.allLabel} ({allSavedPosts.length})
               </button>
               <button
                 type="button"
+                data-testid="profile-saved-filter-MENTAL_MODEL"
                 onClick={() => setSavedPillar("MENTAL_MODEL")}
                 className={cn(
                   "px-3 py-1 rounded-full text-xs font-semibold transition-all shrink-0 flex items-center gap-1",
@@ -280,6 +283,7 @@ export function ProfilePage() {
               </button>
               <button
                 type="button"
+                data-testid="profile-saved-filter-BUSINESS_STRATEGY"
                 onClick={() => setSavedPillar("BUSINESS_STRATEGY")}
                 className={cn(
                   "px-3 py-1 rounded-full text-xs font-semibold transition-all shrink-0 flex items-center gap-1",
@@ -290,6 +294,7 @@ export function ProfilePage() {
               </button>
               <button
                 type="button"
+                data-testid="profile-saved-filter-STARTUP_IDEA"
                 onClick={() => setSavedPillar("STARTUP_IDEA")}
                 className={cn(
                   "px-3 py-1 rounded-full text-xs font-semibold transition-all shrink-0 flex items-center gap-1",
@@ -327,20 +332,22 @@ export function ProfilePage() {
       {/* TAB: YÊU THÍCH (FAVORITES) */}
       {tab === "favorites" && (
         <div className="space-y-6">
-          {favoritePosts.length > 0 && (
+          {allFavoritePosts.length > 0 && (
             <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-1">
               <button
                 type="button"
+                data-testid="profile-favorites-filter-ALL"
                 onClick={() => setFavPillar("ALL")}
                 className={cn(
                   "px-3 py-1 rounded-full text-xs font-semibold transition-all shrink-0",
                   favPillar === "ALL" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
                 )}
               >
-                {t.explore.allLabel} ({favoritePosts.length})
+                {t.explore.allLabel} ({allFavoritePosts.length})
               </button>
               <button
                 type="button"
+                data-testid="profile-favorites-filter-MENTAL_MODEL"
                 onClick={() => setFavPillar("MENTAL_MODEL")}
                 className={cn(
                   "px-3 py-1 rounded-full text-xs font-semibold transition-all shrink-0 flex items-center gap-1",
@@ -351,6 +358,7 @@ export function ProfilePage() {
               </button>
               <button
                 type="button"
+                data-testid="profile-favorites-filter-BUSINESS_STRATEGY"
                 onClick={() => setFavPillar("BUSINESS_STRATEGY")}
                 className={cn(
                   "px-3 py-1 rounded-full text-xs font-semibold transition-all shrink-0 flex items-center gap-1",
@@ -361,6 +369,7 @@ export function ProfilePage() {
               </button>
               <button
                 type="button"
+                data-testid="profile-favorites-filter-STARTUP_IDEA"
                 onClick={() => setFavPillar("STARTUP_IDEA")}
                 className={cn(
                   "px-3 py-1 rounded-full text-xs font-semibold transition-all shrink-0 flex items-center gap-1",
