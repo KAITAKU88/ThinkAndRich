@@ -56,9 +56,7 @@ export function LazySkylineCard({ post, slot, priorityIndex }: LazySkylineCardPr
     );
   }
 
-  return (
-    <div ref={hostRef} style={gridStyle} className="skyline-card-container min-h-0">
-      <InteractiveSquareCard post={post} priorityIndex={priorityIndex} />
-    </div>
-  );
+  // Grid placement lives on InteractiveSquareCard (slot + h-full), same as
+  // before lazy loading — wrapping it in another grid item broke cell sizing.
+  return <InteractiveSquareCard post={post} slot={slot} priorityIndex={priorityIndex} />;
 }

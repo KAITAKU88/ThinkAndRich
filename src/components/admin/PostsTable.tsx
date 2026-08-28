@@ -11,10 +11,10 @@ import { SortableHeader } from "@/components/admin/SortableHeader";
 import { PILLARS_CONFIG } from "@/lib/data";
 import { cn, formatDateTime, formatViews } from "@/lib/utils";
 import type { AdminPost, AdminPostCounts, AdminPostsQuery } from "@/lib/admin/use-admin-posts";
-import type { PillarType } from "@/lib/types";
+import type { CreditCost, PillarType, Post } from "@/lib/types";
 import { BulkUploadPostsButton } from "@/components/admin/BulkUploadPostsButton";
 import { CreditBadge } from "@/components/credits/CreditBadge";
-import { parseCreditCost } from "@/lib/credit-cost";
+import { CREDIT_COSTS, parseCreditCost } from "@/lib/credit-cost";
 
 interface PostsTableProps {
   posts: AdminPost[];
@@ -22,6 +22,7 @@ interface PostsTableProps {
   counts: AdminPostCounts;
   loading: boolean;
   onQuery: (query: AdminPostsQuery) => Promise<void>;
+  onUpdate: (id: string, updates: Partial<Post>) => Promise<{ ok: boolean; message?: string; post?: Post }>;
   onEdit: (post: AdminPost) => void;
   onDelete: (id: string) => Promise<{ ok: boolean; message?: string }>;
   onCreateNew: () => void;
@@ -42,6 +43,7 @@ export function PostsTable({
   counts,
   loading,
   onQuery,
+  onUpdate,
   onEdit,
   onDelete,
   onCreateNew,
@@ -54,6 +56,7 @@ export function PostsTable({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<50 | 100>(50);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -85,6 +88,15 @@ export function PostsTable({
     if (res.ok) toast.success("Đã xóa bài viết.");
     else toast.error(res.message || "Không xóa được bài viết.");
     setConfirmDeleteId(null);
+  }
+
+  async function patchPost(id: string, updates: Partial<Post>, success: string) {
+    if (busyId) return;
+    setBusyId(id);
+    const res = await onUpdate(id, updates);
+    setBusyId(null);
+    if (res.ok) toast.success(success);
+    else toast.error(res.message || "Không cập nhật được bài viết.");
   }
 
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
@@ -181,12 +193,13 @@ export function PostsTable({
       </div>
 
       <div className="border border-border rounded-xl overflow-x-auto">
-        <table className="w-full min-w-[1120px] text-xs text-left">
+        <table className="w-full min-w-[1240px] text-xs text-left">
           <thead className="uppercase bg-secondary/60 text-muted-foreground border-b border-border">
             <tr>
               <th className="px-4 py-2.5">
                 <SortableHeader label="Bài viết" sortKey="title" activeSort={sortKey} dir={dir} onSort={handleSort} />
               </th>
+              <th className="px-4 py-2.5">Tình trạng</th>
               <th className="px-4 py-2.5">
                 <SortableHeader label="Phân loại" sortKey="creditCost" activeSort={sortKey} dir={dir} onSort={handleSort} />
               </th>
@@ -212,13 +225,13 @@ export function PostsTable({
           <tbody className="divide-y divide-border/60">
             {loading ? (
               <tr>
-                <td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">
+                <td colSpan={10} className="px-4 py-10 text-center text-muted-foreground">
                   Đang tải...
                 </td>
               </tr>
             ) : posts.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">
+                <td colSpan={10} className="px-4 py-10 text-center text-muted-foreground">
                   {statusFilter === "DRAFT"
                     ? "Không có bản nháp nào đang chờ duyệt."
                     : statusFilter === "PUBLISHED"
@@ -232,17 +245,59 @@ export function PostsTable({
                 return (
                   <tr key={post.id} className="hover:bg-secondary/30">
                     <td className="px-4 py-3 max-w-[320px]">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-foreground truncate">{post.title}</span>
-                        {post.status === "DRAFT" && (
-                          <Badge variant="outline" className="text-[9px] h-4 shrink-0">
-                            NHÁP
-                          </Badge>
-                        )}
+                      <div className="font-medium text-foreground truncate">{post.title}</div>
+                      <div className="mt-0.5 font-mono text-[10px] text-muted-foreground truncate" title={post.id}>
+                        ID {post.id}
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <CreditBadge cost={parseCreditCost(post.creditCost, 0)} />
+                      <button
+                        type="button"
+                        disabled={busyId === post.id}
+                        title={post.status === "DRAFT" ? "Bấm để xuất bản" : "Bấm để chuyển về nháp"}
+                        onClick={() =>
+                          void patchPost(
+                            post.id,
+                            { status: post.status === "DRAFT" ? "PUBLISHED" : "DRAFT" },
+                            post.status === "DRAFT" ? "Đã xuất bản." : "Đã chuyển về nháp. Bookmark và đã đọc của độc giả vẫn giữ theo ID bài."
+                          )
+                        }
+                        className={cn(
+                          "rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide disabled:opacity-50",
+                          post.status === "PUBLISHED"
+                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                            : "border-border bg-secondary text-muted-foreground"
+                        )}
+                      >
+                        {post.status === "PUBLISHED" ? "Xuất bản" : "Nháp"}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3">
+                      {post.status === "DRAFT" ? (
+                        <select
+                          value={parseCreditCost(post.creditCost, 0)}
+                          disabled={busyId === post.id}
+                          title="Chỉ đổi được khi bài còn nháp"
+                          onChange={(e) =>
+                            void patchPost(
+                              post.id,
+                              { creditCost: Number(e.target.value) as CreditCost },
+                              "Đã cập nhật credit."
+                            )
+                          }
+                          className="h-7 rounded-md border border-border bg-background px-1.5 text-[11px] font-medium"
+                        >
+                          {CREDIT_COSTS.map((cost) => (
+                            <option key={cost} value={cost}>
+                              {cost === 0 ? "Open" : `${cost} credit`}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span title="Chuyển về nháp để đổi credit">
+                          <CreditBadge cost={parseCreditCost(post.creditCost, 0)} />
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <Badge className={`text-[10px] border ${pillarMeta?.badgeBg}`}>{pillarMeta?.titleVi}</Badge>

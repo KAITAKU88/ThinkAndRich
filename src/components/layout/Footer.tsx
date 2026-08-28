@@ -4,16 +4,12 @@ import Link from "next/link";
 import { Brain } from "lucide-react";
 
 import { useSession } from "@/store/session";
-import { getPppPricing } from "@/lib/geo-pricing";
 import { getTranslation } from "@/lib/i18n/translations";
 
 export function Footer() {
   const brand = useSession((s) => s.settings.brandName);
-  const tagline = useSession((s) => s.settings.brandTagline);
-  const countryCode = useSession((s) => s.countryCode);
   const language = useSession((s) => s.language);
 
-  const ppp = getPppPricing(countryCode);
   const t = getTranslation(language);
 
   return (
@@ -25,7 +21,7 @@ export function Footer() {
           </span>
           <div>
             <p className="font-semibold text-foreground">{brand}</p>
-            <p className="text-xs text-muted-foreground">{tagline}</p>
+            <p className="text-xs text-muted-foreground">{t.common.tagline}</p>
           </div>
         </div>
 
@@ -42,7 +38,7 @@ export function Footer() {
         </div>
 
         <p className="text-xs text-muted-foreground text-center md:text-right">
-          © {new Date().getFullYear()} {brand}. {ppp.flag} {ppp.currency} ({ppp.gateway === "sepay" ? "SePay" : "Paddle"})
+          © {new Date().getFullYear()} {brand}
         </p>
       </div>
     </footer>

@@ -185,6 +185,9 @@ export function UsersTable() {
                   <td className="px-4 py-3">
                     <div className="font-medium text-foreground">{u.name}</div>
                     <div className="text-[11px] text-muted-foreground">{u.email}</div>
+                    <div className="mt-0.5 font-mono text-[10px] text-muted-foreground" title={u.id}>
+                      ID {u.id}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-right font-mono tabular-nums">{formatViews(u.remainingCredits)}</td>
                   <td className="px-4 py-3 text-right font-mono tabular-nums">{formatViews(u.periodPaidSpent)}</td>

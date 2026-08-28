@@ -160,6 +160,7 @@ export function AdminPage({ publicSiteUrl }: AdminPageProps) {
                 counts={counts}
                 loading={loading}
                 onQuery={refresh}
+                onUpdate={updatePost}
                 onEdit={(p) => setEditingPost(p)}
                 onDelete={deletePost}
                 onCreateNew={() => setEditingPost("new")}

@@ -537,7 +537,12 @@ export function PostForm({ editingPost, availablePosts, onCreate, onUpdate, onDo
 
             <div className="space-y-1.5">
               <Label className="text-xs">Giá credit</Label>
-              <select value={creditCost} onChange={(e) => markDirty(setCreditCost)(Number(e.target.value) as CreditCost)} className="w-full h-9 text-sm bg-background border border-border rounded-lg px-2">
+              <select
+                value={creditCost}
+                disabled={status === "PUBLISHED"}
+                onChange={(e) => markDirty(setCreditCost)(Number(e.target.value) as CreditCost)}
+                className="w-full h-9 text-sm bg-background border border-border rounded-lg px-2 disabled:opacity-60"
+              >
                 <option value={0}>Open — đọc tự do, không cần đăng nhập</option>
                 <option value={1}>1 credit</option>
                 <option value={2}>2 credit</option>
@@ -545,6 +550,9 @@ export function PostForm({ editingPost, availablePosts, onCreate, onUpdate, onDo
                 <option value={4}>4 credit</option>
                 <option value={5}>5 credit</option>
               </select>
+              {status === "PUBLISHED" ? (
+                <p className="text-[11px] text-muted-foreground">Chuyển về nháp để đổi credit.</p>
+              ) : null}
             </div>
 
             <TagInput

@@ -6,6 +6,7 @@ import { rowToPost } from "@/lib/server/post-row";
 import { deletePostCascade } from "@/lib/server/delete-post";
 import { requireAdmin } from "@/lib/api-auth";
 import type { Post } from "@/lib/types";
+import { parseCreditCost } from "@/lib/credit-cost";
 import { validateRelatedPostIds } from "@/lib/related-posts";
 import {
   findUnavailableRelatedPostIds,
@@ -59,14 +60,37 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
   }
 
+  if (body.status !== undefined && body.status !== "DRAFT" && body.status !== "PUBLISHED") {
+    return NextResponse.json(
+      { ok: false, message: "Trạng thái không hợp lệ." },
+      { status: 400 }
+    );
+  }
+
+  const nextStatus = body.status ?? existing.status;
+  if (body.creditCost !== undefined) {
+    const nextCost = parseCreditCost(body.creditCost, 0);
+    const currentCost = parseCreditCost(existing.creditCost, 0);
+    const publishedAndStayingPublished = existing.status === "PUBLISHED" && nextStatus === "PUBLISHED";
+    if (publishedAndStayingPublished && nextCost !== currentCost) {
+      return NextResponse.json(
+        { ok: false, message: "Bài đã xuất bản. Chuyển về nháp rồi mới đổi credit." },
+        { status: 400 }
+      );
+    }
+  }
+
   const now = new Date().toISOString();
   const update: Record<string, unknown> = { updatedAt: now };
   const fields: (keyof Post)[] = [
     "title", "pillar", "category", "displaySize", "summarySnippet", "fullContent",
-    "creditCost", "readingTimeMinutes", "readingTemplate", "status", "author",
+    "readingTimeMinutes", "readingTemplate", "status", "author",
   ];
   for (const f of fields) {
     if (body[f] !== undefined) update[f] = body[f];
+  }
+  if (body.creditCost !== undefined) {
+    update.creditCost = parseCreditCost(body.creditCost, 0);
   }
   if (body.tags !== undefined) update.tags = JSON.stringify(body.tags);
 

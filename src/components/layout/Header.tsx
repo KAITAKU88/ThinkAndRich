@@ -289,7 +289,6 @@ export function Header() {
                 className="hidden sm:inline-flex max-w-[9.25rem] rounded-full px-4 h-9 font-semibold text-xs shadow-xs bg-primary text-primary-foreground hover:bg-primary/90"
                 onClick={() => setAuthOpen(true)}
               >
-                <Sparkles className="w-3.5 h-3.5 mr-1" />
                 <span className="truncate">{t.nav.login}</span>
               </Button>
             )}

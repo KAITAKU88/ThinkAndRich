@@ -19,7 +19,6 @@ import {
 import type { PillarType, Post } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { InteractiveSquareCard } from "@/components/ideas/InteractiveSquareCard";
 import { LazySkylineCard } from "@/components/explore/LazySkylineCard";
 import { ExploreGridSkeleton } from "@/components/explore/ExploreGridSkeleton";
 import { SkylineSpine } from "@/components/ideas/SkylineSpine";
