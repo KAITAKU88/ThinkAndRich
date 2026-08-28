@@ -45,8 +45,8 @@ export function PaywallCTA({
   }
 
   return (
-    <div className="reading-ui absolute inset-x-0 bottom-0 min-h-[72%] bg-gradient-to-t from-background via-background/95 to-transparent flex items-end justify-center px-3 pb-3 pt-24 sm:pb-5">
-      <Card className="w-full max-w-md overflow-hidden rounded-3xl border-primary/25 bg-card/95 shadow-xl backdrop-blur-md">
+    <div className="reading-ui paywall-cta">
+      <Card className="mx-auto w-full max-w-md overflow-hidden rounded-3xl border-primary/25 bg-card shadow-lg">
         <CardContent className="px-5 py-5 text-center sm:px-7 sm:py-6">
           {reason === "AUTH_REQUIRED" ? (
             <>

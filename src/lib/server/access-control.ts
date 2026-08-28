@@ -180,6 +180,42 @@ export async function loadUserCredits(
   };
 }
 
+/** Plain-text budget for the body preview sent when the reader lacks access. */
+export const ARTICLE_BODY_TEASER_MAX_CHARS = 520;
+/** At most this many <p> blocks are included in the teaser. */
+export const ARTICLE_BODY_TEASER_MAX_PARAGRAPHS = 2;
+
+/**
+ * Teaser for locked articles: first few paragraphs only, never the whole body.
+ * Title and standfirst (summarySnippet) are always sent separately on the post.
+ */
+export function truncateHtmlTeaser(html: string): string {
+  const paragraphs: string[] = [];
+  const pRe = /<p\b[^>]*>[\s\S]*?<\/p>/gi;
+  let plainLen = 0;
+  let match: RegExpExecArray | null;
+  while ((match = pRe.exec(html)) && paragraphs.length < ARTICLE_BODY_TEASER_MAX_PARAGRAPHS) {
+    const block = match[0];
+    const plain = block.replace(/<[^>]+>/g, "").length;
+    if (plainLen > 0 && plainLen + plain > ARTICLE_BODY_TEASER_MAX_CHARS) break;
+    paragraphs.push(block);
+    plainLen += plain;
+  }
+
+  if (paragraphs.length > 0) {
+    const firstPIndex = html.search(/<p\b/i);
+    if (firstPIndex > 0) {
+      const prefix = html.slice(0, firstPIndex).trim();
+      if (/^<h[23]\b/i.test(prefix)) {
+        return `${prefix}\n${paragraphs.join("\n")}`;
+      }
+    }
+    return paragraphs.join("\n");
+  }
+
+  return truncateHtmlContent(html, 0.08);
+}
+
 // Truncates HTML content to roughly the first `ratio` of its plain-text
 // length, cut at the nearest closing-tag boundary so we never emit an
 // unclosed tag. Used as the teaser behind the unlock curtain.

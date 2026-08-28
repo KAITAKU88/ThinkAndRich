@@ -406,6 +406,37 @@ body.focus-mode-active [data-focus-dimmable="true"] {
   background: var(--reader-rule);
 }
 
+/* Paywall — title + standfirst stay fully readable; body preview fades into
+   the unlock card below instead of an overlay covering the whole sheet. */
+.paywall-gate {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.paywall-body-preview {
+  position: relative;
+  overflow: hidden;
+  max-height: 14em;
+  pointer-events: none;
+  user-select: none;
+}
+
+.paywall-body-fade {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 4.5em;
+  background: linear-gradient(to top, var(--card) 30%, transparent);
+  pointer-events: none;
+}
+
+.paywall-cta {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+
 /* Content arrives wrapped in a div (dangerouslySetInnerHTML), so rules that
    need the first block have to reach through that one level. */
 .prose-academic > :first-child,

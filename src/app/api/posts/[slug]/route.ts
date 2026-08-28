@@ -5,7 +5,7 @@ import { eq, or } from "drizzle-orm";
 import { posts } from "@/db/schema";
 import { rowToPost } from "@/lib/server/post-row";
 import { requireSession } from "@/lib/api-auth";
-import { checkPostAccess, truncateHtmlContent } from "@/lib/server/access-control";
+import { checkPostAccess, truncateHtmlTeaser } from "@/lib/server/access-control";
 import { loadPublishedRelatedPosts } from "@/lib/server/related-posts";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const responsePost = access.allowed
     ? post
-    : { ...post, fullContent: truncateHtmlContent(post.fullContent, 0.3) };
+    : { ...post, fullContent: truncateHtmlTeaser(post.fullContent) };
   const relatedPosts = await loadPublishedRelatedPosts(db, post.id);
 
   return NextResponse.json({ ok: true, post: responsePost, relatedPosts, access });

@@ -301,17 +301,12 @@ export function PostDetailPage() {
             {hasAccess ? (
               <div dangerouslySetInnerHTML={{ __html: post.fullContent }} />
             ) : (
-              <div className="relative">
-                {/* Server already truncated fullContent to a ~30% teaser
-                    (src/app/api/posts/[slug]/route.ts) — the rest was never
-                    sent to the browser, so this just fades it out visually
-                    rather than hiding content that's already absent. */}
-                <div
-                  className="relative max-h-[220px] overflow-hidden pointer-events-none select-none"
-                  aria-hidden="true"
-                >
+              <div className="paywall-gate">
+                {/* Title + standfirst render above in ReadingSheet. Server sends
+                    only the first ~2 paragraphs here (truncateHtmlTeaser). */}
+                <div className="paywall-body-preview">
                   <div dangerouslySetInnerHTML={{ __html: post.fullContent }} />
-                  <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-card to-transparent" />
+                  <div className="paywall-body-fade" aria-hidden="true" />
                 </div>
 
                 <PaywallCTA

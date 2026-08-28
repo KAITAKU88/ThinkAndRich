@@ -12,6 +12,10 @@ test.describe("Open vs paid articles", () => {
   test("a paid post is curtained while logged out", async ({ page }) => {
     await page.goto("/post/inversion-principle");
     await expect(page.getByRole("heading", { name: "Đăng nhập để mở khóa" })).toBeVisible();
+    await expect(
+      page.getByText("Thay vì cố gắng tìm cách thành công xuất chúng", { exact: false })
+    ).toBeVisible();
+    await expect(page.getByText("Carl Jacobi", { exact: false })).toBeVisible();
   });
 
   test("a logged-in reader unlocks a 1C article with gift credits", async ({ page }) => {
