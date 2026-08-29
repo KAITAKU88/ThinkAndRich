@@ -1,0 +1,194 @@
+/* Step 2 — structural layout only (no Neo-Brutalism decoration). */
+
+:root {
+  --sidebar-width-expanded: 16rem;
+  --sidebar-width-collapsed: 3.25rem;
+  --sidebar-width: var(--sidebar-width-expanded);
+}
+
+.app-shell {
+  --sidebar-width: var(--sidebar-width-expanded);
+  display: flex;
+  min-height: 100vh;
+}
+
+.app-shell[data-sidebar-collapsed="true"] {
+  --sidebar-width: var(--sidebar-width-collapsed);
+}
+
+.app-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 40;
+  box-sizing: border-box;
+  width: var(--sidebar-width);
+  height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-right: 1px solid;
+}
+
+.app-sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 100%;
+  padding: 0.75rem;
+}
+
+.app-sidebar-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.app-sidebar-brand {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.app-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.app-sidebar-nav a {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.app-sidebar-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid;
+}
+
+.app-sidebar-tools-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.app-sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid;
+}
+
+.app-sidebar-footer nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.app-sidebar-footer a {
+  color: inherit;
+}
+
+.app-main {
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  height: 100vh;
+  margin-left: var(--sidebar-width);
+  overflow-y: auto;
+}
+
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  padding: 0;
+  border: 0;
+  background: rgb(0 0 0 / 45%);
+  cursor: pointer;
+}
+
+.sidebar-mobile-toggle {
+  display: none;
+}
+
+.explore-sticky-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: Canvas;
+  background: inherit;
+  border-bottom: 1px solid;
+}
+
+.app-shell[data-sidebar-collapsed="true"] .app-sidebar-label,
+.app-shell[data-sidebar-collapsed="true"] .app-sidebar-tagline {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  :root {
+    --mobile-chrome-height: 2.75rem;
+  }
+
+  .app-shell[data-sidebar-collapsed="true"] {
+    --sidebar-width: var(--sidebar-width-expanded);
+  }
+
+  .app-sidebar {
+    z-index: 50;
+    width: min(85vw, var(--sidebar-width-expanded));
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+
+  .app-sidebar[data-mobile-open="true"] {
+    transform: translateX(0);
+  }
+
+  .app-main {
+    margin-left: 0;
+    padding-top: var(--mobile-chrome-height);
+  }
+
+  .sidebar-mobile-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 30;
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid;
+    background: inherit;
+    cursor: pointer;
+  }
+
+  .explore-sticky-toolbar {
+    top: var(--mobile-chrome-height);
+  }
+}
+
+@media (min-width: 768px) {
+  .sidebar-backdrop {
+    display: none !important;
+  }
+
+  .sidebar-mobile-toggle {
+    display: none !important;
+  }
+}

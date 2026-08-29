@@ -4,15 +4,12 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Toaster } from "sonner";
 import { AuthDialog } from "@/components/auth/AuthDialog";
+import { AppShell } from "@/components/layout/AppShell";
 import { useSession } from "@/store/session";
 
-/**
- * Step 1 teardown: public routes render bare main content only.
- * Header / Footer / BottomNav removed — navigation returns in Step 2 (Sidebar).
- */
+/** Public chrome: sidebar + scrollable main. Admin routes stay bare. */
 export function SiteShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-
   const isAdmin = pathname?.startsWith("/admin");
 
   useEffect(() => {
@@ -38,7 +35,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <main>{children}</main>
+      <AppShell>{children}</AppShell>
       <AuthDialog />
       <Toaster position="top-center" />
     </>

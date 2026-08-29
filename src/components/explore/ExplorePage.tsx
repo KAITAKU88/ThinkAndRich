@@ -442,6 +442,7 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
 
       </div>
 
+      <div className="explore-sticky-toolbar">
       {/* Desktop filter bar — mỗi bộ lọc là 1 dropdown riêng, luôn hiển thị,
           không còn khái niệm "nâng cao" hay sidebar nữa. */}
       <div>
@@ -632,6 +633,7 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
       </div>
 
       {searchChip && <div>{searchChip}</div>}
+      </div>
 
       {postList ? (
         <div>
