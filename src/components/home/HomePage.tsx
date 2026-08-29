@@ -63,28 +63,25 @@ function HeroSection({ posts }: { posts: Post[] }) {
   }, [posts]);
 
   return (
-    <section>
+    <section className="neo-section">
       <div>
-        <div >
-          <span>
-            <Sparkles /> {t.home.notNewsFeedBadge}
+        <div className="neo-section-header">
+          <span className="neo-eyebrow">
+            <Sparkles aria-hidden="true" /> {t.home.notNewsFeedBadge}
           </span>
-          <h1>
-            {t.home.heroTitle}
-          </h1>
-          <p>
-            {t.home.heroSubtitle}
-          </p>
-          <div>
-            <Button asChild size="lg">
+          <h1>{t.home.heroTitle}</h1>
+          <p>{t.home.heroSubtitle}</p>
+          <div className="neo-actions">
+            <Button asChild size="lg" className="neo-btn neo-btn--primary">
               <Link href="/explore">
-                {t.home.exploreLibraryBtn} <ArrowRight />
+                {t.home.exploreLibraryBtn} <ArrowRight aria-hidden="true" />
               </Link>
             </Button>
             {!user && (
               <Button
                 variant="outline"
                 size="lg"
+                className="neo-btn"
                 onClick={() => setAuthOpen(true)}
               >
                 {t.home.loginFreeBtn}
@@ -94,11 +91,13 @@ function HeroSection({ posts }: { posts: Post[] }) {
         </div>
 
         {heroPosts.length > 0 && (
-          <div>
+          <ul className="card-grid card-grid--hero">
             {heroPosts.map((post) => (
-              <InteractiveSquareCard key={post.id} post={post} />
+              <li key={post.id}>
+                <InteractiveSquareCard post={post} />
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </div>
     </section>
@@ -114,21 +113,15 @@ function PillarsSection({ stats }: { stats: ReturnType<typeof useSiteStats>["sta
   const pillarCounts = stats.byPillar;
 
   return (
-    <section>
+    <section className="neo-section">
       <div>
-        <div>
-          <span>
-            {t.home.pillarsEyebrow}
-          </span>
-          <h2>
-            {t.home.pillarsTitle}
-          </h2>
-          <p>
-            {t.home.pillarsSubtitle}
-          </p>
+        <div className="neo-section-header">
+          <span className="neo-eyebrow">{t.home.pillarsEyebrow}</span>
+          <h2>{t.home.pillarsTitle}</h2>
+          <p>{t.home.pillarsSubtitle}</p>
         </div>
 
-        <div>
+        <div className="neo-panel-grid">
           {PILLAR_ORDER.map((pillar) => {
             const meta = PILLARS_CONFIG[pillar];
             const Icon = PILLAR_ICONS[pillar];
@@ -136,16 +129,19 @@ function PillarsSection({ stats }: { stats: ReturnType<typeof useSiteStats>["sta
               <Link
                 key={pillar}
                 href={`/explore?pillar=${pillar}`}
+                className="neo-panel neo-shadow"
               >
-                <div>
-                  <Icon />
+                <div className="neo-panel-icon">
+                  <Icon aria-hidden="true" />
                 </div>
                 <h3>{meta.titleVi}</h3>
                 <p>{meta.taglineVi}</p>
-                <div>
-                  <span>{pillarCounts[pillar]} {t.home.profileCountSuffix}</span>
+                <div className="neo-panel-footer">
                   <span>
-                    {t.home.viewPillarBtn} <ArrowRight />
+                    {pillarCounts[pillar]} {t.home.profileCountSuffix}
+                  </span>
+                  <span>
+                    {t.home.viewPillarBtn} <ArrowRight aria-hidden="true" />
                   </span>
                 </div>
               </Link>
@@ -172,23 +168,17 @@ function StatsStrip({ stats }: { stats: ReturnType<typeof useSiteStats>["stats"]
   ];
 
   return (
-    <section>
-      <div>
-        <div>
-          <div>
-            {statItems.map((s) => (
-              <div key={s.label}>
-                <span>
-                  {s.value}
-                </span>
-                <span>{s.label}</span>
-              </div>
-            ))}
+    <section className="neo-section">
+      <div className="neo-stats-row">
+        {statItems.map((s) => (
+          <div key={s.label} className="neo-stat neo-shadow">
+            <span className="neo-stat-value">{s.value}</span>
+            <span className="neo-stat-label">{s.label}</span>
           </div>
-          <div>
-            <Globe />
-            <span>{t.home.statsPppNote}</span>
-          </div>
+        ))}
+        <div className="neo-stat neo-shadow">
+          <Globe aria-hidden="true" />
+          <span className="neo-stat-label">{t.home.statsPppNote}</span>
         </div>
       </div>
     </section>
@@ -217,34 +207,21 @@ function PricingTeaserSection() {
   const termPhrase = paidTermPricingCardNote(language);
 
   return (
-    <section>
+    <section className="neo-section">
       <div>
-        <div>
-          <span>
-            {t.home.pricingTeaserEyebrow}
-          </span>
-          <h2>
-            {t.home.pricingTeaserTitle}
-          </h2>
-          <p>
-            {t.home.pricingTeaserSubtitle}
-          </p>
+        <div className="neo-section-header">
+          <span className="neo-eyebrow">{t.home.pricingTeaserEyebrow}</span>
+          <h2>{t.home.pricingTeaserTitle}</h2>
+          <p>{t.home.pricingTeaserSubtitle}</p>
         </div>
 
-        <div>
+        <div className="neo-panel-grid">
           {CREDIT_PACKAGES.map((pack, i) => (
-            <div
-              key={pack.id}
-
-            >
-              <h3>
-                {pack.credits.toLocaleString("vi-VN")} credit
-              </h3>
-              <div>
-                {currentPpp.packages[pack.id].formatted}
-              </div>
+            <div key={pack.id} className="neo-panel neo-shadow">
+              <h3>{pack.credits.toLocaleString("vi-VN")} credit</h3>
+              <div className="neo-stat-value">{currentPpp.packages[pack.id].formatted}</div>
               <p>{termPhrase}</p>
-              <Button asChild variant={i === 1 ? "default" : "outline"}>
+              <Button asChild variant={i === 1 ? "default" : "outline"} className={`neo-btn neo-btn--sm${i === 1 ? " neo-btn--primary" : ""}`}>
                 <Link href="/pricing">{t.home.viewDetailsBtn}</Link>
               </Button>
             </div>
@@ -265,26 +242,18 @@ function FinalCtaSection() {
   const t = getTranslation(language);
 
   return (
-    <section>
-      <div>
-        <h2>
-          {t.home.finalCtaTitle}
-        </h2>
-        <p>
-          {t.home.finalCtaSubtitle}
-        </p>
-        <div>
-          <Button asChild size="lg">
+    <section className="neo-section">
+      <div className="neo-cta-block neo-shadow">
+        <h2>{t.home.finalCtaTitle}</h2>
+        <p>{t.home.finalCtaSubtitle}</p>
+        <div className="neo-actions neo-actions--center">
+          <Button asChild size="lg" className="neo-btn neo-btn--primary">
             <Link href="/explore">
-              {t.home.exploreLibraryBtn} <ArrowRight />
+              {t.home.exploreLibraryBtn} <ArrowRight aria-hidden="true" />
             </Link>
           </Button>
           {!user && (
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => setAuthOpen(true)}
-            >
+            <Button variant="outline" size="lg" className="neo-btn" onClick={() => setAuthOpen(true)}>
               {t.home.loginFreeBtn}
             </Button>
           )}

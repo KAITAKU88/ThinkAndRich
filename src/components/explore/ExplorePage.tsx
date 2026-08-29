@@ -230,7 +230,7 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
 
   const postList =
     pagePosts.length > 0 ? (
-      <ul>
+      <ul className="card-grid">
         {pagePosts.map((post) => (
           <li key={post.id}>
             <InteractiveSquareCard post={post} />
@@ -240,7 +240,7 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
     ) : null;
 
   const paginationControls = totalPages > 1 && (
-    <div>
+    <div className="explore-pagination">
       <Button
         variant="outline"
         size="sm"
@@ -432,20 +432,14 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
 
   return (
     <div>
-      {/* Header Bar — giữ nguyên */}
-      <div>
-        <div>
-          <h1>
-            {t.explore.pageTitle}
-          </h1>
-        </div>
-
+      <div className="explore-page-header">
+        <h1>{t.explore.pageTitle}</h1>
       </div>
 
       <div className="explore-sticky-toolbar">
       {/* Desktop filter bar — mỗi bộ lọc là 1 dropdown riêng, luôn hiển thị,
           không còn khái niệm "nâng cao" hay sidebar nữa. */}
-      <div>
+      <div className="explore-toolbar-row">
         <div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -474,7 +468,7 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
           {searchChip}
         </div>
 
-        <div>
+        <div className="explore-toolbar-row">
           {user && bookmarks.length > 0 && (
             <label>
               <input
@@ -562,7 +556,7 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
       </div>
 
       {/* Mobile filter bar — mọi dropdown gộp chung vào 1 nút "Bộ Lọc" */}
-      <div>
+      <div className="explore-toolbar-row">
         {resultCount}
 
         <DropdownMenu>
@@ -641,11 +635,11 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
           {paginationControls}
         </div>
       ) : (
-        <div>
-          <Brain />
+        <div className="explore-empty neo-shadow">
+          <Brain aria-hidden="true" />
           <h3>{t.explore.emptyTitle}</h3>
           <p>{t.explore.emptyDesc}</p>
-          <Button size="sm" onClick={resetAllFilters}>
+          <Button className="neo-btn neo-btn--sm" size="sm" onClick={resetAllFilters}>
             <RotateCcw /> {t.explore.resetFiltersBtn}
           </Button>
         </div>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import "./app-shell.css";
+import "@/styles/neo-brutalist.css";
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -64,7 +65,7 @@ export function AppShell({ children }: AppShellProps) {
           {mobileOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
           <span>{mobileOpen ? "Đóng" : "Menu"}</span>
         </button>
-        {children}
+        <div className="main-content">{children}</div>
       </div>
     </div>
   );

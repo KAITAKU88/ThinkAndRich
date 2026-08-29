@@ -11,17 +11,17 @@ export function parseCreditCost(value: unknown, fallback: CreditCost = 1): Credi
   return isCreditCost(n) ? n : fallback;
 }
 
-/** Step 1 teardown — accent tokens removed until Step 3. */
+/** Step 3 — earthy accent classes for Neo-Brutalist badges. */
 export const CREDIT_COST_ACCENT: Record<CreditCost, string> = {
-  0: "",
-  1: "",
-  2: "",
-  3: "",
-  4: "",
-  5: "",
+  0: "neo-cost--0",
+  1: "neo-cost--1",
+  2: "neo-cost--2",
+  3: "neo-cost--3",
+  4: "neo-cost--4",
+  5: "neo-cost--5",
 };
 
-/** Step 1 teardown — no decorative utility classes until Step 3. */
+/** Decorative border classes removed — cards use unified neo-shadow. */
 export const CREDIT_COST_BORDER: Record<CreditCost, string> = {
   0: "",
   1: "",
