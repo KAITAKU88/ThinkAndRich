@@ -179,43 +179,43 @@ function CheckoutContent() {
 
   if (isSuccess) {
     return (
-      <div className="container mx-auto max-w-lg px-4 py-16 text-center space-y-6">
-        <div className="w-20 h-20 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center animate-in zoom-in-75 shadow-sm">
-          <CheckCircle2 className="w-10 h-10" />
+      <div>
+        <div>
+          <CheckCircle2 />
         </div>
-        <Badge className="bg-primary/20 text-primary border-none text-xs px-3 py-1">
+        <Badge>
           {t.checkout.badge}
         </Badge>
-        <h1 className="font-display text-3xl font-bold">
+        <h1>
           {t.checkout.successTitle} {planName}!
         </h1>
-        <p className="text-muted-foreground leading-relaxed text-sm">
+        <p>
           {t.checkout.successDesc}
         </p>
-        <div className="p-4 rounded-2xl bg-muted/50 border border-border/60 text-xs text-left space-y-1.5 max-w-sm mx-auto">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">{t.checkout.successGatewayLabel}</span>
-            <span className="font-semibold text-foreground">
+        <div>
+          <div>
+            <span >{t.checkout.successGatewayLabel}</span>
+            <span>
               {ppp.gateway === "sepay" ? "SePay (VietQR)" : "Paddle (MoR)"}
             </span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">{t.checkout.successCurrencyLabel}</span>
-            <span className="font-semibold text-primary">{ppp.currency} ({planPriceFormatted})</span>
+          <div>
+            <span >{t.checkout.successCurrencyLabel}</span>
+            <span>{ppp.currency} ({planPriceFormatted})</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">{t.checkout.successAccessLabel}</span>
-            <span className="font-semibold text-emerald-600 dark:text-emerald-400">{planLimitText}</span>
+          <div>
+            <span >{t.checkout.successAccessLabel}</span>
+            <span>{planLimitText}</span>
           </div>
         </div>
 
-        <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Button size="lg" className="w-full sm:w-auto rounded-full px-8 font-semibold shadow-md" asChild>
+        <div>
+          <Button size="lg" asChild>
             <Link href="/explore">
-              {t.checkout.goToExplore} <ArrowRight className="w-4 h-4 ml-2" />
+              {t.checkout.goToExplore} <ArrowRight />
             </Link>
           </Button>
-          <Button variant="outline" size="lg" className="w-full sm:w-auto rounded-full" asChild>
+          <Button variant="outline" size="lg" asChild>
             <Link href="/profile">{t.checkout.goToLibrary}</Link>
           </Button>
         </div>
@@ -224,47 +224,45 @@ function CheckoutContent() {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl px-3 sm:px-4 py-8 sm:py-12">
-      <div className="text-center mb-10 space-y-2">
-        <Badge className="bg-primary/15 text-primary border-none text-xs">
+    <div>
+      <div>
+        <Badge>
           {t.checkout.badge}
         </Badge>
-        <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold">
+        <h1>
           {t.checkout.title} {planName}
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p>
           {t.checkout.subtitle}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+      <div>
         {/* Left: Plan summary */}
-        <div className="space-y-6">
-          <Card className="rounded-3xl border-border/80 bg-card p-4 sm:p-6 space-y-6">
+        <div>
+          <Card>
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <CreditCoin className="w-5 h-5" />
-                <h3 className="font-display text-xl font-bold">{planName}</h3>
+              <div>
+                <CreditCoin />
+                <h3>{planName}</h3>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p>
                 {paidTermCheckoutSummary(language)}
               </p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-muted/50 border border-border/60 space-y-3">
-              <div className="flex gap-2">
+            <div>
+              <div>
                 <Input
                   value={promoCode}
                   onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
                   placeholder="Mã giảm giá"
-                  className="h-9 text-xs flex-1"
                   disabled={!user || Boolean(order)}
                 />
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-9 shrink-0 text-xs"
                   disabled={!user || !promoCode.trim() || Boolean(order)}
                   onClick={() => setAppliedPromo(promoCode.trim())}
                 >
@@ -272,41 +270,37 @@ function CheckoutContent() {
                 </Button>
               </div>
               {appliedPromo ? (
-                <p className="text-[11px] text-emerald-600 dark:text-emerald-400">
+                <p>
                   Đã áp dụng mã <strong>{appliedPromo}</strong>
                   {order && order.amount < marketListAmount() ? ` — giảm còn ${planPriceFormatted}` : ""}
                 </p>
               ) : null}
-              <div className="flex justify-between items-start gap-3 text-xs">
-                <span className="text-muted-foreground">{t.checkout.readingLimit}</span>
-                <span className="font-semibold text-primary">{planLimitText}</span>
+              <div>
+                <span >{t.checkout.readingLimit}</span>
+                <span>{planLimitText}</span>
               </div>
-              <div className="pt-2 border-t border-border/50 flex justify-between items-baseline">
-                <span className="text-sm font-semibold">{t.checkout.totalAmount}</span>
-                <span className="text-xl min-[375px]:text-2xl font-extrabold text-primary text-right break-words">
+              <div>
+                <span>{t.checkout.totalAmount}</span>
+                <span>
                   {planPriceFormatted}
                 </span>
               </div>
             </div>
 
-            <div className="space-y-2 text-xs text-muted-foreground">
-              <div className="flex flex-col min-[375px]:flex-row min-[375px]:items-center justify-between gap-2 p-2.5 rounded-xl bg-card border border-border">
-                <span className="inline-flex items-center gap-2">
-                  <Globe2 className="w-4 h-4 text-primary" />
+            <div>
+              <div>
+                <span>
+                  <Globe2 />
                   {t.checkout.regionDetectedLabel}
                 </span>
-                <Badge variant="outline" className="font-bold">
+                <Badge variant="outline">
                   {ppp.flag} {ppp.countryName} ({ppp.currency})
                 </Badge>
               </div>
-              <div className="flex flex-col min-[375px]:flex-row min-[375px]:items-center justify-between gap-2 p-2.5 rounded-xl bg-card border border-border">
+              <div>
                 <span>{t.checkout.gatewayAutoLabel}</span>
                 <Badge
-                  className={
-                    ppp.gateway === "sepay"
-                      ? "gateway-sepay font-bold"
-                      : "gateway-paddle font-bold"
-                  }
+
                 >
                   {ppp.gateway === "sepay" ? t.checkout.sepayGatewayBadge : t.checkout.lemonGatewayBadge}
                 </Badge>
@@ -319,14 +313,14 @@ function CheckoutContent() {
         <div>
           {ppp.gateway === "sepay" ? (
             /* SEPAY GATEWAY (VIETNAM VNĐ) */
-            <Card className="rounded-3xl border-2 border-primary shadow-lg bg-card p-4 sm:p-6 space-y-6">
-              <div className="flex items-center justify-between">
+            <Card>
+              <div>
                 <div>
-                  <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-none text-[11px] font-semibold mb-1">
+                  <Badge>
                     {t.checkout.sepayGatewayBadge}
                   </Badge>
-                  <h3 className="font-display text-lg font-bold flex items-center gap-2">
-                    <QrCode className="w-5 h-5 text-primary" />
+                  <h3>
+                    <QrCode />
                     {t.checkout.sepayTitle}
                   </h3>
                 </div>
@@ -341,82 +335,78 @@ function CheckoutContent() {
                 // a style choice: a QR code is read by contrast, and banking
                 // apps scan it off the screen. The paper tones every other
                 // surface now wears would eat into that margin.
-                <div className="flex flex-col items-center p-4 rounded-2xl bg-white border border-border shadow-inner text-center">
+                <div>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={vietQrUrl}
                     alt="VietQR SePay Transfer"
-                    className="w-full max-w-52 aspect-square object-contain rounded-xl"
                   />
-                  <p className="text-[11px] text-slate-600 font-medium mt-2">
+                  <p>
                     {t.checkout.sepayDesc}
                   </p>
                 </div>
               ) : (
                 <div
                   data-testid="payment-not-configured"
-                  className="flex items-start gap-2.5 p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-xs text-amber-700 dark:text-amber-400"
                 >
-                  <AlertTriangle className="w-4 h-4 shrink-0 mt-px" />
+                  <AlertTriangle />
                   <span>{t.checkout.paymentNotConfigured}</span>
                 </div>
               )}
 
               {/* Transfer Details with Copy Buttons */}
-              <div className="space-y-2.5 text-xs">
-                <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-muted/60 border border-border/50">
-                  <div className="min-w-0">
-                    <span className="text-muted-foreground block text-[10px]">{t.checkout.bankName}</span>
-                    <span className="font-semibold text-foreground">{bankName}</span>
+              <div>
+                <div>
+                  <div >
+                    <span>{t.checkout.bankName}</span>
+                    <span>{bankName}</span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/60 border border-border/50">
+                <div>
                   <div>
-                    <span className="text-muted-foreground block text-[10px]">{t.checkout.accountNumber}</span>
-                    <span className="font-mono font-bold text-sm text-foreground break-all">{bankAccount}</span>
+                    <span>{t.checkout.accountNumber}</span>
+                    <span>{bankAccount}</span>
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-7 text-xs rounded-lg gap-1"
                     onClick={() => handleCopy(bankAccount, "acc")}
                   >
-                    {copied === "acc" ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                    {copied === "acc" ? <Check /> : <Copy />}
                     {copied === "acc" ? t.checkout.copied : t.checkout.copy}
                   </Button>
                 </div>
 
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/60 border border-border/50">
+                <div>
                   <div>
-                    <span className="text-muted-foreground block text-[10px]">{t.checkout.accountHolder}</span>
-                    <span className="font-semibold text-foreground">{accountHolder}</span>
+                    <span>{t.checkout.accountHolder}</span>
+                    <span>{accountHolder}</span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30">
-                  <div className="min-w-0">
-                    <span className="text-amber-700 dark:text-amber-400 block text-[10px] font-semibold">
+                <div>
+                  <div >
+                    <span>
                       {t.checkout.transferMemo}
                     </span>
-                    <span className="font-mono font-bold text-sm text-amber-600 dark:text-amber-400 break-all">
+                    <span>
                       {memoCode}
                     </span>
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-7 text-xs rounded-lg gap-1 border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20"
                     onClick={() => handleCopy(memoCode, "memo")}
                   >
-                    {copied === "memo" ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                    {copied === "memo" ? <Check /> : <Copy />}
                     {copied === "memo" ? t.checkout.copied : t.checkout.copy}
                   </Button>
                 </div>
               </div>
 
               {orderError && (
-                <p className="text-xs text-destructive text-center">{orderError}</p>
+                <p>{orderError}</p>
               )}
 
               {/* Action Button — the order is confirmed by the SePay
@@ -427,13 +417,12 @@ function CheckoutContent() {
                   login dialog instead of the button just sitting dead. */}
               <Button
                 size="lg"
-                className="w-full rounded-full font-semibold shadow-md gateway-sepay"
                 disabled={isProcessing || (!!user && !order)}
                 onClick={handleConfirmPayment}
               >
                 {isProcessing ? (
-                  <span className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 animate-spin" /> {t.checkout.processing}
+                  <span>
+                    <Sparkles /> {t.checkout.processing}
                   </span>
                 ) : (
                   <span>{t.checkout.confirmSePay}</span>
@@ -447,38 +436,37 @@ function CheckoutContent() {
                (src/app/api/webhooks/billing/route.ts?gateway=paddle)
                flips the order to PAID the same way SePay's does, and this
                page polls for that exactly like the SePay branch above. */
-            <Card className="rounded-3xl border-2 border-primary shadow-lg bg-card p-4 sm:p-6 space-y-6 text-center">
-              <div className="w-12 h-12 rounded-2xl gateway-paddle-muted mx-auto flex items-center justify-center">
-                <CreditCard className="w-6 h-6 text-blue-600" />
+            <Card>
+              <div>
+                <CreditCard />
               </div>
               <div>
-                <h3 className="font-display text-lg font-bold">{t.checkout.lemonTitle}</h3>
-                <p className="text-xs text-muted-foreground mt-1">
+                <h3>{t.checkout.lemonTitle}</h3>
+                <p>
                   {t.checkout.lemonSubtitle}
                 </p>
               </div>
 
-              {orderError && <p className="text-xs text-destructive">{orderError}</p>}
+              {orderError && <p>{orderError}</p>}
 
               {!orderError && !paddleCheckoutUrl && (
-                <p className="text-xs text-muted-foreground flex items-center justify-center gap-2">
-                  <Sparkles className="w-3.5 h-3.5 animate-spin" /> {t.checkout.lemonInitializing}
+                <p>
+                  <Sparkles /> {t.checkout.lemonInitializing}
                 </p>
               )}
 
               {paddleCheckoutUrl && (
                 <Button
                   size="lg"
-                  className="w-full rounded-full font-semibold shadow-md gateway-paddle"
                   onClick={() => {
                     window.location.href = paddleCheckoutUrl;
                   }}
                 >
-                  {t.checkout.lemonContinueBtn} <ArrowRight className="w-4 h-4 ml-2" />
+                  {t.checkout.lemonContinueBtn} <ArrowRight />
                 </Button>
               )}
 
-              <p className="text-[11px] text-muted-foreground">
+              <p>
                 {t.checkout.lemonPostPaymentNote}
               </p>
             </Card>
@@ -493,7 +481,7 @@ export function CheckoutPage() {
   return (
     <Suspense
       fallback={
-        <div className="container mx-auto px-4 py-20 text-center text-sm text-muted-foreground">
+        <div>
           Đang tải trang thanh toán...
         </div>
       }

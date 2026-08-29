@@ -3,37 +3,18 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Toaster } from "sonner";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { BottomNav } from "@/components/layout/BottomNav";
 import { AuthDialog } from "@/components/auth/AuthDialog";
 import { useSession } from "@/store/session";
 
+/**
+ * Step 1 teardown: public routes render bare main content only.
+ * Header / Footer / BottomNav removed — navigation returns in Step 2 (Sidebar).
+ */
 export function SiteShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  // Focus mode on post pages sets pointer-events:none on chrome via a body
-  // class. If that class survives a client navigation, header buttons and
-  // dropdowns feel dead even though the new page rendered fine.
-  useEffect(() => {
-    document.body.classList.remove("focus-mode-active");
-  }, [pathname]);
 
-  // The admin console (src/app/admin/**) is a separate full-width tool
-  // with its own layout/sidebar/login — it must not carry the public
-  // site's header, footer, bottom nav, or the anonymous-visitor auth
-  // dialog. restoreSession() below still needs to run there too, since
-  // AdminLayout's own auth relies on `useSession().user` being populated.
-  // Console hostname redirects `/` → `/admin` (see middleware). Localhost
-  // and the /admin/login|/admin/recover routes already live under this prefix.
   const isAdmin = pathname?.startsWith("/admin");
-  // The store persists to localStorage, which the server can't see —
-  // useSession is configured with skipHydration so both the server and
-  // the client's first render use the same untouched default state, then
-  // this pulls the persisted data in right after mount. Rehydrating
-  // eagerly (no skipHydration) would make the client's first render
-  // already differ from what the server sent, which React reports as a
-  // hydration mismatch and recovers from by discarding and re-rendering
-  // the affected subtree — visible as a flash/jump on load.
+
   useEffect(() => {
     const unsub = useSession.persist.onFinishHydration(() => {
       const { user, bookmarks, userReactions } = useSession.getState();
@@ -50,19 +31,16 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
     return (
       <>
         {children}
-        <Toaster richColors position="top-center" />
+        <Toaster position="top-center" />
       </>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col pb-16 sm:pb-0">
-      <Header />
-      <main className="flex-1">{children}</main>
-      <Footer />
-      <BottomNav />
+    <>
+      <main>{children}</main>
       <AuthDialog />
-      <Toaster richColors position="top-center" />
-    </div>
+      <Toaster position="top-center" />
+    </>
   );
 }

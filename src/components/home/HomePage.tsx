@@ -19,7 +19,6 @@ import { InteractiveSquareCard } from "@/components/ideas/InteractiveSquareCard"
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/store/session";
 import { usePosts } from "@/lib/hooks/use-posts";
-import { cn } from "@/lib/utils";
 import { getTranslation } from "@/lib/i18n/translations";
 import type { CountryCode, MarketPricing, Post, PillarType } from "@/lib/types";
 
@@ -31,13 +30,7 @@ const PILLAR_ICONS: Record<PillarType, typeof Brain> = {
   STARTUP_IDEA: Lightbulb,
 };
 
-// Pillar showcase cards keep the shelf-colour of each trụ cột. Article
-// cards (InteractiveSquareCard) edge by credit cost, not pillar.
-const PILLAR_ACCENT_VAR: Record<PillarType, string> = {
-  MENTAL_MODEL: "var(--pillar-crimson)",
-  BUSINESS_STRATEGY: "var(--pillar-amber)",
-  STARTUP_IDEA: "var(--pillar-jade)",
-};
+// Pillar showcase cards — Step 1: no accent colours until Step 3.
 
 export function HomePage() {
   const { posts } = usePosts({ pageSize: 200 });
@@ -69,33 +62,29 @@ function HeroSection({ posts }: { posts: Post[] }) {
     ).filter((p): p is Post => Boolean(p));
   }, [posts]);
 
-  const rotations = ["-7deg", "4deg", "10deg"];
-  const lifts = ["0px", "-18px", "8px"];
-
   return (
-    <section className="border-b border-border/70">
-      <div className="container mx-auto max-w-[1400px] px-4 sm:px-6 pt-14 sm:pt-20 pb-16 sm:pb-24 grid lg:grid-cols-[1.1fr_1fr] gap-12 lg:gap-10 items-center">
-        <div className="max-w-xl">
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-primary mb-4">
-            <Sparkles className="w-3.5 h-3.5" /> {t.home.notNewsFeedBadge}
+    <section>
+      <div>
+        <div >
+          <span>
+            <Sparkles /> {t.home.notNewsFeedBadge}
           </span>
-          <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-foreground leading-[1.08]">
+          <h1>
             {t.home.heroTitle}
           </h1>
-          <p className="mt-5 text-base sm:text-lg text-muted-foreground leading-relaxed">
+          <p>
             {t.home.heroSubtitle}
           </p>
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Button asChild size="lg" className="rounded-full px-6 font-semibold">
+          <div>
+            <Button asChild size="lg">
               <Link href="/explore">
-                {t.home.exploreLibraryBtn} <ArrowRight className="w-4 h-4 ml-1" />
+                {t.home.exploreLibraryBtn} <ArrowRight />
               </Link>
             </Button>
             {!user && (
               <Button
                 variant="outline"
                 size="lg"
-                className="rounded-full px-6 font-semibold"
                 onClick={() => setAuthOpen(true)}
               >
                 {t.home.loginFreeBtn}
@@ -105,24 +94,10 @@ function HeroSection({ posts }: { posts: Post[] }) {
         </div>
 
         {heroPosts.length > 0 && (
-          <div className="relative h-[280px] sm:h-[340px] lg:h-[380px]">
-            <div className="absolute inset-0 flex items-center justify-center">
-              {heroPosts.map((post, i) => (
-                <div
-                  key={post.id}
-                  className="hero-card-float w-28 min-[375px]:w-36 sm:w-44 lg:w-48 shrink-0 [--fan-overlap:-2.5rem] min-[375px]:[--fan-overlap:-2.75rem]"
-                  style={{
-                    marginLeft: i === 0 ? 0 : "var(--fan-overlap)",
-                    marginTop: lifts[i % lifts.length],
-                    rotate: rotations[i % rotations.length],
-                    zIndex: i,
-                    animationDelay: `${i * 0.7}s`,
-                  }}
-                >
-                  <InteractiveSquareCard post={post} />
-                </div>
-              ))}
-            </div>
+          <div>
+            {heroPosts.map((post) => (
+              <InteractiveSquareCard key={post.id} post={post} />
+            ))}
           </div>
         )}
       </div>
@@ -139,21 +114,21 @@ function PillarsSection({ stats }: { stats: ReturnType<typeof useSiteStats>["sta
   const pillarCounts = stats.byPillar;
 
   return (
-    <section className="border-b border-border/70 bg-secondary/30">
-      <div className="container mx-auto max-w-[1400px] px-4 sm:px-6 py-14 sm:py-20">
-        <div className="max-w-xl mb-10">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
+    <section>
+      <div>
+        <div>
+          <span>
             {t.home.pillarsEyebrow}
           </span>
-          <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-2">
+          <h2>
             {t.home.pillarsTitle}
           </h2>
-          <p className="text-sm sm:text-base text-muted-foreground mt-2">
+          <p>
             {t.home.pillarsSubtitle}
           </p>
         </div>
 
-        <div className="grid sm:grid-cols-3 gap-4 sm:gap-5">
+        <div>
           {PILLAR_ORDER.map((pillar) => {
             const meta = PILLARS_CONFIG[pillar];
             const Icon = PILLAR_ICONS[pillar];
@@ -161,20 +136,16 @@ function PillarsSection({ stats }: { stats: ReturnType<typeof useSiteStats>["sta
               <Link
                 key={pillar}
                 href={`/explore?pillar=${pillar}`}
-                className="group relative rounded-3xl border-[1.5px] bg-card p-6 sm:p-7 transition-all hover:shadow-xl flex flex-col"
-                style={{
-                  borderColor: `color-mix(in oklab, ${PILLAR_ACCENT_VAR[pillar]} 35%, var(--border))`,
-                }}
               >
-                <div className={cn("flex items-center justify-center w-11 h-11 rounded-2xl mb-5 border", meta.badgeBg)}>
-                  <Icon className="w-5 h-5" />
+                <div>
+                  <Icon />
                 </div>
-                <h3 className="font-display text-xl font-bold text-foreground mb-1.5">{meta.titleVi}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed flex-1">{meta.taglineVi}</p>
-                <div className="mt-5 pt-4 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-muted-foreground">
-                  <span className="font-mono tabular-nums">{pillarCounts[pillar]} {t.home.profileCountSuffix}</span>
-                  <span className="inline-flex items-center gap-1 text-primary group-hover:gap-1.5 transition-all">
-                    {t.home.viewPillarBtn} <ArrowRight className="w-3.5 h-3.5" />
+                <h3>{meta.titleVi}</h3>
+                <p>{meta.taglineVi}</p>
+                <div>
+                  <span>{pillarCounts[pillar]} {t.home.profileCountSuffix}</span>
+                  <span>
+                    {t.home.viewPillarBtn} <ArrowRight />
                   </span>
                 </div>
               </Link>
@@ -201,21 +172,21 @@ function StatsStrip({ stats }: { stats: ReturnType<typeof useSiteStats>["stats"]
   ];
 
   return (
-    <section className="border-b border-border/70">
-      <div className="container mx-auto max-w-[1400px] px-4 sm:px-6 py-8 sm:py-10">
-        <div className="flex flex-wrap items-center justify-center sm:justify-between gap-x-8 gap-y-4 text-center sm:text-left">
-          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+    <section>
+      <div>
+        <div>
+          <div>
             {statItems.map((s) => (
-              <div key={s.label} className="flex items-baseline gap-2">
-                <span className="font-mono text-2xl sm:text-3xl font-bold text-foreground tabular-nums">
+              <div key={s.label}>
+                <span>
                   {s.value}
                 </span>
-                <span className="text-xs sm:text-sm text-muted-foreground">{s.label}</span>
+                <span>{s.label}</span>
               </div>
             ))}
           </div>
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-            <Globe className="w-4 h-4 text-primary" />
+          <div>
+            <Globe />
             <span>{t.home.statsPppNote}</span>
           </div>
         </div>
@@ -246,37 +217,34 @@ function PricingTeaserSection() {
   const termPhrase = paidTermPricingCardNote(language);
 
   return (
-    <section className="border-b border-border/70 bg-secondary/30">
-      <div className="container mx-auto max-w-[1400px] px-4 sm:px-6 py-14 sm:py-20">
-        <div className="max-w-xl mb-10">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
+    <section>
+      <div>
+        <div>
+          <span>
             {t.home.pricingTeaserEyebrow}
           </span>
-          <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-2">
+          <h2>
             {t.home.pricingTeaserTitle}
           </h2>
-          <p className="text-sm sm:text-base text-muted-foreground mt-2">
+          <p>
             {t.home.pricingTeaserSubtitle}
           </p>
         </div>
 
-        <div className="grid sm:grid-cols-3 gap-4 sm:gap-5">
+        <div>
           {CREDIT_PACKAGES.map((pack, i) => (
             <div
               key={pack.id}
-              className={cn(
-                "rounded-3xl border bg-card p-6 flex flex-col",
-                i === 1 ? "border-primary shadow-lg" : "border-border"
-              )}
+
             >
-              <h3 className="font-display text-lg font-bold text-foreground">
+              <h3>
                 {pack.credits.toLocaleString("vi-VN")} credit
               </h3>
-              <div className="font-display text-2xl font-extrabold text-foreground mt-4 mb-1">
+              <div>
                 {currentPpp.packages[pack.id].formatted}
               </div>
-              <p className="text-[11px] text-muted-foreground mb-5">{termPhrase}</p>
-              <Button asChild variant={i === 1 ? "default" : "outline"} className="rounded-full font-semibold mt-auto">
+              <p>{termPhrase}</p>
+              <Button asChild variant={i === 1 ? "default" : "outline"}>
                 <Link href="/pricing">{t.home.viewDetailsBtn}</Link>
               </Button>
             </div>
@@ -298,24 +266,23 @@ function FinalCtaSection() {
 
   return (
     <section>
-      <div className="container mx-auto max-w-[1400px] px-4 sm:px-6 py-16 sm:py-24 text-center">
-        <h2 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground max-w-2xl mx-auto leading-tight">
+      <div>
+        <h2>
           {t.home.finalCtaTitle}
         </h2>
-        <p className="text-sm sm:text-base text-muted-foreground mt-3 max-w-md mx-auto">
+        <p>
           {t.home.finalCtaSubtitle}
         </p>
-        <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-          <Button asChild size="lg" className="rounded-full px-7 font-semibold">
+        <div>
+          <Button asChild size="lg">
             <Link href="/explore">
-              {t.home.exploreLibraryBtn} <ArrowRight className="w-4 h-4 ml-1" />
+              {t.home.exploreLibraryBtn} <ArrowRight />
             </Link>
           </Button>
           {!user && (
             <Button
               variant="outline"
               size="lg"
-              className="rounded-full px-7 font-semibold"
               onClick={() => setAuthOpen(true)}
             >
               {t.home.loginFreeBtn}

@@ -21,13 +21,13 @@ interface PageProps {
 
 function ErrorPanel({ title, detail }: { title: string; detail: string }) {
   return (
-    <main className="min-h-screen flex items-center justify-center p-6 bg-background">
-      <div className="w-full max-w-md rounded-xl border border-destructive/40 bg-card p-6 space-y-3">
-        <div className="flex items-center gap-2 text-destructive">
-          <AlertTriangle className="h-5 w-5" />
-          <h1 className="font-semibold">{title}</h1>
+    <main>
+      <div>
+        <div>
+          <AlertTriangle />
+          <h1>{title}</h1>
         </div>
-        <p className="text-sm text-muted-foreground">{detail}</p>
+        <p>{detail}</p>
       </div>
     </main>
   );
@@ -90,34 +90,34 @@ export default async function AuthorizePage({ searchParams }: PageProps) {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-6 bg-background">
-      <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 space-y-5">
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="h-6 w-6 text-primary" />
-          <h1 className="text-lg font-semibold">Ủy quyền kết nối</h1>
+    <main>
+      <div>
+        <div>
+          <ShieldCheck />
+          <h1>Ủy quyền kết nối</h1>
         </div>
 
-        <p className="text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">{client.name}</span> muốn kết nối vào Think &amp; Rich với
-          quyền soạn và chỉnh sửa <span className="font-medium text-foreground">bản nháp</span> bài viết.
+        <p>
+          <span>{client.name}</span> muốn kết nối vào Think &amp; Rich với
+          quyền soạn và chỉnh sửa <span>bản nháp</span> bài viết.
         </p>
 
-        <ul className="space-y-1.5 text-sm text-muted-foreground">
+        <ul>
           <li>• Đọc danh sách trụ cột, chuyên mục và bài nháp</li>
           <li>• Tạo bài viết mới ở trạng thái nháp</li>
           <li>• Sửa nội dung bài đang ở trạng thái nháp</li>
         </ul>
 
-        <p className="text-xs text-muted-foreground border-t border-border pt-3">
+        <p>
           Không thể xuất bản, không thể xóa bài, và không đọc được dữ liệu người dùng. Bạn có thể thu hồi quyền bất
-          cứ lúc nào trong <span className="font-medium">Admin → MCP Connector</span>.
+          cứ lúc nào trong <span>Admin → MCP Connector</span>.
         </p>
 
-        <div className="rounded-md bg-secondary/60 px-3 py-2 text-xs text-muted-foreground">
-          Đăng nhập với tư cách <span className="font-medium text-foreground">{session.email}</span>
+        <div>
+          Đăng nhập với tư cách <span>{session.email}</span>
         </div>
 
-        <form action="/api/mcp/oauth/authorize" method="POST" className="flex gap-2">
+        <form action="/api/mcp/oauth/authorize" method="POST">
           <input type="hidden" name="client_id" value={clientId} />
           <input type="hidden" name="redirect_uri" value={redirectUri} />
           <input type="hidden" name="state" value={state} />
@@ -126,13 +126,12 @@ export default async function AuthorizePage({ searchParams }: PageProps) {
           <input type="hidden" name="resource" value={resource} />
           <button
             type="submit"
-            className="flex-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
           >
             Cho phép kết nối
           </button>
         </form>
 
-        <p className="text-center text-xs text-muted-foreground">
+        <p>
           Không phải bạn khởi tạo yêu cầu này? Hãy đóng trang lại.
         </p>
       </div>

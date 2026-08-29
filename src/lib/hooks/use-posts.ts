@@ -28,7 +28,7 @@ function mergePosts(existing: Post[], incoming: Post[]): Post[] {
 // never includes fullContent — see src/app/api/posts/route.ts). Replaces
 // reading `useSession(s => s.posts)` against the old mock array. Callers
 // that need client-side pillar/access/tag/search/sort filtering (Explore's
-// skyline layout) still do that in-memory over the fetched array, same as
+// Client-side filters (pillar, tags, etc.) run in-memory over the fetched array, same as
 // before — only the source of the array changed.
 export function usePosts(filters: UsePostsFilters = {}, initialPosts?: Post[]) {
   const [posts, setPosts] = useState<Post[]>(initialPosts ?? []);

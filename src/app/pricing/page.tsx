@@ -3,7 +3,7 @@ import { PricingPage } from "@/components/pricing/PricingPage";
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="p-16 text-center text-muted-foreground">Đang tải...</div>}>
+    <Suspense fallback={<p>Đang tải...</p>}>
       <PricingPage />
     </Suspense>
   );

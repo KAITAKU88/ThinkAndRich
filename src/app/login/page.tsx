@@ -16,16 +16,16 @@ export default function LoginPage() {
   }, [user, router]);
 
   return (
-    <div className="container mx-auto max-w-md px-4 py-16">
+    <div>
       <Card>
         <CardHeader>
-          <CardTitle className="font-display text-2xl">Đăng nhập</CardTitle>
+          <CardTitle>Đăng nhập</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
+        <CardContent>
+          <p>
             Nhập email để nhận mã OTP 6 chữ số, rồi xác nhận để đăng nhập.
           </p>
-          <Button className="w-full" onClick={() => setAuthOpen(true)}>
+          <Button onClick={() => setAuthOpen(true)}>
             Mở form đăng nhập
           </Button>
         </CardContent>

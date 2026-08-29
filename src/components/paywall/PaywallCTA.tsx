@@ -47,83 +47,81 @@ export function PaywallCTA({
   }
 
   return (
-    <div className="reading-ui paywall-cta">
-      <Card className="mx-auto w-full max-w-md overflow-hidden rounded-3xl border-primary/25 bg-card shadow-lg">
-        <CardContent className="px-5 py-5 text-center sm:px-7 sm:py-6">
+    <div>
+      <Card>
+        <CardContent>
           {reason === "AUTH_REQUIRED" ? (
             <>
-              <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <Lock className="size-5" />
+              <div>
+                <Lock />
               </div>
-              <h3 className="font-display text-lg font-bold text-foreground sm:text-xl">
+              <h3>
                 Đăng nhập để mở khóa
               </h3>
-              <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-muted-foreground sm:text-sm">
+              <p>
                 Bài viết này tốn {creditCost} credit. Đăng nhập để mở khóa vĩnh viễn.
               </p>
-              <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-400/10 px-3 py-1 text-sm font-bold tabular-nums">
+              <div>
                 {creditCost}
-                <CreditCoin className="h-4 w-4" />
+                <CreditCoin />
               </div>
               <Button
-                className="mt-4 h-9 rounded-full px-5 text-sm font-semibold shadow-sm"
                 onClick={() => setAuthOpen(true)}
               >
-                <Lock className="mr-1.5 size-4" />
+                <Lock />
                 Đăng nhập
               </Button>
             </>
           ) : reason === "INSUFFICIENT_CREDITS" ? (
             <>
-              <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600">
-                <CreditCoin className="h-6 w-6" />
+              <div>
+                <CreditCoin />
               </div>
-              <h3 className="font-display text-lg font-bold text-foreground sm:text-xl">
+              <h3>
                 Không đủ credit để mở khóa
               </h3>
-              <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-muted-foreground sm:text-sm">
+              <p>
                 Bạn không đủ credit để mở khóa, vui lòng đợi đến ngày mai để nhận {GIFT_DAILY_GRANT} credit
                 miễn phí, hoặc mua thêm credit để đọc ngay.
               </p>
-              <Button asChild variant="default" className="mt-4 h-9 rounded-full px-5 text-sm font-semibold shadow-sm">
+              <Button asChild variant="default">
                 <Link href="/pricing">
                   Mua thêm credit
-                  <ArrowRight className="ml-1.5 size-4" />
+                  <ArrowRight />
                 </Link>
               </Button>
             </>
           ) : (
             <>
-              <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600">
-                <CreditCoin className="h-6 w-6" />
+              <div>
+                <CreditCoin />
               </div>
-              <h3 className="font-display text-lg font-bold text-foreground sm:text-xl">
+              <h3>
                 Mở khóa bài viết
               </h3>
-              <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-muted-foreground sm:text-sm">
+              <p>
                 Trừ credit một lần, đọc vĩnh viễn — không bị thu hồi khi credit hết hạn.
               </p>
-              <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-400/10 px-3 py-1 text-sm font-bold tabular-nums">
+              <div>
                 {creditCost}
-                <CreditCoin className="h-4 w-4" />
+                <CreditCoin />
               </div>
-              <p className="mt-2 text-[11px] text-muted-foreground">Số dư: {availableCredits}</p>
+              <p>Số dư: {availableCredits}</p>
               {availableCredits < creditCost ? (
                 <>
-                  <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                  <p>
                     Bạn không đủ credit để mở khóa, vui lòng đợi đến ngày mai để nhận {GIFT_DAILY_GRANT} credit
                     miễn phí, hoặc mua thêm credit để đọc ngay.
                   </p>
-                  <Button asChild variant="default" className="mt-4 h-9 rounded-full px-5 text-sm font-semibold shadow-sm">
+                  <Button asChild variant="default">
                     <Link href="/pricing">
                       Mua thêm credit
-                      <ArrowRight className="ml-1.5 size-4" />
+                      <ArrowRight />
                     </Link>
                   </Button>
                 </>
               ) : (
                 <Button
-                  className="mt-4 h-9 rounded-full px-5 text-sm font-semibold shadow-sm"
                   onClick={() => void handleUnlock()}
                 >
                   Mở khóa

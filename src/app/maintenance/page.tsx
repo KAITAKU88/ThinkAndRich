@@ -8,12 +8,12 @@ export default async function MaintenancePage({
   const messageEn = en?.trim() || "The site is under maintenance. Please try again shortly.";
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6 bg-background text-foreground">
-      <div className="max-w-md text-center space-y-3">
-        <p className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Think & Rich</p>
-        <h1 className="font-display text-3xl font-bold">Hệ thống đang bảo trì</h1>
-        <p className="text-sm text-muted-foreground leading-relaxed">{messageVi}</p>
-        <p className="text-sm text-muted-foreground">{messageEn}</p>
+    <main>
+      <div>
+        <p>Think & Rich</p>
+        <h1>Hệ thống đang bảo trì</h1>
+        <p>{messageVi}</p>
+        <p>{messageEn}</p>
       </div>
     </main>
   );

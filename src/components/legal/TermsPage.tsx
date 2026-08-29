@@ -122,18 +122,18 @@ export function TermsPage() {
   const content = TERMS_CONTENT[language] ?? TERMS_CONTENT.en!;
 
   return (
-    <div className="container mx-auto max-w-3xl px-4 sm:px-6 py-10 md:py-16">
-      <div className="mb-8 space-y-3">
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-primary">
-          <ScrollText className="w-3.5 h-3.5" /> {content.eyebrow}
+    <div>
+      <div>
+        <span>
+          <ScrollText /> {content.eyebrow}
         </span>
-        <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
+        <h1>
           {content.title}
         </h1>
-        <p className="text-xs text-muted-foreground">{content.lastUpdated}</p>
+        <p>{content.lastUpdated}</p>
       </div>
 
-      <div className="prose-academic max-w-none">
+      <div >
         {content.sections.map((section) => (
           <div key={section.heading}>
             <h2>{section.heading}</h2>

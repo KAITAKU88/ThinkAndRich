@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Search,
@@ -18,19 +18,8 @@ import {
 } from "lucide-react";
 import type { PillarType, Post } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { LazySkylineCard } from "@/components/explore/LazySkylineCard";
+import { InteractiveSquareCard } from "@/components/ideas/InteractiveSquareCard";
 import { ExploreGridSkeleton } from "@/components/explore/ExploreGridSkeleton";
-import { SkylineSpine } from "@/components/ideas/SkylineSpine";
-import {
-  generateSkylineSlots,
-  assignPostsToSkylineSlots,
-  paginateSkylineRows,
-  MIN_CARDS_PER_PAGE,
-  readSkylineNumCols,
-  applySkylineGridMetrics,
-  type SlottedPost,
-} from "@/lib/algorithms/skyline-packer";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,14 +31,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useSession } from "@/store/session";
 import { usePosts } from "@/lib/hooks/use-posts";
-import { cn } from "@/lib/utils";
 import { getTranslation, type TranslationDictionary } from "@/lib/i18n/translations";
 
 type PillarFilter = "ALL" | PillarType;
 type AccessFilter = "ALL" | "OPEN" | "PAID";
 type SortOption = "DATE_DESC" | "DATE_ASC" | "VIEWS_DESC" | "VIEWS_ASC" | "LIKES_DESC" | "LIKES_ASC";
 type ReadStatusFilter = "ALL" | "UNREAD" | "READ";
-
 
 // The noun in "Có N ..." tracks which trụ cột is selected, so the count
 // reads as "25 chiến lược kinh doanh" rather than a generic "25 hồ sơ" once
@@ -79,32 +66,26 @@ function pillarStyle(t: TranslationDictionary): Record<
     MENTAL_MODEL: {
       icon: Brain,
       label: t.pillars.mentalModel,
-      trigger: "border-rose-500/40 bg-rose-500/10 text-rose-700 hover:bg-rose-500/15 dark:text-rose-400",
-      row: "bg-rose-500/10 text-rose-700 dark:text-rose-400 font-semibold",
+      trigger: "",
+      row: "font-semibold",
     },
     BUSINESS_STRATEGY: {
       icon: Compass,
       label: t.pillars.businessStrategy,
-      trigger: "border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/15 dark:text-amber-400",
-      row: "bg-amber-500/10 text-amber-700 dark:text-amber-400 font-semibold",
+      trigger: "",
+      row: "font-semibold",
     },
     STARTUP_IDEA: {
       icon: Lightbulb,
       label: t.pillars.startupIdea,
-      trigger: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-400",
-      row: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-semibold",
+      trigger: "",
+      row: "font-semibold",
     },
   };
 }
 
-// Same accent the FREE/PLUS/PRO badges already wear on cards — pulled
-// from the --tier-plus / --tier-pro tokens in globals.css so the dropdown
-// and the badges never drift out of sync. FREE has no entry on purpose:
-// it stays neutral, same as the badge.
-const CREDIT_ACCENT: Record<"OPEN" | "PAID", string> = {
-  OPEN: "var(--pillar-jade)",
-  PAID: "var(--pillar-amber)",
-};
+// Step 1: flat list pagination — no skyline/masonry packing until Step 3 grid.
+const PAGE_SIZE = 24;
 
 // How many topic-tag chips the "Thẻ chủ đề" filter shows at once.
 const TAG_LIMIT = 16;
@@ -133,13 +114,6 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
   const [readStatusFilter, setReadStatusFilter] = useState<ReadStatusFilter>("ALL");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState(initialQ);
-  // The packing algorithm and the CSS grid must agree on column count. CSS
-  // media queries used to bump --cols to 12 on desktop while this state
-  // stayed at 4 until a resize effect ran, so cards were placed for a
-  // 4-column skyline into a 12-column grid — huge gaps and broken rows.
-  // numCols is synced in useLayoutEffect before paint so the first client
-  // frame already uses the real column count.
-  const [numCols, setNumCols] = useState(4);
   const [page, setPage] = useState(1);
 
   // A query arriving via ?q= (article tags, header search "Xem toàn bộ")
@@ -157,19 +131,6 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
     const qs = next.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }
-
-  // Packing (`numCols`) and CSS (`--cols` / `--cell`) must agree before paint.
-  // Updating --cols in useEffect ran after the first frame, so desktop users
-  // saw 12-col slots in a 4-col grid: overlapping cards, huge titles, dead clicks.
-  const gridRef = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    function syncCols() {
-      setNumCols(readSkylineNumCols());
-    }
-    syncCols();
-    window.addEventListener("resize", syncCols);
-    return () => window.removeEventListener("resize", syncCols);
-  }, []);
 
   // 1. Pillar / access / hide-saved — what the tag cloud below is computed
   // from, so a chosen tag never dead-ends into 0 results, and what every
@@ -263,82 +224,37 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
     });
   }
 
-  // 3. Pack the whole filtered list once, then cut only where the
-  // skyline's bottom edge is flat (no card straddles the line) and only
-  // once a page has accumulated at least MIN_CARDS_PER_PAGE cards — never
-  // at an arbitrary card count, which produces jagged, staggered-bottom
-  // pages.
-  const { slots, fillers } = useMemo(() => {
-    if (filteredPosts.length === 0) return { slots: [], fillers: [] };
-    return generateSkylineSlots(filteredPosts.length, numCols);
-  }, [filteredPosts.length, numCols]);
-
-  const slottedPosts: SlottedPost[] = useMemo(
-    () => assignPostsToSkylineSlots(filteredPosts, slots),
-    [filteredPosts, slots]
-  );
-
-  const pageCuts = useMemo(() => paginateSkylineRows(slots, fillers, MIN_CARDS_PER_PAGE), [slots, fillers]);
-  const totalPages = Math.max(1, pageCuts.length - 1);
+  const totalPages = Math.max(1, Math.ceil(filteredPosts.length / PAGE_SIZE));
   const currentPage = Math.min(Math.max(1, page), totalPages);
-  const rowStart = pageCuts[currentPage - 1] ?? 0;
-  const rowEnd = pageCuts[currentPage] ?? Infinity;
+  const pagePosts = filteredPosts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  const pageSlottedPosts = slottedPosts
-    .filter((item) => item.slot.row >= rowStart && item.slot.row < rowEnd)
-    .map((item) => ({ ...item, slot: { ...item.slot, row: item.slot.row - rowStart } }));
-  const pageFillers = fillers
-    .filter((f) => f.row >= rowStart && f.row < rowEnd)
-    .map((f) => ({ ...f, row: f.row - rowStart }));
-
-  const showGrid = pageSlottedPosts.length > 0;
-  useLayoutEffect(() => {
-    const el = gridRef.current;
-    if (!el) return;
-    const cols = readSkylineNumCols();
-    applySkylineGridMetrics(el, cols);
-    const observer = new ResizeObserver(() => {
-      if (gridRef.current) applySkylineGridMetrics(gridRef.current, readSkylineNumCols());
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [numCols, showGrid]);
-
-  const bentoGrid =
-    showGrid ? (
-      <div className="skyline-grid pb-4" ref={gridRef}>
-        {pageSlottedPosts.map((item, idx) => (
-          <LazySkylineCard
-            key={`${item.post.id}-${item.slot.id}-${idx}`}
-            post={item.post}
-            slot={item.slot}
-            priorityIndex={idx}
-          />
+  const postList =
+    pagePosts.length > 0 ? (
+      <ul>
+        {pagePosts.map((post) => (
+          <li key={post.id}>
+            <InteractiveSquareCard post={post} />
+          </li>
         ))}
-        {pageFillers.map((filler) => (
-          <SkylineSpine key={filler.id} filler={filler} />
-        ))}
-      </div>
+      </ul>
     ) : null;
 
   const paginationControls = totalPages > 1 && (
-    <div className="flex items-center justify-center gap-2 pt-2 pb-8">
+    <div>
       <Button
         variant="outline"
         size="sm"
-        className="rounded-full h-8 text-xs"
         disabled={currentPage <= 1}
         onClick={() => setPage((p) => Math.max(1, p - 1))}
       >
         {t.explore.prevBtn}
       </Button>
-      <span className="text-xs text-muted-foreground font-mono px-2">
+      <span>
         {currentPage} / {totalPages}
       </span>
       <Button
         variant="outline"
         size="sm"
-        className="rounded-full h-8 text-xs"
         disabled={currentPage >= totalPages}
         onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
       >
@@ -360,33 +276,33 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
           setPage(1);
         }}
       >
-        <DropdownMenuRadioItem value="ALL" className={cn(pillarFilter === "ALL" && "bg-secondary font-semibold")}>
+        <DropdownMenuRadioItem value="ALL" >
           {t.explore.allLabel}
         </DropdownMenuRadioItem>
         <DropdownMenuRadioItem
           value="MENTAL_MODEL"
-          className={cn(pillarFilter === "MENTAL_MODEL" && PILLAR_STYLE.MENTAL_MODEL.row)}
+
         >
-          <div className="flex items-center gap-2">
-            <Brain className="w-3.5 h-3.5 text-rose-500" />
+          <div>
+            <Brain />
             {t.pillars.mentalModel}
           </div>
         </DropdownMenuRadioItem>
         <DropdownMenuRadioItem
           value="BUSINESS_STRATEGY"
-          className={cn(pillarFilter === "BUSINESS_STRATEGY" && PILLAR_STYLE.BUSINESS_STRATEGY.row)}
+
         >
-          <div className="flex items-center gap-2">
-            <Compass className="w-3.5 h-3.5 text-amber-500" />
+          <div>
+            <Compass />
             {t.pillars.businessStrategy}
           </div>
         </DropdownMenuRadioItem>
         <DropdownMenuRadioItem
           value="STARTUP_IDEA"
-          className={cn(pillarFilter === "STARTUP_IDEA" && PILLAR_STYLE.STARTUP_IDEA.row)}
+
         >
-          <div className="flex items-center gap-2">
-            <Lightbulb className="w-3.5 h-3.5 text-emerald-500" />
+          <div>
+            <Lightbulb />
             {t.pillars.startupIdea}
           </div>
         </DropdownMenuRadioItem>
@@ -403,21 +319,16 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
           setPage(1);
         }}
       >
-        <DropdownMenuRadioItem value="ALL" className={cn(accessFilter === "ALL" && "bg-secondary font-semibold")}>
+        <DropdownMenuRadioItem value="ALL" >
           {t.explore.allLabel}
         </DropdownMenuRadioItem>
         <DropdownMenuRadioItem
           value="OPEN"
-          className={cn(accessFilter === "OPEN" && "font-semibold")}
-          style={
-            accessFilter === "OPEN"
-              ? { backgroundColor: "color-mix(in oklab, var(--pillar-jade) 12%, var(--card))", color: "var(--pillar-jade)" }
-              : undefined
-          }
+
         >
           Open
         </DropdownMenuRadioItem>
-        <DropdownMenuRadioItem value="PAID" className={cn(accessFilter === "PAID" && "bg-secondary font-semibold")}>
+        <DropdownMenuRadioItem value="PAID" >
           1–5 credit
         </DropdownMenuRadioItem>
       </DropdownMenuRadioGroup>
@@ -433,17 +344,17 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
           setPage(1);
         }}
       >
-        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t.explore.sortByDate}</DropdownMenuLabel>
+        <DropdownMenuLabel>{t.explore.sortByDate}</DropdownMenuLabel>
         <DropdownMenuRadioItem value="DATE_DESC">{t.explore.sortNewestFirst}</DropdownMenuRadioItem>
         <DropdownMenuRadioItem value="DATE_ASC">{t.explore.sortOldestFirst}</DropdownMenuRadioItem>
 
         <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t.explore.sortByViews}</DropdownMenuLabel>
+        <DropdownMenuLabel>{t.explore.sortByViews}</DropdownMenuLabel>
         <DropdownMenuRadioItem value="VIEWS_DESC">{t.explore.sortHighToLow}</DropdownMenuRadioItem>
         <DropdownMenuRadioItem value="VIEWS_ASC">{t.explore.sortLowToHigh}</DropdownMenuRadioItem>
 
         <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t.explore.sortByLikes}</DropdownMenuLabel>
+        <DropdownMenuLabel>{t.explore.sortByLikes}</DropdownMenuLabel>
         <DropdownMenuRadioItem value="LIKES_DESC">{t.explore.sortHighToLow}</DropdownMenuRadioItem>
         <DropdownMenuRadioItem value="LIKES_ASC">{t.explore.sortLowToHigh}</DropdownMenuRadioItem>
       </DropdownMenuRadioGroup>
@@ -459,13 +370,13 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
           setPage(1);
         }}
       >
-        <DropdownMenuRadioItem value="ALL" className={cn(readStatusFilter === "ALL" && "bg-secondary font-semibold")}>
+        <DropdownMenuRadioItem value="ALL" >
           {t.explore.allLabel}
         </DropdownMenuRadioItem>
-        <DropdownMenuRadioItem value="UNREAD" className={cn(readStatusFilter === "UNREAD" && "bg-secondary font-semibold")}>
+        <DropdownMenuRadioItem value="UNREAD" >
           {t.filter.unread}
         </DropdownMenuRadioItem>
-        <DropdownMenuRadioItem value="READ" className={cn(readStatusFilter === "READ" && "bg-secondary font-semibold")}>
+        <DropdownMenuRadioItem value="READ" >
           {t.filter.read}
         </DropdownMenuRadioItem>
       </DropdownMenuRadioGroup>
@@ -474,7 +385,7 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
 
   function tagChips() {
     return (
-      <div className="flex flex-wrap gap-1 px-1.5 py-1">
+      <div>
         {allTags.map((tag) => {
           const isSelected = selectedTag === tag;
           return (
@@ -485,12 +396,7 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
                 setSelectedTag(isSelected ? null : tag);
                 setPage(1);
               }}
-              className={cn(
-                "text-[10px] px-2 py-0.5 rounded-md border transition-all",
-                isSelected
-                  ? "bg-primary text-primary-foreground border-primary font-semibold"
-                  : "bg-secondary text-muted-foreground border-border/60 hover:text-foreground"
-              )}
+
             >
               #{tag}
             </button>
@@ -501,8 +407,8 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
   }
 
   const resultCount = (
-    <span className="text-xs text-muted-foreground">
-      {t.explore.resultPrefix} <strong className="text-foreground">{filteredPosts.length}</strong> {resultNoun(t, pillarFilter)}
+    <span>
+      {t.explore.resultPrefix} <strong >{filteredPosts.length}</strong> {resultNoun(t, pillarFilter)}
     </span>
   );
 
@@ -516,21 +422,20 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
           params.delete("q");
         });
       }}
-      className="inline-flex items-center gap-1.5 pl-2.5 pr-2 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-medium"
       title={t.search.clearKeywordTooltip}
     >
-      <Search className="w-3 h-3" />
+      <Search />
       &quot;{searchQuery.trim()}&quot;
-      <X className="w-3 h-3" />
+      <X />
     </button>
   );
 
   return (
-    <div className="container mx-auto max-w-[1650px] px-2.5 sm:px-4 md:px-6 py-4 sm:py-6">
+    <div>
       {/* Header Bar — giữ nguyên */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-border mb-4 sm:mb-6">
+      <div>
         <div>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+          <h1>
             {t.explore.pageTitle}
           </h1>
         </div>
@@ -539,30 +444,27 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
 
       {/* Desktop filter bar — mỗi bộ lọc là 1 dropdown riêng, luôn hiển thị,
           không còn khái niệm "nâng cao" hay sidebar nữa. */}
-      <div className="hidden sm:flex flex-wrap items-center justify-between gap-3 pb-4 mb-4 sm:mb-6 border-b border-border/70">
-        <div className="flex items-center gap-3 flex-wrap">
+      <div>
+        <div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className={cn(
-                  "h-8 gap-2 rounded-full text-xs font-semibold shadow-sm",
-                  pillarFilter !== "ALL" && PILLAR_STYLE[pillarFilter].trigger
-                )}
+
               >
                 {pillarFilter === "ALL" ? (
-                  <LayoutGrid className="w-3.5 h-3.5 text-muted-foreground" />
+                  <LayoutGrid />
                 ) : (
                   (() => {
                     const ActiveIcon = PILLAR_STYLE[pillarFilter].icon;
-                    return <ActiveIcon className="w-3.5 h-3.5" />;
+                    return <ActiveIcon />;
                   })()
                 )}
                 {pillarFilter === "ALL" ? t.explore.allLabel : PILLAR_STYLE[pillarFilter].label}
-                <ChevronDown className={cn("w-3 h-3 ml-1", pillarFilter === "ALL" ? "text-muted-foreground" : "opacity-70")} />
+                <ChevronDown  />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuContent align="start">
               {pillarItems()}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -571,14 +473,13 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
           {searchChip}
         </div>
 
-        <div className="flex items-center gap-2 text-xs">
+        <div>
           {user && bookmarks.length > 0 && (
-            <label className="hidden md:inline-flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground text-xs select-none mr-2">
+            <label>
               <input
                 type="checkbox"
                 checked={hideSavedPosts}
                 onChange={(e) => setHideSavedPosts(e.target.checked)}
-                className="w-3.5 h-3.5 rounded text-primary accent-primary cursor-pointer"
               />
               <span>{t.explore.hideSavedPrefix} ({bookmarks.length})</span>
             </label>
@@ -588,23 +489,13 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="h-8 gap-2 rounded-full text-xs font-semibold shadow-sm"
-                style={
-                  accessFilter === "PAID"
-                    ? {
-                        color: CREDIT_ACCENT.PAID,
-                        borderColor: `color-mix(in oklab, ${CREDIT_ACCENT.PAID} 40%, var(--border))`,
-                        backgroundColor: `color-mix(in oklab, ${CREDIT_ACCENT.PAID} 10%, var(--card))`,
-                      }
-                    : undefined
-                }
               >
                 {accessFilter === "ALL" ? t.explore.accessAllPlans : accessFilter === "OPEN" ? "Open" : "1–5 credit"}
-                <ChevronDown className={cn("w-3 h-3", accessFilter === "ALL" ? "text-muted-foreground" : "opacity-70")} />
+                <ChevronDown  />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-32">
-              <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t.explore.accessLevelLabel}</DropdownMenuLabel>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>{t.explore.accessLevelLabel}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {accessItems()}
             </DropdownMenuContent>
@@ -612,13 +503,13 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-8 gap-2 rounded-full text-xs font-semibold shadow-sm">
-                <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground" />
+              <Button variant="outline">
+                <ArrowUpDown />
                 {t.explore.sortBtn}
-                <ChevronDown className="w-3 h-3 text-muted-foreground ml-1" />
+                <ChevronDown />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent align="end">
               {sortItems()}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -626,13 +517,13 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
           {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="h-8 gap-2 rounded-full text-xs font-semibold shadow-sm">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground" />
+                <Button variant="outline">
+                  <CheckCircle2 />
                   {readStatusFilter === "ALL" ? t.explore.readStatusBtn : readStatusFilter === "UNREAD" ? t.filter.unread : t.filter.read}
-                  <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                  <ChevronDown />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-36">
+              <DropdownMenuContent align="end">
                 {readStatusItems()}
               </DropdownMenuContent>
             </DropdownMenu>
@@ -643,18 +534,15 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className={cn(
-                    "h-8 gap-2 rounded-full text-xs font-semibold shadow-sm",
-                    selectedTag && "border-primary/40 bg-primary/10 text-primary"
-                  )}
+
                 >
-                  <Hash className={cn("w-3.5 h-3.5", !selectedTag && "text-muted-foreground")} />
+                  <Hash  />
                   {selectedTag || t.explore.tagFilterLabel}
-                  <ChevronDown className={cn("w-3 h-3", !selectedTag && "text-muted-foreground")} />
+                  <ChevronDown  />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64">
-                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t.explore.chooseTagLabel}</DropdownMenuLabel>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>{t.explore.chooseTagLabel}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {tagChips()}
               </DropdownMenuContent>
@@ -665,7 +553,6 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
             <button
               type="button"
               onClick={resetAllFilters}
-              className="text-primary hover:underline font-medium text-[11px]"
             >
               {t.explore.clearFiltersBtn}
             </button>
@@ -674,7 +561,7 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
       </div>
 
       {/* Mobile filter bar — mọi dropdown gộp chung vào 1 nút "Bộ Lọc" */}
-      <div className="flex sm:hidden items-center justify-between gap-3 pb-3 mb-3 border-b border-border/70">
+      <div>
         {resultCount}
 
         <DropdownMenu>
@@ -682,19 +569,18 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
             <Button
               variant={hasActiveFilters ? "default" : "outline"}
               size="sm"
-              className="h-8 gap-1.5 rounded-full text-xs font-semibold shadow-sm relative"
             >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <SlidersHorizontal />
               {t.explore.filterBtn}
-              {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
+              {hasActiveFilters && <span />}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-72 max-h-[75vh] overflow-y-auto">
-            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t.explore.pillarSectionLabel}</DropdownMenuLabel>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>{t.explore.pillarSectionLabel}</DropdownMenuLabel>
             {pillarItems()}
 
             <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t.explore.accessLevelLabel}</DropdownMenuLabel>
+            <DropdownMenuLabel>{t.explore.accessLevelLabel}</DropdownMenuLabel>
             {accessItems()}
 
             <DropdownMenuSeparator />
@@ -703,7 +589,7 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
             {user && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t.explore.readStatusBtn}</DropdownMenuLabel>
+                <DropdownMenuLabel>{t.explore.readStatusBtn}</DropdownMenuLabel>
                 {readStatusItems()}
               </>
             )}
@@ -711,7 +597,7 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
             {allTags.length > 0 && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t.explore.tagFilterLabel}</DropdownMenuLabel>
+                <DropdownMenuLabel>{t.explore.tagFilterLabel}</DropdownMenuLabel>
                 {tagChips()}
               </>
             )}
@@ -719,12 +605,11 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
             {user && bookmarks.length > 0 && (
               <>
                 <DropdownMenuSeparator />
-                <label className="flex items-center gap-1.5 px-2 py-1.5 text-xs cursor-pointer">
+                <label>
                   <input
                     type="checkbox"
                     checked={hideSavedPosts}
                     onChange={(e) => setHideSavedPosts(e.target.checked)}
-                    className="w-3.5 h-3.5 rounded text-primary accent-primary cursor-pointer"
                   />
                   <span>{t.explore.hideSavedPrefix} ({bookmarks.length})</span>
                 </label>
@@ -737,9 +622,8 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
                 <button
                   type="button"
                   onClick={resetAllFilters}
-                  className="w-full flex items-center justify-center gap-1 py-1.5 text-xs text-primary font-medium"
                 >
-                  <RotateCcw className="w-3 h-3" /> {t.explore.clearFiltersBtn}
+                  <RotateCcw /> {t.explore.clearFiltersBtn}
                 </button>
               </>
             )}
@@ -747,20 +631,20 @@ function ExploreContent({ initialPosts }: { initialPosts: Post[] }) {
         </DropdownMenu>
       </div>
 
-      {searchChip && <div className="sm:hidden -mt-1 mb-3">{searchChip}</div>}
+      {searchChip && <div>{searchChip}</div>}
 
-      {bentoGrid ? (
-        <div className="pb-2">
-          {bentoGrid}
+      {postList ? (
+        <div>
+          {postList}
           {paginationControls}
         </div>
       ) : (
-        <div className="text-center py-20 bg-card rounded-3xl border border-dashed border-border p-8 max-w-md mx-auto">
-          <Brain className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-          <h3 className="font-display font-semibold text-base mb-1">{t.explore.emptyTitle}</h3>
-          <p className="text-xs text-muted-foreground mb-4">{t.explore.emptyDesc}</p>
-          <Button size="sm" className="rounded-full text-xs" onClick={resetAllFilters}>
-            <RotateCcw className="w-3.5 h-3.5 mr-1" /> {t.explore.resetFiltersBtn}
+        <div>
+          <Brain />
+          <h3>{t.explore.emptyTitle}</h3>
+          <p>{t.explore.emptyDesc}</p>
+          <Button size="sm" onClick={resetAllFilters}>
+            <RotateCcw /> {t.explore.resetFiltersBtn}
           </Button>
         </div>
       )}

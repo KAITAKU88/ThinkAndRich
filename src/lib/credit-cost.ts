@@ -11,34 +11,33 @@ export function parseCreditCost(value: unknown, fallback: CreditCost = 1): Credi
   return isCreditCost(n) ? n : fallback;
 }
 
-/** Inline accent colour — tokens live in globals.css (`--credit-cost-*`). */
+/** Step 1 teardown — accent tokens removed until Step 3. */
 export const CREDIT_COST_ACCENT: Record<CreditCost, string> = {
-  0: "var(--credit-cost-0)",
-  1: "var(--credit-cost-1)",
-  2: "var(--credit-cost-2)",
-  3: "var(--credit-cost-3)",
-  4: "var(--credit-cost-4)",
-  5: "var(--credit-cost-5)",
+  0: "",
+  1: "",
+  2: "",
+  3: "",
+  4: "",
+  5: "",
 };
 
-/** Border utility class per cost — see `.credit-border-*` in globals.css. */
+/** Step 1 teardown — no decorative utility classes until Step 3. */
 export const CREDIT_COST_BORDER: Record<CreditCost, string> = {
-  0: "credit-border-0",
-  1: "credit-border-1",
-  2: "credit-border-2",
-  3: "credit-border-3",
-  4: "credit-border-4",
-  5: "credit-border-5",
+  0: "",
+  1: "",
+  2: "",
+  3: "",
+  4: "",
+  5: "",
 };
 
-/** Badge utility class per cost — see `.credit-badge-*` in globals.css. */
 export const CREDIT_COST_BADGE: Record<CreditCost, string> = {
-  0: "credit-badge-0",
-  1: "credit-badge-1",
-  2: "credit-badge-2",
-  3: "credit-badge-3",
-  4: "credit-badge-4",
-  5: "credit-badge-5",
+  0: "",
+  1: "",
+  2: "",
+  3: "",
+  4: "",
+  5: "",
 };
 
 /** Map a legacy access-level string onto a credit cost (seed / one-shot migration). */

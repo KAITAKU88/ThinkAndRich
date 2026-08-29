@@ -155,30 +155,29 @@ export function FaqPage() {
   const content = FAQ_CONTENT[language] ?? FAQ_CONTENT.en!;
 
   return (
-    <div className="container mx-auto max-w-3xl px-4 sm:px-6 py-10 md:py-16">
-      <div className="mb-10 space-y-3">
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-primary">
-          <HelpCircle className="w-3.5 h-3.5" /> {content.eyebrow}
+    <div>
+      <div>
+        <span>
+          <HelpCircle /> {content.eyebrow}
         </span>
-        <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
+        <h1>
           {content.title}
         </h1>
-        <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+        <p>
           {content.subtitle}
         </p>
       </div>
 
-      <div className="space-y-2.5">
+      <div>
         {content.entries.map((entry) => (
           <details
             key={entry.question}
-            className="group rounded-2xl border border-border bg-card overflow-hidden"
           >
-            <summary className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 sm:py-4 cursor-pointer list-none select-none font-semibold text-sm sm:text-base text-foreground">
+            <summary>
               <span>{entry.question}</span>
-              <ChevronDown className="w-4 h-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180" />
+              <ChevronDown />
             </summary>
-            <p className="px-4 sm:px-5 pb-4 sm:pb-5 text-sm text-muted-foreground leading-relaxed">
+            <p>
               {interpolateSiteCopy(entry.answer, language)}
             </p>
           </details>

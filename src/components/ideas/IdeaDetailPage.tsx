@@ -34,7 +34,7 @@ import { PaywallCTA } from "@/components/paywall/PaywallCTA";
 import { ReadingColumn, ReadingSheet } from "@/components/reading/ReadingSheet";
 import { InteractiveSquareCard } from "@/components/ideas/InteractiveSquareCard";
 import { useSession } from "@/store/session";
-import { cn, formatViews } from "@/lib/utils";
+import { formatViews } from "@/lib/utils";
 import { PILLARS_CONFIG } from "@/lib/data";
 import { getTranslation } from "@/lib/i18n/translations";
 import { CreditBadge } from "@/components/credits/CreditBadge";
@@ -119,13 +119,6 @@ export function PostDetailPage() {
   }, []);
 
   useEffect(() => {
-    document.body.classList.toggle("focus-mode-active", focusMode);
-    return () => {
-      document.body.classList.remove("focus-mode-active");
-    };
-  }, [focusMode]);
-
-  useEffect(() => {
     if (!focusMode) return;
 
     function handleKeyDown(event: KeyboardEvent) {
@@ -141,18 +134,18 @@ export function PostDetailPage() {
   if (!post) {
     if (notFound) {
       return (
-        <div className="container mx-auto max-w-3xl px-4 py-20 text-center space-y-4">
-          <h2 className="font-display text-2xl font-bold">{t.detail.notFoundTitle}</h2>
-          <p className="text-muted-foreground text-sm">
+        <div>
+          <h2>{t.detail.notFoundTitle}</h2>
+          <p>
             {t.detail.notFoundDesc}
           </p>
-          <Button asChild className="rounded-full">
+          <Button asChild >
             <Link href="/">{t.detail.backHomeBtn}</Link>
           </Button>
         </div>
       );
     }
-    return <div className="container mx-auto max-w-3xl px-4 py-20 text-center text-sm text-muted-foreground">{t.detail.loadingLabel}</div>;
+    return <div>{t.detail.loadingLabel}</div>;
   }
 
   const pillarMeta = PILLARS_CONFIG[post.pillar] || PILLARS_CONFIG.MENTAL_MODEL;
@@ -194,24 +187,19 @@ export function PostDetailPage() {
   }
 
   return (
-    <div className="focus-mode-page" data-focus-active={focusMode ? "true" : "false"}>
-      {/* Top Reading Progress Bar */}
-      <div
-        className="focus-mode-keep-clear fixed top-0 left-0 right-0 h-1 bg-primary z-50 transition-all duration-75 origin-left"
-        style={{ transform: `scaleX(${readProgress / 100})` }}
-      />
+    <div data-focus-active={focusMode ? "true" : "false"}>
+      <p aria-hidden="true">Đã đọc {readProgress}%</p>
 
       {focusMode ? (
-        <div className="focus-mode-keep-clear fixed right-4 top-20 z-[70] sm:right-6 sm:top-24">
+        <div>
           <Button
             type="button"
             variant="outline"
             size="sm"
             data-testid="focus-mode-exit"
-            className="h-10 rounded-full border-border/80 bg-card/95 px-4 shadow-lg backdrop-blur-md"
             onClick={() => setFocusMode(false)}
           >
-            <Eye className="h-4 w-4" />
+            <Eye />
             Exit Focus
           </Button>
         </div>
@@ -221,7 +209,7 @@ export function PostDetailPage() {
           measure, and the two widest templates (Tạp chí, Cô đọng) were being
           clipped back to the same width as the default by a 4xl container —
           which made three different choices in the picker render identically. */}
-      <div className="container mx-auto max-w-5xl px-4 sm:px-6 py-6 md:py-10 pb-36">
+      <div>
         <ReadingColumn template={post.readingTemplate} size={fontSize}>
           {/* The rail. Everything here is *about* the article — where it sits
               in the library, who wrote it, how long it runs, how often it has
@@ -230,38 +218,34 @@ export function PostDetailPage() {
               the first heading, which meant a block of small sans-serif UI
               text stood directly in the path of someone who had just started
               reading. */}
-          <div className="reading-ui mb-5 flex flex-col gap-3" data-focus-dimmable="true">
-            <div className="flex flex-col min-[420px]:flex-row min-[420px]:flex-wrap min-[420px]:items-center min-[420px]:justify-between gap-3 text-xs text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
-                  <User className="w-3.5 h-3.5" />
+          <div data-focus-dimmable="true">
+            <div>
+              <div>
+                <div>
+                  <User />
                 </div>
                 <div>
-                  <p className="font-semibold text-foreground">{post.author}</p>
-                  <p className="text-[10px] text-muted-foreground">{t.detail.authorDeskLabel}</p>
+                  <p>{post.author}</p>
+                  <p>{t.detail.authorDeskLabel}</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div>
                 {post.readingTimeMinutes > 0 && (
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5" /> {post.readingTimeMinutes} {t.detail.minutesReadSuffix}
+                  <span>
+                    <Clock /> {post.readingTimeMinutes} {t.detail.minutesReadSuffix}
                   </span>
                 )}
-                <span className="flex items-center gap-1">
-                  <Eye className="w-3.5 h-3.5" /> {formatViews(post.views)} {t.detail.viewsSuffix}
+                <span>
+                  <Eye /> {formatViews(post.views)} {t.detail.viewsSuffix}
                 </span>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                <span className={cn(
-                  "inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md border",
-                  pillarMeta.badgeBg,
-                  pillarMeta.badgeText
-                )}>
-                  <PillarIcon className="w-3 h-3" />
+            <div>
+              <div>
+                <span >
+                  <PillarIcon />
                   <span>{pillarMeta.titleVi}</span>
                 </span>
 
@@ -274,10 +258,9 @@ export function PostDetailPage() {
                 size="sm"
                 data-testid="focus-mode-toggle"
                 aria-pressed={focusMode}
-                className="h-8 shrink-0 rounded-full border-blue-700 bg-blue-600 px-3 text-xs font-bold text-white shadow-sm hover:bg-blue-700 hover:text-white focus-visible:ring-blue-600 dark:border-blue-400 dark:bg-blue-500 dark:hover:bg-blue-400"
                 onClick={() => setFocusMode(true)}
               >
-                <Eye className="h-3.5 w-3.5" />
+                <Eye />
                 Focus Mode
               </Button>
             </div>
@@ -296,17 +279,16 @@ export function PostDetailPage() {
             template={post.readingTemplate}
             title={post.title}
             lede={post.summarySnippet || post.shortDescription}
-            className={cn(focusMode && "focus-mode-sheet")}
+
           >
             {hasAccess ? (
               <div dangerouslySetInnerHTML={{ __html: post.fullContent }} />
             ) : (
-              <div className="paywall-gate">
+              <div>
                 {/* Title + standfirst render above in ReadingSheet. Server sends
                     only the first ~2 paragraphs here (truncateHtmlTeaser). */}
-                <div className="paywall-body-preview">
+                <div>
                   <div dangerouslySetInnerHTML={{ __html: post.fullContent }} />
-                  <div className="paywall-body-fade" aria-hidden="true" />
                 </div>
 
                 <PaywallCTA
@@ -343,17 +325,16 @@ export function PostDetailPage() {
               outside its frame — they are the library talking, not the
               article. */}
           {post.tags && post.tags.length > 0 && hasAccess && (
-            <div className="reading-ui flex flex-wrap items-center gap-2 mt-8" data-focus-dimmable="true">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mr-1">
+            <div data-focus-dimmable="true">
+              <span>
                 {t.detail.tagsLabel}
               </span>
               {post.tags.map((tag) => (
                 <Link
                   key={tag}
                   href={`/explore?q=${encodeURIComponent(tag)}`}
-                  className="inline-flex"
                 >
-                  <Badge variant="secondary" className="rounded-full px-3 py-0.5 text-xs font-normal hover:bg-secondary/80">
+                  <Badge variant="secondary">
                     #{tag}
                   </Badge>
                 </Link>
@@ -365,16 +346,16 @@ export function PostDetailPage() {
               in the admin editor. No same-pillar algorithm is mixed in: an
               empty selection deliberately renders no recommendation rail. */}
           {recommendedPosts.length > 0 && (
-            <div className="reading-ui mt-14 pt-8 border-t border-border space-y-4" data-focus-dimmable="true">
-              <div className="flex items-center justify-between">
-                <h3 className="font-display text-lg sm:text-xl font-bold text-foreground">
+            <div data-focus-dimmable="true">
+              <div>
+                <h3>
                   {t.detail.relatedArticles}
                 </h3>
-                <Link href="/explore" className="text-xs text-primary font-semibold hover:underline">
+                <Link href="/explore">
                   {t.detail.viewAllLink} &rarr;
                 </Link>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
                 {recommendedPosts.map((r) => (
                   <InteractiveSquareCard key={r.id} post={r} />
                 ))}
@@ -384,20 +365,17 @@ export function PostDetailPage() {
         </ReadingColumn>
 
         {/* FLOATING MOBILE READER DOCK */}
-        <div className="focus-mode-keep-clear fixed bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] sm:bottom-6 left-1/2 -translate-x-1/2 bg-card/95 backdrop-blur-md border border-border/80 rounded-full shadow-2xl px-3 sm:px-5 py-2 flex items-center gap-1 sm:gap-3 z-40">
+        <div>
           <button
             type="button"
             onClick={async () => {
               const res = await toggleReaction(post.id, "like");
               if (!res.ok && res.message) toast.error(res.message);
             }}
-            className={cn(
-              "p-2 rounded-full hover:bg-secondary transition-colors text-muted-foreground",
-              userReaction === "like" && "text-primary bg-primary/10"
-            )}
+
             title={t.detail.likeTooltip}
           >
-            <ThumbsUp className={cn("w-4 h-4", userReaction === "like" && "fill-primary")} />
+            <ThumbsUp />
           </button>
 
           <button
@@ -407,21 +385,10 @@ export function PostDetailPage() {
               if (!res.ok && res.message) toast.error(res.message);
               else toast.success(isSaved ? t.detail.unsavedToast : t.detail.savedToast);
             }}
-            className={cn(
-              "p-2 rounded-full hover:bg-secondary transition-colors",
-              !isSaved && "text-muted-foreground"
-            )}
-            style={
-              isSaved
-                ? {
-                    color: "var(--pillar-jade)",
-                    backgroundColor: "color-mix(in oklab, var(--pillar-jade) 15%, transparent)",
-                  }
-                : undefined
-            }
+
             title={isSaved ? t.detail.unsaveTooltip : t.detail.saveTooltip}
           >
-            <Bookmark className={cn("w-4 h-4", isSaved && "fill-current")} />
+            <Bookmark />
           </button>
 
           {/* Font Size Adjuster */}
@@ -432,10 +399,9 @@ export function PostDetailPage() {
                 prev === "normal" ? "large" : prev === "large" ? "xlarge" : "normal"
               );
             }}
-            className="p-2 rounded-full hover:bg-secondary text-muted-foreground text-xs font-bold"
             title={t.detail.fontSizeTooltip}
           >
-            <Type className="w-4 h-4" />
+            <Type />
           </button>
 
           {/* Share — explicit picker (copy link, Facebook, X) instead of
@@ -447,39 +413,36 @@ export function PostDetailPage() {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="p-2 rounded-full hover:bg-secondary text-muted-foreground"
                 title={t.detail.shareTooltip}
               >
-                <Share2 className="w-4 h-4" />
+                <Share2 />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="center" side="top" sideOffset={10} className="w-52 rounded-2xl p-1.5 shadow-2xl border-border/80">
-              <DropdownMenuItem onClick={copyShareLink} className="flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-xs cursor-pointer">
-                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-secondary text-foreground shrink-0">
-                  <Link2 className="w-3 h-3" />
+            <DropdownMenuContent align="center" side="top" sideOffset={10}>
+              <DropdownMenuItem onClick={copyShareLink}>
+                <span>
+                  <Link2 />
                 </span>
-                <span className="font-medium">{t.detail.copyLinkAction}</span>
+                <span>{t.detail.copyLinkAction}</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => openShareWindow(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`)}
-                className="flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-xs cursor-pointer"
               >
-                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#1877F2] text-white text-[11px] font-bold shrink-0">f</span>
-                <span className="font-medium">{t.detail.shareFacebookAction}</span>
+                <span>f</span>
+                <span>{t.detail.shareFacebookAction}</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => openShareWindow(`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(post.title)}`)}
-                className="flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-xs cursor-pointer"
               >
-                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-foreground text-background text-[10px] font-bold shrink-0">X</span>
-                <span className="font-medium">{t.detail.shareXAction}</span>
+                <span>X</span>
+                <span>{t.detail.shareXAction}</span>
               </DropdownMenuItem>
               {typeof navigator !== "undefined" && !!navigator.share && (
-                <DropdownMenuItem onClick={shareViaDevice} className="flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-xs cursor-pointer">
-                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-secondary text-foreground shrink-0">
-                    <Smartphone className="w-3 h-3" />
+                <DropdownMenuItem onClick={shareViaDevice}>
+                  <span>
+                    <Smartphone />
                   </span>
-                  <span className="font-medium">{t.detail.shareDeviceAction}</span>
+                  <span>{t.detail.shareDeviceAction}</span>
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>

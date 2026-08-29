@@ -15,21 +15,21 @@ function SuccessInner() {
   const gateway = search.get("gateway");
 
   return (
-    <div className="container mx-auto max-w-lg px-4 py-16">
+    <div>
       <Card>
-        <CardContent className="p-8 text-center space-y-4">
-          <CheckCircle2 className="w-14 h-14 text-primary mx-auto" />
-          <h1 className="font-display text-2xl font-semibold">
+        <CardContent>
+          <CheckCircle2 />
+          <h1>
             Thanh toán thành công
           </h1>
-          <p className="text-muted-foreground text-sm leading-relaxed">
+          <p>
             {pack
               ? `${pack.credits.toLocaleString("vi-VN")} credit đã được cộng vào tài khoản.`
               : "Credit đã được cộng vào tài khoản."}
             {gateway ? ` Cổng thanh toán: ${gateway}.` : ""}{" "}
             Bạn có thể mở khóa bài viết trên Khám phá ngay.
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+          <div>
             <Button asChild>
               <Link href="/explore">Khám phá thư viện</Link>
             </Button>
@@ -45,7 +45,7 @@ function SuccessInner() {
 
 export function CheckoutSuccessPage() {
   return (
-    <Suspense fallback={<div className="p-16 text-center">...</div>}>
+    <Suspense fallback={<div>...</div>}>
       <SuccessInner />
     </Suspense>
   );

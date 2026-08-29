@@ -17,7 +17,6 @@ import { useSession } from "@/store/session";
 import { getTranslation } from "@/lib/i18n/translations";
 import { OTP_TTL_MINUTES } from "@/lib/otp-policy";
 
-
 export function AuthDialog() {
   const authOpen = useSession((s) => s.authOpen);
   const setAuthOpen = useSession((s) => s.setAuthOpen);
@@ -105,19 +104,19 @@ export function AuthDialog() {
 
   return (
     <Dialog open={authOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent >
         <DialogHeader>
-          <div className="mx-auto w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-2">
+          <div>
             {step === "EMAIL" ? (
-              <Mail className="w-6 h-6" />
+              <Mail />
             ) : (
-              <KeyRound className="w-6 h-6" />
+              <KeyRound />
             )}
           </div>
-          <DialogTitle className="text-center font-display text-2xl font-bold">
+          <DialogTitle>
             {step === "EMAIL" ? t.auth.title : t.auth.otpStepTitle}
           </DialogTitle>
-          <DialogDescription className="text-center text-sm text-muted-foreground">
+          <DialogDescription>
             {step === "EMAIL"
               ? t.auth.subtitle
               : `${t.auth.otpStepSubtitlePrefix} ${email}`}
@@ -125,8 +124,8 @@ export function AuthDialog() {
         </DialogHeader>
 
         {step === "EMAIL" ? (
-          <form onSubmit={handleSendOtp} className="space-y-4 pt-2">
-            <div className="space-y-2">
+          <form onSubmit={handleSendOtp}>
+            <div>
               <Label htmlFor="auth-email">{t.auth.emailLabel}</Label>
               <Input
                 id="auth-email"
@@ -136,10 +135,9 @@ export function AuthDialog() {
                 autoFocus
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="h-11"
               />
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+              <p>
+                <ShieldCheck />
                 {t.auth.otpSecureHint}
               </p>
             </div>
@@ -147,21 +145,20 @@ export function AuthDialog() {
             <Button
               type="submit"
               data-testid="auth-send-otp"
-              className="w-full h-11 rounded-full font-medium"
               disabled={loading}
             >
               {loading ? (
                 t.auth.sendingLabel
               ) : (
                 <>
-                  {t.auth.getOtpBtn} <ArrowRight className="w-4 h-4 ml-1" />
+                  {t.auth.getOtpBtn} <ArrowRight />
                 </>
               )}
             </Button>
           </form>
         ) : (
-          <form onSubmit={handleVerifyOtp} className="space-y-4 pt-2">
-            <div className="space-y-2">
+          <form onSubmit={handleVerifyOtp}>
+            <div>
               <Label htmlFor="auth-otp">{t.auth.otpLabel}</Label>
               <Input
                 id="auth-otp"
@@ -170,15 +167,14 @@ export function AuthDialog() {
                 placeholder={t.auth.otpPlaceholder}
                 required
                 autoFocus
-                className="text-center font-mono text-2xl tracking-[0.4em] h-12"
                 value={otpCode}
                 onChange={(e) =>
                   setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))
                 }
               />
               {devCode && (
-                <p className="text-[11px] text-muted-foreground">
-                  Local không gửi email. Mã OTP: <code className="font-mono text-foreground">{devCode}</code>
+                <p>
+                  Local không gửi email. Mã OTP: <code>{devCode}</code>
                 </p>
               )}
             </div>
@@ -186,22 +182,20 @@ export function AuthDialog() {
             <Button
               type="submit"
               data-testid="auth-verify-otp"
-              className="w-full h-11 rounded-full font-medium"
               disabled={loading || otpCode.length < 6}
             >
               {loading ? (
                 t.auth.verifyingLabel
               ) : (
                 <>
-                  <CheckCircle2 className="w-4 h-4 mr-1.5" /> {t.auth.confirmUnlockBtn}
+                  <CheckCircle2 /> {t.auth.confirmUnlockBtn}
                 </>
               )}
             </Button>
 
-            <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
+            <div>
               <button
                 type="button"
-                className="hover:text-foreground underline transition-colors"
                 onClick={() => setStep("EMAIL")}
               >
                 {t.auth.changeEmailBtn}
@@ -212,10 +206,9 @@ export function AuthDialog() {
               ) : (
                 <button
                   type="button"
-                  className="text-primary font-medium hover:underline inline-flex items-center gap-1"
                   onClick={() => handleSendOtp()}
                 >
-                  <RefreshCw className="w-3 h-3" /> {t.auth.resend}
+                  <RefreshCw /> {t.auth.resend}
                 </button>
               )}
             </div>
