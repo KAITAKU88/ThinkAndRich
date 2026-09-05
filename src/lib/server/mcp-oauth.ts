@@ -223,7 +223,7 @@ export async function consumeAuthCode(
 export function authorizationServerMetadata(origin: string) {
   return {
     issuer: origin,
-    authorization_endpoint: `${origin}/mcp/authorize`,
+    authorization_endpoint: `${origin}/api/mcp/oauth/authorize`,
     token_endpoint: `${origin}/api/mcp/oauth/token`,
     registration_endpoint: `${origin}/api/mcp/oauth/register`,
     scopes_supported: [MCP_SCOPE],

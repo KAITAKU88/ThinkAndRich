@@ -1,10 +1,7 @@
-export const CATEGORIES = ["Tất cả", "Mô hình Tư duy", "Mô hình Tâm trí", "Chiến lược Kinh doanh", "Ý tưởng Khởi nghiệp", "Hào kinh tế & Moats", "Deep-dive Teardown"] as const;
-
 import type {
   Post,
   UserRecord,
   ReadLog,
-  AppSettings,
   PillarType,
   PillarMetadata,
 } from "./types";
@@ -49,13 +46,6 @@ export const PILLARS_CONFIG: Record<PillarType, PillarMetadata> = {
     borderHover: "",
     iconName: "Lightbulb",
   },
-};
-
-export const DEFAULT_SETTINGS: AppSettings = {
-  brandName: "Think & Rich",
-  brandTagline: "Academic & Strategic Intelligence Platform",
-  primaryColor: "#0f766e",
-  seoDefaultTitle: "Think & Rich — Nền tảng Tri thức Học thuật & Chiến lược Chuyên sâu",
 };
 
 export const SEED_POSTS: Post[] = [
@@ -661,74 +651,3 @@ export const SEED_READ_LOGS: ReadLog[] = [
     reaction: "like",
   },
 ];
-
-// Tự động tạo 50 bài viết giả để test thuật toán lưới
-const dummyTitles = [
-  // Ngắn (ưu tiên ô 2x2)
-  "Bẫy tâm lý cơ bản", "Chiến lược giá", "Tư duy khác biệt", "Khởi nghiệp tinh gọn", "Lợi thế cạnh tranh",
-  // Vừa (ưu tiên ô 3x3 hoặc 2x2)
-  "Quy luật 80/20 trong việc tối ưu hóa hiệu suất làm việc",
-  "Làm thế nào để xây dựng một văn hóa doanh nghiệp bền vững?",
-  "Bản chất của tiền tệ và những nguyên lý tài chính cá nhân",
-  "Tư duy hệ thống: Nhìn nhận bức tranh toàn cảnh của doanh nghiệp",
-  // Dài (ưu tiên ô 4x4 hoặc 3x3)
-  "Nguyên lý Đệ nhất (First Principles Thinking): Phân rã vấn đề về chân lý nền tảng để tái cấu trúc giải pháp đột phá, loại bỏ tư duy sao chép tương đối trong thời đại thay đổi liên tục.",
-  "Hiệu ứng Bánh đà (The Flywheel Effect): Bí quyết xây dựng quán tính tăng trưởng không thể cản phá của Amazon và cách áp dụng vào mô hình kinh doanh SME.",
-  "Chiến lược Đại dương Xanh: Cách tạo ra không gian thị trường không cạnh tranh, biến đối thủ trở nên không liên quan bằng cách tái định nghĩa giá trị cốt lõi."
-];
-
-// Seeded PRNG (not Math.random()) — this module runs during SSR *and*
-// during client hydration, each a separate module evaluation. Math.random()
-// and Date.now() would draw different values each time, so the numbers
-// the server sent down wouldn't match what the client computes on mount,
-// which React reports as a hydration mismatch (and reacts to by discarding
-// and re-rendering the affected subtree — visible as a jump/flash). A
-// seeded generator produces the same sequence every time, server or client.
-function seededRandom(seed: number): () => number {
-  let s = seed;
-  return () => {
-    s = (s * 1664525 + 1013904223) & 0xffffffff;
-    return (s >>> 0) / 0xffffffff;
-  };
-}
-
-// Fixed anchor instead of Date.now(), for the same reason.
-const DUMMY_SEED_ANCHOR = new Date("2026-01-01T00:00:00.000Z").getTime();
-
-const dummyPosts: Post[] = Array.from({ length: 50 }).map((_, i): Post => {
-  const titleCategory = i % 3; // 0: ngắn, 1: vừa, 2: dài
-  const titleBase = dummyTitles[titleCategory * 4 + (i % 4)] || dummyTitles[i % dummyTitles.length];
-  const pillar: PillarType = i % 2 === 0 ? "MENTAL_MODEL" : "BUSINESS_STRATEGY";
-  const creditCost = (i % 6) as 0 | 1 | 2 | 3 | 4 | 5;
-  const rand = seededRandom(1000 + i);
-
-  return {
-    id: `dummy-post-${i}`,
-    slug: `dummy-post-${i}`,
-    title: `[Seed ${i+1}] ${titleBase}`,
-    pillar,
-    category: "Thử nghiệm Lưới",
-    displaySize: "SQUARE_SM",
-    summarySnippet: "Đây là dữ liệu tự động tạo ra nhằm kiểm tra thuật toán Continuous Skyline Tiling và Elastic Dispatcher trên diện rộng với số lượng bài viết lớn.",
-    keyTakeaways: ["Kiểm tra độ khít lưới", "Kiểm tra Container Queries font-size", "Kiểm tra sự đa dạng kích thước (Variety Rule)"],
-    schematicSvg: "",
-    fullContent: "<p>Nội dung thử nghiệm hiển thị chi tiết.</p>",
-    creditCost,
-    readingTimeMinutes: Math.floor(rand() * 10) + 1,
-    status: "PUBLISHED",
-    clicks: 0,
-    shares: 0,
-    views: Math.floor(rand() * 5000),
-    likes: Math.floor(rand() * 500),
-    dislikes: Math.floor(rand() * 10),
-    author: "Thuật toán Seed",
-    tags: ["Test", "UI/UX", "Bento Grid"],
-    createdAt: new Date(DUMMY_SEED_ANCHOR - i * 86400000).toISOString(),
-    updatedAt: new Date(DUMMY_SEED_ANCHOR - i * 86400000).toISOString(),
-    shortDescription: "Dữ liệu test grid.",
-    readTime: "3 phút",
-  };
-});
-
-/** Grid-layout test posts — dev/test only, never seeded to production D1. */
-export const DUMMY_GRID_TEST_POSTS: Post[] = dummyPosts;

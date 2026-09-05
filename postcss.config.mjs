@@ -1,5 +1,4 @@
-const config = {
-  plugins: ["@tailwindcss/postcss"],
+/** PostCSS — backend-only, no Tailwind. */
+export default {
+  plugins: {},
 };
-
-export default config;

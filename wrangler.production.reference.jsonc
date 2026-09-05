@@ -1,0 +1,56 @@
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"_comment": "Snapshot of production wrangler config before archive (2026-08-29). Reference only — not used by deploy.",
+	"name": "thinkandrich",
+	"main": ".open-next/worker.js",
+	"compatibility_date": "2026-08-24",
+	"compatibility_flags": ["nodejs_compat"],
+	"workers_dev": true,
+	"routes": [
+		{
+			"pattern": "thinkandrich.ankiva.cc",
+			"custom_domain": true
+		},
+		{
+			"pattern": "admin.thinkandrich.ankiva.cc",
+			"custom_domain": true
+		}
+	],
+	"vars": {
+		"ADMIN_HOST": "admin.thinkandrich.ankiva.cc",
+		"PUBLIC_HOST": "thinkandrich.ankiva.cc",
+		"SESSION_COOKIE_DOMAIN": ".thinkandrich.ankiva.cc"
+	},
+	"assets": {
+		"directory": ".open-next/assets",
+		"binding": "ASSETS"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "thinkandrich-db",
+			"database_id": "3ac5f167-a1d2-44e7-806b-0e40b13257dd",
+			"migrations_dir": "drizzle"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "ATTACHMENTS",
+			"bucket_name": "thinkandrich-attachments"
+		}
+	],
+	"triggers": {
+		"crons": ["0 3 * * *"]
+	},
+	"kv_namespaces": [
+		{
+			"binding": "OTP_KV",
+			"id": "2ac73e7382474375ab589471ffca88d6"
+		}
+	],
+	"send_email": [
+		{
+			"name": "EMAIL"
+		}
+	]
+}

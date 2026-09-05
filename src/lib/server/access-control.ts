@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
-import { posts, userUnlocks, users } from "@/db/schema";
+import { userUnlocks, users } from "@/db/schema";
 import type { CreditCost, Post } from "@/lib/types";
 import {
   deductCredits,

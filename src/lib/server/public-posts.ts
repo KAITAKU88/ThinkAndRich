@@ -58,8 +58,6 @@ export async function getPublicPosts(dbBinding: D1Database, filters: PublicPostF
   return rows.map((row) => ({ ...rowToPost(row), fullContent: "" }));
 }
 
-const PILLAR_TYPES: PillarType[] = ["MENTAL_MODEL", "BUSINESS_STRATEGY", "STARTUP_IDEA"];
-
 export async function getPublicPostStats(dbBinding: D1Database): Promise<PublicPostStats> {
   const db = drizzle(dbBinding);
   const base = and(eq(posts.status, "PUBLISHED"), excludeDemoPostsCondition());
